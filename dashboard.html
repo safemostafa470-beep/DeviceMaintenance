@@ -193,7 +193,6 @@
             outline: none;
         }
 
-        /* نافذة الاتصال بتصميم عصري وأفقي */
         .call-modal-overlay {
             position: fixed;
             top: 25px;
@@ -308,7 +307,7 @@
 
     <div id="customAlertModal" class="custom-alert-backdrop">
         <div id="customAlertCard" class="custom-alert-card">
-            <div id="customAlertIcon" class="alert-icon-wrap">⚠️</div>
+            <div id="customAlertIcon" class="alert-icon-wrap">⚠️️</div>
             <div id="customAlertTitle" class="alert-card-title">تنبيه</div>
             <div id="customAlertDesc" class="alert-card-desc"></div>
             <button type="button" id="customAlertBtn" class="alert-card-btn" onclick="closeCustomAlert()">حسناً، فهمت</button>
@@ -342,7 +341,7 @@
 
     <div class="top-nav">
         <div style="font-size: 0.9rem; font-weight: bold; color: var(--primary-color);">
-            🛠️ فني الصيانة: <span id="currentTechDisplay" style="color: #22c55e;">-</span>
+            🛠️️ فني الصيانة: <span id="currentTechDisplay" style="color: #22c55e;">-</span>
         </div>
         <div class="nav-buttons">
             <button class="nav-btn active" onclick="switchTab('add', this)">إضافة جهاز</button>
@@ -469,7 +468,7 @@
         let activeChatDeviceId = null;
         let currentTech = localStorage.getItem('currentUser') || '';
 
-        // WebRTC والمتغيرات المحدثة
+        // WebRTC
         let callChannels = {};
         let activeIncomingCallDeviceId = null;
         let incomingOfferData = null;
@@ -477,7 +476,7 @@
         let localStream = null;
         let iceCandidatesQueue = [];
 
-        // عداد المكالمة
+        // مؤقت المكالمة
         let callTimerInterval = null;
         let callSeconds = 0;
 
@@ -1042,7 +1041,7 @@
             a.click();
         }
 
-        /* --- عداد مدة المكالمة --- */
+        /* --- عداد المكالمة --- */
         function startCallTimer(elementId) {
             stopCallTimer();
             callSeconds = 0;
@@ -1072,7 +1071,7 @@
             if (el2) el2.style.display = 'none';
         }
 
-        /* إجبار تفعيل إذن الميكروفون */
+        /* إجبار إذن الميكروفون */
         async function ensureAudioPermission() {
             try {
                 return await navigator.mediaDevices.getUserMedia({
@@ -1090,7 +1089,20 @@
             }
         }
 
-        /* --- الاتصال الصوتي وإدارة الرنين WebRTC --- */
+        /* ربط وتشغيل الصوت الخارجي */
+        function attachRemoteAudio(stream) {
+            const rAudio = document.getElementById('remoteAudio');
+            if (rAudio) {
+                rAudio.srcObject = stream;
+                rAudio.muted = false;
+                rAudio.volume = 1.0;
+                rAudio.play().catch(e => {
+                    console.log('Play blocked, waiting user touch:', e);
+                });
+            }
+        }
+
+        /* --- WebRTC وإدارة الاتصال للفني --- */
         function listenToCallsForDevices(devices) {
             devices.forEach(d => {
                 if (!callChannels[d.id]) {
@@ -1177,9 +1189,7 @@
             };
 
             peerConnection.ontrack = event => {
-                const rAudio = document.getElementById('remoteAudio');
-                rAudio.srcObject = event.streams[0];
-                rAudio.play().catch(()=>{});
+                attachRemoteAudio(event.streams[0]);
             };
 
             const offer = await peerConnection.createOffer({ offerToReceiveAudio: true });
@@ -1234,9 +1244,7 @@
             };
 
             peerConnection.ontrack = event => {
-                const rAudio = document.getElementById('remoteAudio');
-                rAudio.srcObject = event.streams[0];
-                rAudio.play().catch(()=>{});
+                attachRemoteAudio(event.streams[0]);
             };
 
             await peerConnection.setRemoteDescription(new RTCSessionDescription(incomingOfferData.sdp));

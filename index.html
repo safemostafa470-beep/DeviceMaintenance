@@ -92,7 +92,6 @@
             font-size: 0.95rem;
         }
 
-        /* بطاقة رسالة الشكر وإنهاء الخدمة */
         .closed-card {
             background: var(--card-bg);
             border-radius: 16px;
@@ -162,7 +161,6 @@
         }
         .btn-new-search:hover { background: var(--primary-color); color: #0f172a; }
 
-        /* بطاقة تفاصيل الجهاز النشط */
         .result-card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -260,7 +258,6 @@
             cursor: pointer;
         }
 
-        /* نافذة التنبيه الاحترافية المحدثة */
         .custom-modal-backdrop {
             position: fixed;
             top: 0;
@@ -306,7 +303,6 @@
         }
         .modal-btn:hover { opacity: 0.9; }
 
-        /* نافذة الاتصال بتنسيق مستوٍ وأفقي مريح */
         .call-modal-overlay {
             position: fixed;
             top: 25px;
@@ -375,7 +371,6 @@
 
     <div id="toast" class="toast">تم الإرسال</div>
 
-    <!-- نافذة التنبيهات المخصصة والراقية -->
     <div id="customModal" class="custom-modal-backdrop">
         <div class="custom-modal-box">
             <div id="modalIcon" class="modal-icon">🔔</div>
@@ -411,7 +406,6 @@
     <audio id="remoteAudio" autoplay playsinline></audio>
 
     <div class="container">
-        <!-- الواجهة العلوية للبحث -->
         <div class="header-card">
             <a href="login.html" class="tech-portal-link">🛠️ بوابة الفنيين</a>
             <h1>تتبع حالة صيانة جهازك</h1>
@@ -423,13 +417,11 @@
             </div>
         </div>
 
-        <!-- بطاقة رسالة الشكر وإنهاء الخدمة -->
         <div id="closedCard" class="closed-card">
             <div id="closedIcon" class="closed-icon">✨</div>
             <div id="closedTitle" class="closed-title">شكراً لثقتكم بنا</div>
             <p id="closedDesc" class="closed-desc"></p>
             
-            <!-- رسالة الشكر المخصصة من الأدمن -->
             <div id="specialThanksContainer" class="special-thanks-box" style="display: none;">
                 <div class="special-thanks-title">
                     <span>💌 رسالة خاصة من إدارة المركز:</span>
@@ -444,7 +436,6 @@
             <div class="auto-redirect-bar" id="redirectBar"></div>
         </div>
 
-        <!-- بطاقة متابعة الجهاز النشط -->
         <div id="resultCard" class="result-card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                 <span class="status-badge" id="resStatus">-</span>
@@ -612,6 +603,19 @@
             if (el2) el2.style.display = 'none';
         }
 
+        /* ربط وتشغيل الصوت الخارجي */
+        function attachRemoteAudio(stream) {
+            const rAudio = document.getElementById('remoteAudio');
+            if (rAudio) {
+                rAudio.srcObject = stream;
+                rAudio.muted = false;
+                rAudio.volume = 1.0;
+                rAudio.play().catch(e => {
+                    console.log('Play blocked, waiting user touch:', e);
+                });
+            }
+        }
+
         async function searchDevice() {
             let val = document.getElementById('trackInput').value.trim();
             if (!val) {
@@ -764,7 +768,6 @@
             }
         }
 
-        /* تعليم رسائل الفني بأنها مقروءة مع تسجيل الوقت لتظهر للفني بدقة */
         async function markTechMessagesAsRead() {
             if (!currentDevice) return;
             let chatArr = parseChat(currentDevice.chat);
@@ -891,7 +894,7 @@
                 document.getElementById('callerTitle').innerText = `📞 اتصال وارد من: ${data.callerName}`;
                 document.getElementById('incomingCallModal').style.display = 'flex';
                 document.querySelector('#incomingCallModal .btn-call-accept').style.display = 'inline-block';
-                startRingtone(); // رنين مستمر عند العميل
+                startRingtone();
             } else if (data.type === 'call_accepted') {
                 stopDialTone();
                 stopRingtone();
@@ -950,9 +953,7 @@
             };
 
             peerConnection.ontrack = event => {
-                const rAudio = document.getElementById('remoteAudio');
-                rAudio.srcObject = event.streams[0];
-                rAudio.play().catch(()=>{});
+                attachRemoteAudio(event.streams[0]);
             };
 
             const offer = await peerConnection.createOffer({ offerToReceiveAudio: true });
@@ -1007,9 +1008,7 @@
             };
 
             peerConnection.ontrack = event => {
-                const rAudio = document.getElementById('remoteAudio');
-                rAudio.srcObject = event.streams[0];
-                rAudio.play().catch(()=>{});
+                attachRemoteAudio(event.streams[0]);
             };
 
             await peerConnection.setRemoteDescription(new RTCSessionDescription(incomingOfferData.sdp));
@@ -1055,7 +1054,6 @@
             if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
         }
 
-        // صوت الاتصال الصادر (Dial Tone)
         function startDialTone() {
             try {
                 if (dialInterval) return;
@@ -1079,7 +1077,6 @@
             if (dialAudioCtx) { dialAudioCtx.close().catch(()=>{}); dialAudioCtx = null; }
         }
 
-        // صوت الرنين للاتصال الوارد (Ringtone)
         function startRingtone() {
             try {
                 if (ringInterval) return;
