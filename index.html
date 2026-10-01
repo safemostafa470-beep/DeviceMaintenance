@@ -92,7 +92,7 @@
             font-size: 0.95rem;
         }
 
-        /* بطاقة رسالة الشكر المؤقتة */
+        /* بطاقة رسالة الشكر وإنهاء الخدمة */
         .closed-card {
             background: var(--card-bg);
             border-radius: 16px;
@@ -122,6 +122,34 @@
         .closed-icon { font-size: 3.2rem; margin-bottom: 10px; }
         .closed-title { font-size: 1.3rem; font-weight: bold; margin-bottom: 8px; }
         .closed-desc { font-size: 0.92rem; color: #cbd5e1; line-height: 1.6; margin-bottom: 18px; }
+        
+        /* إبراز رسالة المركز المخصصة */
+        .special-thanks-box {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.12) 0%, rgba(34, 197, 94, 0.12) 100%);
+            border: 1px dashed var(--primary-color);
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin: 15px 0;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .special-thanks-title {
+            font-size: 0.8rem;
+            color: var(--primary-color);
+            font-weight: 700;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .special-thanks-text {
+            font-size: 0.95rem;
+            color: #f1f5f9;
+            line-height: 1.5;
+            font-weight: 600;
+        }
+
         .btn-new-search {
             background: rgba(56, 189, 248, 0.15);
             border: 1px solid var(--primary-color);
@@ -232,6 +260,52 @@
             cursor: pointer;
         }
 
+        /* نافذة التنبيه الاحترافية (بديل للـ Alert التقليدي) */
+        .custom-modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(6px);
+            z-index: 99999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            animation: fadeIn 0.2s ease;
+        }
+        .custom-modal-box {
+            background: #1e293b;
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            width: 100%;
+            max-width: 420px;
+            padding: 24px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            transform: scale(0.95);
+            animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes popIn { to { transform: scale(1); } }
+        .modal-icon { font-size: 2.8rem; margin-bottom: 12px; }
+        .modal-title { font-size: 1.15rem; font-weight: bold; margin-bottom: 10px; color: #fff; }
+        .modal-body { font-size: 0.9rem; color: #cbd5e1; line-height: 1.6; margin-bottom: 20px; }
+        .modal-btn {
+            background: var(--accent-gradient);
+            color: #0f172a;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            cursor: pointer;
+            width: 100%;
+            transition: opacity 0.2s;
+        }
+        .modal-btn:hover { opacity: 0.9; }
+
         .call-modal-overlay {
             position: fixed;
             top: 20px;
@@ -284,6 +358,16 @@
 
     <div id="toast" class="toast">تم الإرسال</div>
 
+    <!-- نافذة التنبيهات المخصصة والراقية -->
+    <div id="customModal" class="custom-modal-backdrop">
+        <div class="custom-modal-box">
+            <div id="modalIcon" class="modal-icon">🔔</div>
+            <div id="modalTitle" class="modal-title">تنبيه</div>
+            <div id="modalBody" class="modal-body"></div>
+            <button type="button" class="modal-btn" onclick="closeCustomModal()">حسناً، فهمت</button>
+        </div>
+    </div>
+
     <div id="incomingCallModal" class="call-modal-overlay" style="border: 2px solid var(--success-color);">
         <div>
             <div style="font-size:0.9rem; font-weight:bold; color:#fff;" id="callerTitle">📞 اتصال وارد من مركز الصيانة...</div>
@@ -316,11 +400,20 @@
             </div>
         </div>
 
-        <!-- بطاقة رسالة الشكر وإنهاء الخدمة (تظهر ثم تعود لصفحة الاستعلام) -->
+        <!-- بطاقة رسالة الشكر وإنهاء الخدمة -->
         <div id="closedCard" class="closed-card">
             <div id="closedIcon" class="closed-icon">✨</div>
             <div id="closedTitle" class="closed-title">شكراً لثقتكم بنا</div>
             <p id="closedDesc" class="closed-desc"></p>
+            
+            <!-- رسالة الشكر المخصصة من الأدمن -->
+            <div id="specialThanksContainer" class="special-thanks-box" style="display: none;">
+                <div class="special-thanks-title">
+                    <span>💌 رسالة خاصة من إدارة المركز:</span>
+                </div>
+                <div id="specialThanksText" class="special-thanks-text"></div>
+            </div>
+
             <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;" id="redirectCountText">
                 سيتم إعادتك لصفحة الاستعلام خلال ثوانٍ...
             </div>
@@ -400,6 +493,21 @@
             return [];
         }
 
+        // نافذة التنبيه الاحترافية (بدون اسم الموقع وبمظهر عصري)
+        function showCustomAlert(title, message, icon = '🔔', borderColor = 'var(--primary-color)') {
+            const modal = document.getElementById('customModal');
+            const box = modal.querySelector('.custom-modal-box');
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalBody').innerHTML = message;
+            document.getElementById('modalIcon').innerText = icon;
+            box.style.borderColor = borderColor;
+            modal.style.display = 'flex';
+        }
+
+        function closeCustomModal() {
+            document.getElementById('customModal').style.display = 'none';
+        }
+
         function showToast(msg) {
             let t = document.getElementById('toast');
             if (!t) return;
@@ -408,7 +516,6 @@
             setTimeout(() => t.classList.remove('show'), 3500);
         }
 
-        // تفريغ البيانات والعودة للواجهة الرئيسية للاستعلام
         function resetToNewSearch() {
             if (redirectTimeout) clearTimeout(redirectTimeout);
             document.getElementById('closedCard').style.display = 'none';
@@ -423,7 +530,7 @@
         async function searchDevice() {
             let val = document.getElementById('trackInput').value.trim();
             if (!val) {
-                alert('الرجاء إدخال رقم التتبع أو رقم الهاتف');
+                showCustomAlert('حقل مطلوب', 'الرجاء إدخال رقم التتبع أو رقم الهاتف للبحث.', '⚠️', 'var(--warning-color)');
                 return;
             }
 
@@ -436,7 +543,7 @@
                 .maybeSingle();
 
             if (error || !data) {
-                alert('لم يتم العثور على أي جهاز مسجل بهذه البيانات.');
+                showCustomAlert('غير موجود', 'لم يتم العثور على أي جهاز مسجل بهذه البيانات.', '🔍', 'var(--danger-color)');
                 document.getElementById('resultCard').style.display = 'none';
                 document.getElementById('closedCard').style.display = 'none';
                 return;
@@ -444,7 +551,7 @@
 
             const st = data.status || '';
 
-            // إذا كان الجهاز مسلماً أو مسترجعاً مسبقاً، يتم منعه وتنبيهه فوراً
+            // إذا كان الجهاز مسلماً أو مسترجعاً مسبقاً، تنبيه باحترافية
             if (st === 'تم تسليم الجهاز للعميل' || st === 'مسترجع') {
                 document.getElementById('resultCard').style.display = 'none';
                 document.getElementById('closedCard').style.display = 'none';
@@ -452,9 +559,20 @@
                 if (syncInterval) clearInterval(syncInterval);
 
                 if (st === 'تم تسليم الجهاز للعميل') {
-                    alert(`تنبيه: تم تسليم هذا الجهاز (${data.device_name}) للعميل بالفعل وإغلاق طلب الصيانة. شكراً لتعاملكم معنا.`);
+                    let customMsg = data.details ? `<br><br><div class="special-thanks-box"><div class="special-thanks-title">💌 رسالة المركز:</div><div class="special-thanks-text">${escapeHTML(data.details)}</div></div>` : '';
+                    showCustomAlert(
+                        'تم تسليم الجهاز',
+                        `تم تسليم هذا الجهاز (<b>${escapeHTML(data.device_name)}</b>) للعميل بالفعل وإغلاق طلب الصيانة بنجاح. شكراً لثقتكم بنا.${customMsg}`,
+                        '🤝',
+                        'var(--success-color)'
+                    );
                 } else {
-                    alert(`تنبيه: هذا الجهاز (${data.device_name}) تم استرجاعه وإغلاق طلبه.`);
+                    showCustomAlert(
+                        'جهاز مسترجع',
+                        `تنبيه: هذا الجهاز (<b>${escapeHTML(data.device_name)}</b>) تم استرجاعه وإغلاق طلبه.`,
+                        '🔄',
+                        'var(--danger-color)'
+                    );
                 }
                 return;
             }
@@ -474,7 +592,7 @@
             const resultCard = document.getElementById('resultCard');
             const closedCard = document.getElementById('closedCard');
 
-            // في حال تم تغيير الحالة أثناء الفحص إلى (تسليم أو استرجاع)
+            // في حال تم تغيير الحالة إلى (تسليم أو استرجاع)
             if (st === 'تم تسليم الجهاز للعميل' || st === 'مسترجع') {
                 if (syncInterval) clearInterval(syncInterval);
                 resultCard.style.display = 'none';
@@ -484,8 +602,9 @@
                 const titleEl = document.getElementById('closedTitle');
                 const descEl = document.getElementById('closedDesc');
                 const barEl = document.getElementById('redirectBar');
+                const thanksContainer = document.getElementById('specialThanksContainer');
+                const thanksText = document.getElementById('specialThanksText');
 
-                // إعادة تشغيل أنيميشن الشريط الزمني
                 barEl.style.animation = 'none';
                 void barEl.offsetWidth;
                 barEl.style.animation = 'shrinkBar 7s linear forwards';
@@ -496,17 +615,24 @@
                     titleEl.innerText = 'شكراً لثقتكم بنا - تم تسليم الجهاز';
                     titleEl.style.color = 'var(--success-color)';
                     
-                    let customThanks = currentDevice.details ? `<br><span style="color:#38bdf8; font-weight:bold;">رسالة المركز: ${escapeHTML(currentDevice.details)}</span><br>` : '';
-                    descEl.innerHTML = `تم تسليم جهازكم (<b>${escapeHTML(currentDevice.device_name)}</b>) بنجاح وإغلاق التذكرة.${customThanks}سعدنا جداً بخدمتكم ونتمنى لكم تجربة ممتازة دائماً.`;
+                    descEl.innerHTML = `تم تسليم جهازكم (<b>${escapeHTML(currentDevice.device_name)}</b>) بنجاح وإغلاق التذكرة.<br>سعدنا جداً بخدمتكم ونتمنى لكم تجربة ممتازة دائماً.`;
+
+                    // إبراز رسالة الأدمن إن وجدت
+                    if (currentDevice.details && currentDevice.details.trim() !== '') {
+                        thanksText.innerText = currentDevice.details;
+                        thanksContainer.style.display = 'block';
+                    } else {
+                        thanksContainer.style.display = 'none';
+                    }
                 } else {
                     closedCard.style.border = '2px solid var(--danger-color)';
                     iconEl.innerText = '🔄';
                     titleEl.innerText = 'تم استرجاع الجهاز';
                     titleEl.style.color = 'var(--danger-color)';
                     descEl.innerHTML = `تم استرجاع جهازكم (<b>${escapeHTML(currentDevice.device_name)}</b>) وإغلاق التذكرة في النظام.<br>نشكركم لزيارتنا ونتشرف بخدمتكم في أي وقت.`;
+                    thanksContainer.style.display = 'none';
                 }
 
-                // العودة لصفحة الاستعلام تلقائياً بعد 7 ثوانٍ
                 if (redirectTimeout) clearTimeout(redirectTimeout);
                 redirectTimeout = setTimeout(() => {
                     resetToNewSearch();
@@ -515,7 +641,6 @@
                 return;
             }
 
-            // إذا كان الجهاز لا يزال قيد الفحص أو المعالجة
             closedCard.style.display = 'none';
             resultCard.style.display = 'block';
 
@@ -671,7 +796,7 @@
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             } catch(e) {
-                alert('يرجى السماح بالوصول للميكروفون لإجراء المكالمة.');
+                showCustomAlert('إذن الميكروفون', 'يرجى السماح بالوصول للميكروفون لإجراء المكالمة.', '🎙️', 'var(--warning-color)');
                 return;
             }
 
@@ -731,7 +856,7 @@
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             } catch(e) {
-                alert('يرجى السماح بصلاحية الميكروفون للرد.');
+                showCustomAlert('إذن الميكروفون', 'يرجى السماح بصلاحية الميكروفون للرد على المكالمة.', '🎙️', 'var(--warning-color)');
                 return;
             }
 

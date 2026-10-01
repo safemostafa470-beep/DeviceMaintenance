@@ -242,11 +242,87 @@
             text-align: center;
         }
         .toast.show { transform: translateX(-50%) translateY(0); }
+
+        /* نافذة المودال الاحترافية البديلة لـ alert المتصفح */
+        .custom-alert-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 999999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            animation: modalFadeIn 0.25s ease;
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .custom-alert-card {
+            background: #1e293b;
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            width: 100%;
+            max-width: 420px;
+            padding: 25px 20px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+            transform: scale(0.92);
+            animation: modalPopIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes modalPopIn {
+            to { transform: scale(1); }
+        }
+        .alert-icon-wrap {
+            font-size: 3rem;
+            margin-bottom: 12px;
+            display: inline-block;
+        }
+        .alert-card-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+        .alert-card-desc {
+            font-size: 0.92rem;
+            color: #cbd5e1;
+            line-height: 1.6;
+            margin-bottom: 22px;
+        }
+        .alert-card-btn {
+            background: var(--accent-gradient);
+            color: #0f172a;
+            border: none;
+            padding: 11px 22px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.15s, opacity 0.2s;
+        }
+        .alert-card-btn:active { transform: scale(0.98); }
     </style>
 </head>
 <body>
 
     <div id="toast" class="toast">تم الحفظ بنجاح</div>
+
+    <!-- النافذة المنبثقة الراقية والبديلة لـ alert المتصفح -->
+    <div id="customAlertModal" class="custom-alert-backdrop">
+        <div id="customAlertCard" class="custom-alert-card">
+            <div id="customAlertIcon" class="alert-icon-wrap">⚠️</div>
+            <div id="customAlertTitle" class="alert-card-title">تنبيه</div>
+            <div id="customAlertDesc" class="alert-card-desc"></div>
+            <button type="button" id="customAlertBtn" class="alert-card-btn" onclick="closeCustomAlert()">حسناً، فهمت</button>
+        </div>
+    </div>
 
     <!-- نافذة الاتصال الوارد من العميل -->
     <div id="incomingCallModal" class="call-modal-overlay" style="border: 2px solid var(--success-color);">
@@ -408,6 +484,7 @@
         const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
         let dialAudioCtx = null;
         let dialInterval = null;
+        let alertCallback = null;
 
         function escapeHTML(str) {
             if (!str) return '';
@@ -428,6 +505,33 @@
             return [];
         }
 
+        /* دالة المودال الأنيقة البديلة لـ alert */
+        function showCustomAlert(title, desc, icon = '⚠️', color = 'var(--primary-color)', callback = null) {
+            const modal = document.getElementById('customAlertModal');
+            const card = document.getElementById('customAlertCard');
+            const titleEl = document.getElementById('customAlertTitle');
+            const descEl = document.getElementById('customAlertDesc');
+            const iconEl = document.getElementById('customAlertIcon');
+
+            titleEl.innerText = title;
+            titleEl.style.color = color;
+            descEl.innerHTML = desc;
+            iconEl.innerText = icon;
+            card.style.borderColor = color;
+
+            alertCallback = callback;
+            modal.style.display = 'flex';
+        }
+
+        function closeCustomAlert() {
+            document.getElementById('customAlertModal').style.display = 'none';
+            if (typeof alertCallback === 'function') {
+                const cb = alertCallback;
+                alertCallback = null;
+                cb();
+            }
+        }
+
         function showToast(msg, isError = false) {
             let t = document.getElementById('toast');
             if (!t) return;
@@ -437,21 +541,23 @@
             setTimeout(() => t.classList.remove('show'), 3500);
         }
 
-        /* دالة طرد الفني وتسجيل الخروج مع توضيح السبب */
-        function forceLogoutWithReason(reason) {
+        /* دالة طرد الفني وتسجيل الخروج بمودال أنيق وبدون اسم الموقع */
+        function forceLogoutWithReason(reason, icon = '🚫') {
             localStorage.removeItem('isLoggedIn');
             localStorage.removeItem('currentUser');
             localStorage.removeItem('shopName');
             sessionStorage.clear();
             localStorage.setItem('logout_reason', reason);
-            alert(reason);
-            window.location.replace('login.html');
+
+            showCustomAlert('تنبيه من النظام', reason, icon, 'var(--danger-color)', () => {
+                window.location.replace('login.html');
+            });
         }
 
         /* التحقق من صلاحية واشتراك حساب الفني */
         async function verifyTechnicianAccount() {
             if (!currentTech) {
-                forceLogoutWithReason('لم يتم العثور على جلسة صالحة، يرجى تسجيل الدخول.');
+                forceLogoutWithReason('لم يتم العثور على جلسة صالحة، يرجى تسجيل الدخول مجدداً.', '🔒');
                 return;
             }
 
@@ -468,13 +574,13 @@
                 }
 
                 if (!data) {
-                    forceLogoutWithReason('عذراً، هذا الحساب غير موجود في النظام.');
+                    forceLogoutWithReason('عذراً، هذا الحساب غير موجود في النظام.', '❌');
                     return;
                 }
 
                 // 1. فحص إيقاف الحساب
                 if (data.is_active === false || data.status === 'موقوف' || data.status === 'وقف') {
-                    forceLogoutWithReason('عذراً، تم إيقاف حسابك من قبل الإدارة.');
+                    forceLogoutWithReason('عذراً، تم إيقاف حسابك من قبل الإدارة.', '⛔');
                     return;
                 }
 
@@ -482,7 +588,7 @@
                 if (data.expiry_date) {
                     const today = new Date().toISOString().split('T')[0];
                     if (today > data.expiry_date) {
-                        forceLogoutWithReason('عذراً، انتهت صلاحية اشتراكك الشهري في تاريخ: ' + data.expiry_date + '. يرجى تجديد الاشتراك للمتابعة.');
+                        forceLogoutWithReason('عذراً، انتهت صلاحية اشتراكك الشهري في تاريخ: ' + data.expiry_date + '. يرجى تجديد الاشتراك للمتابعة.', '⏳');
                         return;
                     }
                 }
@@ -502,11 +608,11 @@
                     payload => {
                         let updated = payload.new;
                         if (updated.is_active === false || updated.status === 'موقوف' || updated.status === 'وقف') {
-                            forceLogoutWithReason('عذراً، تم إيقاف حسابك من قبل الإدارة الآن.');
+                            forceLogoutWithReason('عذراً، تم إيقاف حسابك من قبل الإدارة الآن.', '⛔');
                         } else if (updated.expiry_date) {
                             const today = new Date().toISOString().split('T')[0];
                             if (today > updated.expiry_date) {
-                                forceLogoutWithReason('عذراً، انتهت صلاحية اشتراكك الشهري في تاريخ: ' + updated.expiry_date);
+                                forceLogoutWithReason('عذراً، انتهت صلاحية اشتراكك الشهري في تاريخ: ' + updated.expiry_date, '⏳');
                             }
                         }
                     }
@@ -553,7 +659,7 @@
             let notes = document.getElementById('deviceNotes').value.trim();
 
             if (!name || !phone || !device) {
-                alert('يرجى إدخال اسم العميل والهاتف ونوع الجهاز');
+                showCustomAlert('حقول مطلوبة', 'يرجى إدخال اسم العميل ورقم الهاتف ونوع الجهاز للمتابعة.', '⚠️', 'var(--warning-color)');
                 return;
             }
 
@@ -574,7 +680,7 @@
 
             let { error } = await _supabase.from('devices').insert([newDev]);
             if (error) {
-                alert('خطأ أثناء الحفظ: ' + error.message);
+                showCustomAlert('خطأ في الحفظ', 'حدث خطأ أثناء الحفظ: ' + error.message, '❌', 'var(--danger-color)');
                 return;
             }
 
@@ -714,7 +820,7 @@
                 if (dev) dev.status = newStatus;
                 showToast('تم تغيير الحالة إلى: ' + newStatus);
             } catch (err) {
-                alert('فشل تحديث الحالة: ' + err.message);
+                showCustomAlert('خطأ في التحديث', 'فشل تحديث الحالة: ' + err.message, '❌', 'var(--danger-color)');
             }
         }
 
@@ -771,7 +877,7 @@
                     renderActiveChat();
                 }
             } catch (err) {
-                alert('حدث خطأ أثناء الإرسال: ' + err.message);
+                showCustomAlert('خطأ في الإرسال', 'حدث خطأ أثناء الإرسال: ' + err.message, '❌', 'var(--danger-color)');
             }
         }
 
@@ -903,7 +1009,7 @@
 
             let { error } = await _supabase.from('devices').update({ chat: chat }).eq('id', activeChatDeviceId);
             if (error) {
-                alert('فشل إرسال الرسالة: ' + error.message);
+                showCustomAlert('فشل الإرسال', 'فشل إرسال الرسالة: ' + error.message, '❌', 'var(--danger-color)');
             }
         }
 
@@ -978,7 +1084,7 @@
 
         async function startCallToClient() {
             if (activeChatDeviceId === null) {
-                alert('الرجاء فتح شات الجهاز أولاً');
+                showCustomAlert('تنبيه', 'الرجاء فتح شات الجهاز أولاً لإجراء المكالمة.', '💬', 'var(--warning-color)');
                 return;
             }
             let dev = devicesList.find(d => String(d.id) === String(activeChatDeviceId));
@@ -987,7 +1093,7 @@
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             } catch(e) {
-                alert('يرجى السماح بالوصول إلى الميكروفون لإجراء المكالمة.');
+                showCustomAlert('إذن الميكروفون', 'يرجى السماح بالوصول إلى الميكروفون لإجراء المكالمة.', '🎙️', 'var(--danger-color)');
                 return;
             }
 
@@ -1048,7 +1154,7 @@
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             } catch(e) {
-                alert('يرجى السماح بصلاحية الميكروفون للرد.');
+                showCustomAlert('إذن الميكروفون', 'يرجى السماح بصلاحية الميكروفون للرد على المكالمة.', '🎙️', 'var(--warning-color)');
                 return;
             }
 
