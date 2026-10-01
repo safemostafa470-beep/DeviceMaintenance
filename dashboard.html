@@ -320,7 +320,7 @@
         <div>
             <div style="font-size:0.92rem; font-weight:bold; color:#fff;" id="callerTitle">📞 اتصال وارد من عميل...</div>
             <div style="font-size:0.75rem; color:var(--text-muted);" id="callSubTitle">جهاز قيد المتابعة</div>
-            <div id="incomingTimer" class="call-timer-badge" style="display:none;">00:00</div>
+            <div id="incomingCallTimer" class="call-timer-badge" style="display:none;">00:00</div>
         </div>
         <div style="display:flex; gap:8px;">
             <button class="btn-call-action btn-call-accept" onclick="acceptIncomingCall()">رد</button>
@@ -333,7 +333,7 @@
         <div>
             <div style="font-size:0.92rem; font-weight:bold; color:#fff;" id="outgoingCallerTitle">📞 جاري الاتصال بالعميل...</div>
             <div style="font-size:0.75rem; color:var(--text-muted);" id="outgoingCallStatus">في انتظار الرد...</div>
-            <div id="outgoingTimer" class="call-timer-badge" style="display:none;">00:00</div>
+            <div id="outgoingCallTimer" class="call-timer-badge" style="display:none;">00:00</div>
         </div>
         <button class="btn-call-action btn-call-reject" onclick="endOutgoingCall(true)">إنهاء ✕</button>
     </div>
@@ -485,7 +485,6 @@
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
                 { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun.services.mozilla.com' },
                 { urls: 'turn:openrelay.metered.ca:80', username: 'openrelay', credential: 'openrelay' },
                 { urls: 'turn:openrelay.metered.ca:443', username: 'openrelay', credential: 'openrelay' },
                 { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelay', credential: 'openrelay' }
@@ -1037,7 +1036,7 @@
             a.click();
         }
 
-        /* إدارة عداد مدة المكالمة */
+        /* تشغيل عداد المكالمة لكلا الطرفين بدقة */
         function startCallTimer(elementId) {
             stopCallTimer();
             callSeconds = 0;
@@ -1061,26 +1060,38 @@
                 callTimerInterval = null;
             }
             callSeconds = 0;
-            const el1 = document.getElementById('incomingTimer');
-            const el2 = document.getElementById('outgoingTimer');
-            if (el1) el1.style.display = 'none';
-            if (el2) el2.style.display = 'none';
+            const el1 = document.getElementById('incomingCallTimer');
+            const el2 = document.getElementById('outgoingCallTimer');
+            if (el1) { el1.style.display = 'none'; el1.innerText = '00:00'; }
+            if (el2) { el2.style.display = 'none'; el2.innerText = '00:00'; }
         }
 
-        /* تشغيل وربط مسار الصوت البعيد */
+        /* ربط مسار الصوت وحل مشكلة صمت الهواتف */
         function attachRemoteAudio(stream) {
             const rAudio = document.getElementById('remoteAudio');
-            if (rAudio) {
-                rAudio.srcObject = stream;
-                rAudio.muted = false;
-                rAudio.volume = 1.0;
-                const playPromise = rAudio.play();
-                if (playPromise !== undefined) {
-                    playPromise.catch(error => {
-                        console.warn('Audio play blocked:', error);
-                    });
+            if (!rAudio) return;
+
+            rAudio.srcObject = stream;
+            rAudio.muted = false;
+            rAudio.volume = 1.0;
+
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtx) {
+                    const ctx = new AudioCtx();
+                    if (ctx.state === 'suspended') {
+                        ctx.resume();
+                    }
+                    const src = ctx.createMediaStreamSource(stream);
+                    src.connect(ctx.destination);
                 }
+            } catch (e) {
+                console.warn('AudioContext bridge notice:', e);
             }
+
+            rAudio.play().catch(e => {
+                console.log('Playback triggered, waiting interaction:', e);
+            });
         }
 
         /* الاتصال الصوتي وإدارة القنوات */
@@ -1108,8 +1119,8 @@
             } else if (data.type === 'call_accepted') {
                 stopDialTone();
                 stopRingtone();
-                document.getElementById('outgoingCallStatus').innerText = 'متصل الآن 🎙️️';
-                startCallTimer('outgoingTimer');
+                document.getElementById('outgoingCallStatus').innerText = 'متصل الآن 🎙';
+                startCallTimer('outgoingCallTimer');
 
                 if (peerConnection && data.sdp) {
                     await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
@@ -1130,11 +1141,12 @@
                 stopCallTimer();
                 closeIncomingCallModal();
                 endOutgoingCall(false);
-            } else if (data.type === 'ice_candidate') {
+            } else if (data.type === 'ice_candidate' && data.candidate) {
+                const candidateObj = new RTCIceCandidate(data.candidate);
                 if (peerConnection && peerConnection.remoteDescription) {
-                    peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(()=>{});
+                    peerConnection.addIceCandidate(candidateObj).catch(()=>{});
                 } else {
-                    iceCandidatesQueue.push(new RTCIceCandidate(data.candidate));
+                    iceCandidatesQueue.push(candidateObj);
                 }
             }
         }
@@ -1171,7 +1183,7 @@
                     callChannels[activeChatDeviceId].send({
                         type: 'broadcast',
                         event: 'call_signal',
-                        payload: { type: 'ice_candidate', candidate: event.candidate }
+                        payload: { type: 'ice_candidate', candidate: event.candidate.toJSON() }
                     });
                 }
             };
@@ -1220,7 +1232,7 @@
                     video: false
                 });
             } catch (err) {
-                showCustomAlert('إذن الميكروفون مطلوب', 'يرجى تفعيل صلاحية الميكروفون من إعدادات المتصفح للرد على المكالمة.', '🎙️️', 'var(--danger-color)');
+                showCustomAlert('إذن الميكروفون مطلوب', 'يرجى تفعيل صلاحية الميكروفون من إعدادات المتصفح للرد على المكالمة.', '🎙', 'var(--danger-color)');
                 return;
             }
 
@@ -1233,7 +1245,7 @@
                     callChannels[activeIncomingCallDeviceId].send({
                         type: 'broadcast',
                         event: 'call_signal',
-                        payload: { type: 'ice_candidate', candidate: event.candidate }
+                        payload: { type: 'ice_candidate', candidate: event.candidate.toJSON() }
                     });
                 }
             };
@@ -1260,7 +1272,7 @@
 
             document.getElementById('callerTitle').innerText = `🎙 متصل في مكالمة صوتية`;
             document.querySelector('#incomingCallModal .btn-call-accept').style.display = 'none';
-            startCallTimer('incomingTimer');
+            startCallTimer('incomingCallTimer');
         }
 
         function rejectIncomingCall() {
