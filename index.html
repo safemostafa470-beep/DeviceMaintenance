@@ -340,12 +340,12 @@
             display: inline-block;
             background: rgba(56, 189, 248, 0.2);
             color: var(--primary-color);
-            padding: 2px 8px;
+            padding: 3px 8px;
             border-radius: 6px;
             font-weight: bold;
             font-family: monospace;
             font-size: 0.85rem;
-            margin-top: 3px;
+            margin-top: 4px;
         }
 
         .toast {
@@ -484,7 +484,6 @@
         let localStream = null;
         let iceCandidatesQueue = [];
 
-        // عداد المكالمة
         let callTimerInterval = null;
         let callSeconds = 0;
 
@@ -492,8 +491,13 @@
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' }
-            ] 
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun.services.mozilla.com' },
+                { urls: 'turn:openrelay.metered.ca:80', username: 'openrelay', credential: 'openrelay' },
+                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelay', credential: 'openrelay' },
+                { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelay', credential: 'openrelay' }
+            ],
+            iceCandidatePoolSize: 10
         };
 
         let dialAudioCtx = null;
@@ -555,25 +559,6 @@
             if (syncInterval) clearInterval(syncInterval);
         }
 
-        /* فحص وإجبار تفعيل إذن الميكروفون */
-        async function ensureAudioPermission() {
-            try {
-                return await navigator.mediaDevices.getUserMedia({
-                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-                    video: false
-                });
-            } catch (e) {
-                showCustomAlert(
-                    'إذن الميكروفون مطلوب',
-                    'عذراً، يجب السماح باستخدام الميكروفون لإجراء أو الرد على المكالمة الصوتية.<br><br><b>يرجى الضغط على علامة القفل 🔒 أو الإعدادات بجانب شريط المتصفح وتفعيل "الميكروفون".</b>',
-                    '🎙️',
-                    'var(--danger-color)'
-                );
-                return null;
-            }
-        }
-
-        /* عداد المكالمة */
         function startCallTimer(elementId) {
             stopCallTimer();
             callSeconds = 0;
@@ -603,16 +588,18 @@
             if (el2) el2.style.display = 'none';
         }
 
-        /* ربط وتشغيل الصوت الخارجي */
         function attachRemoteAudio(stream) {
             const rAudio = document.getElementById('remoteAudio');
             if (rAudio) {
                 rAudio.srcObject = stream;
                 rAudio.muted = false;
                 rAudio.volume = 1.0;
-                rAudio.play().catch(e => {
-                    console.log('Play blocked, waiting user touch:', e);
-                });
+                const playPromise = rAudio.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.warn('Audio play blocked:', error);
+                    });
+                }
             }
         }
 
@@ -931,8 +918,15 @@
 
         async function startCallToTech() {
             if (!currentDevice) return;
-            localStream = await ensureAudioPermission();
-            if (!localStream) return;
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                    video: false
+                });
+            } catch (err) {
+                showCustomAlert('إذن الميكروفون مطلوب', 'يرجى تفعيل صلاحية الميكروفون من إعدادات المتصفح أو أيقونة القفل لإتمام المكالمة.', '🎙️', 'var(--danger-color)');
+                return;
+            }
 
             document.getElementById('outgoingCallStatus').innerText = 'يرن الآن...';
             document.getElementById('outgoingCallModal').style.display = 'flex';
@@ -990,8 +984,15 @@
             if (!incomingOfferData) return;
             stopRingtone();
 
-            localStream = await ensureAudioPermission();
-            if (!localStream) return;
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                    video: false
+                });
+            } catch (err) {
+                showCustomAlert('إذن الميكروفون مطلوب', 'يرجى تفعيل صلاحية الميكروفون من إعدادات المتصفح للرد على المكالمة.', '🎙️', 'var(--danger-color)');
+                return;
+            }
 
             iceCandidatesQueue = [];
             peerConnection = new RTCPeerConnection(rtcConfig);
@@ -1089,12 +1090,10 @@
                     
                     osc1.frequency.setValueAtTime(440, ringAudioCtx.currentTime);
                     osc2.frequency.setValueAtTime(480, ringAudioCtx.currentTime);
-                    
                     gain.gain.setValueAtTime(0.2, ringAudioCtx.currentTime);
                     gain.gain.exponentialRampToValueAtTime(0.01, ringAudioCtx.currentTime + 0.8);
                     
-                    osc1.connect(gain);
-                    osc2.connect(gain);
+                    osc1.connect(gain); osc2.connect(gain);
                     gain.connect(ringAudioCtx.destination);
                     
                     osc1.start(); osc1.stop(ringAudioCtx.currentTime + 0.8);

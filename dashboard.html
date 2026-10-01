@@ -193,6 +193,7 @@
             outline: none;
         }
 
+        /* نافذة الاتصال */
         .call-modal-overlay {
             position: fixed;
             top: 25px;
@@ -230,12 +231,12 @@
             display: inline-block;
             background: rgba(56, 189, 248, 0.2);
             color: var(--primary-color);
-            padding: 2px 8px;
+            padding: 3px 8px;
             border-radius: 6px;
             font-weight: bold;
             font-family: monospace;
             font-size: 0.85rem;
-            margin-top: 3px;
+            margin-top: 4px;
         }
 
         .toast {
@@ -307,7 +308,7 @@
 
     <div id="customAlertModal" class="custom-alert-backdrop">
         <div id="customAlertCard" class="custom-alert-card">
-            <div id="customAlertIcon" class="alert-icon-wrap">⚠️️</div>
+            <div id="customAlertIcon" class="alert-icon-wrap">⚠️</div>
             <div id="customAlertTitle" class="alert-card-title">تنبيه</div>
             <div id="customAlertDesc" class="alert-card-desc"></div>
             <button type="button" id="customAlertBtn" class="alert-card-btn" onclick="closeCustomAlert()">حسناً، فهمت</button>
@@ -341,7 +342,7 @@
 
     <div class="top-nav">
         <div style="font-size: 0.9rem; font-weight: bold; color: var(--primary-color);">
-            🛠️️ فني الصيانة: <span id="currentTechDisplay" style="color: #22c55e;">-</span>
+            🛠️ فني الصيانة: <span id="currentTechDisplay" style="color: #22c55e;">-</span>
         </div>
         <div class="nav-buttons">
             <button class="nav-btn active" onclick="switchTab('add', this)">إضافة جهاز</button>
@@ -476,7 +477,6 @@
         let localStream = null;
         let iceCandidatesQueue = [];
 
-        // مؤقت المكالمة
         let callTimerInterval = null;
         let callSeconds = 0;
 
@@ -484,8 +484,13 @@
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' }
-            ] 
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun.services.mozilla.com' },
+                { urls: 'turn:openrelay.metered.ca:80', username: 'openrelay', credential: 'openrelay' },
+                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelay', credential: 'openrelay' },
+                { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelay', credential: 'openrelay' }
+            ],
+            iceCandidatePoolSize: 10
         };
 
         let dialAudioCtx = null;
@@ -573,15 +578,7 @@
                     .eq('username', currentTech)
                     .maybeSingle();
 
-                if (error) {
-                    console.error('Account check error:', error);
-                    return;
-                }
-
-                if (!data) {
-                    forceLogoutWithReason('عذراً، هذا الحساب غير موجود في النظام.', '❌');
-                    return;
-                }
+                if (error || !data) return;
 
                 if (data.is_active === false || data.status === 'موقوف' || data.status === 'وقف') {
                     forceLogoutWithReason('عذراً، تم إيقاف حسابك من قبل الإدارة.', '⛔');
@@ -624,7 +621,6 @@
 
         window.onload = async function() {
             document.getElementById('currentTechDisplay').innerText = currentTech;
-            
             await verifyTechnicianAccount();
             listenToTechnicianAccountUpdates();
 
@@ -1041,7 +1037,7 @@
             a.click();
         }
 
-        /* --- عداد المكالمة --- */
+        /* إدارة عداد مدة المكالمة */
         function startCallTimer(elementId) {
             stopCallTimer();
             callSeconds = 0;
@@ -1071,38 +1067,23 @@
             if (el2) el2.style.display = 'none';
         }
 
-        /* إجبار إذن الميكروفون */
-        async function ensureAudioPermission() {
-            try {
-                return await navigator.mediaDevices.getUserMedia({
-                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-                    video: false
-                });
-            } catch (e) {
-                showCustomAlert(
-                    'إذن الميكروفون مطلوب',
-                    'عذراً، يجب السماح باستخدام الميكروفون لإجراء أو الرد على المكالمة الصوتية.<br><br><b>يرجى الضغط على علامة القفل 🔒 أو الإعدادات بجانب شريط المتصفح وتفعيل "الميكروفون".</b>',
-                    '🎙️',
-                    'var(--danger-color)'
-                );
-                return null;
-            }
-        }
-
-        /* ربط وتشغيل الصوت الخارجي */
+        /* تشغيل وربط مسار الصوت البعيد */
         function attachRemoteAudio(stream) {
             const rAudio = document.getElementById('remoteAudio');
             if (rAudio) {
                 rAudio.srcObject = stream;
                 rAudio.muted = false;
                 rAudio.volume = 1.0;
-                rAudio.play().catch(e => {
-                    console.log('Play blocked, waiting user touch:', e);
-                });
+                const playPromise = rAudio.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.warn('Audio play blocked:', error);
+                    });
+                }
             }
         }
 
-        /* --- WebRTC وإدارة الاتصال للفني --- */
+        /* الاتصال الصوتي وإدارة القنوات */
         function listenToCallsForDevices(devices) {
             devices.forEach(d => {
                 if (!callChannels[d.id]) {
@@ -1127,7 +1108,7 @@
             } else if (data.type === 'call_accepted') {
                 stopDialTone();
                 stopRingtone();
-                document.getElementById('outgoingCallStatus').innerText = 'متصل الآن 🎙️';
+                document.getElementById('outgoingCallStatus').innerText = 'متصل الآن 🎙️️';
                 startCallTimer('outgoingTimer');
 
                 if (peerConnection && data.sdp) {
@@ -1166,8 +1147,15 @@
             let dev = devicesList.find(d => String(d.id) === String(activeChatDeviceId));
             if (!dev) return;
 
-            localStream = await ensureAudioPermission();
-            if (!localStream) return;
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                    video: false
+                });
+            } catch (err) {
+                showCustomAlert('إذن الميكروفون مطلوب', 'يرجى تفعيل صلاحية الميكروفون من إعدادات المتصفح أو أيقونة القفل لإتمام المكالمة.', '🎙️', 'var(--danger-color)');
+                return;
+            }
 
             document.getElementById('outgoingCallerTitle').innerText = `📞 جاري الاتصال بالعميل: ${dev.customer_name}...`;
             document.getElementById('outgoingCallStatus').innerText = 'يرن الآن...';
@@ -1226,8 +1214,15 @@
             if (!activeIncomingCallDeviceId || !incomingOfferData) return;
             stopRingtone();
 
-            localStream = await ensureAudioPermission();
-            if (!localStream) return;
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                    video: false
+                });
+            } catch (err) {
+                showCustomAlert('إذن الميكروفون مطلوب', 'يرجى تفعيل صلاحية الميكروفون من إعدادات المتصفح للرد على المكالمة.', '🎙️️', 'var(--danger-color)');
+                return;
+            }
 
             iceCandidatesQueue = [];
             peerConnection = new RTCPeerConnection(rtcConfig);
@@ -1326,12 +1321,10 @@
                     
                     osc1.frequency.setValueAtTime(440, ringAudioCtx.currentTime);
                     osc2.frequency.setValueAtTime(480, ringAudioCtx.currentTime);
-                    
                     gain.gain.setValueAtTime(0.2, ringAudioCtx.currentTime);
                     gain.gain.exponentialRampToValueAtTime(0.01, ringAudioCtx.currentTime + 0.8);
                     
-                    osc1.connect(gain);
-                    osc2.connect(gain);
+                    osc1.connect(gain); osc2.connect(gain);
                     gain.connect(ringAudioCtx.destination);
                     
                     osc1.start(); osc1.stop(ringAudioCtx.currentTime + 0.8);
