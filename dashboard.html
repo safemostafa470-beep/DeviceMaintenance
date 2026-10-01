@@ -195,32 +195,36 @@
             outline: none;
         }
 
-        /* نوافذ الاتصال الصوتي */
+        /* نوافذ الاتصال الصوتي المحدثة */
         .call-modal-overlay {
             position: fixed;
-            top: 20px;
+            top: 25px;
             left: 50%;
             transform: translateX(-50%);
             background: #1e293b;
-            padding: 14px 22px;
-            border-radius: 14px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            padding: 15px 22px;
+            border-radius: 16px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.85);
             z-index: 10000;
             display: none;
             align-items: center;
-            gap: 15px;
+            justify-content: space-between;
+            gap: 18px;
+            width: 90%;
+            max-width: 380px;
             animation: bounceIn 0.3s ease;
         }
         @keyframes bounceIn { from { transform: translate(-50%, -40px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
 
         .btn-call-action {
             border: none;
-            padding: 8px 14px;
-            border-radius: 8px;
+            padding: 8px 16px;
+            border-radius: 10px;
             font-weight: bold;
             cursor: pointer;
             font-size: 0.85rem;
             color: white;
+            transition: 0.2s;
         }
         .btn-call-accept { background: var(--success-color); }
         .btn-call-reject { background: var(--danger-color); }
@@ -327,17 +331,19 @@
     <!-- نافذة الاتصال الوارد من العميل -->
     <div id="incomingCallModal" class="call-modal-overlay" style="border: 2px solid var(--success-color);">
         <div>
-            <div style="font-size:0.9rem; font-weight:bold; color:#fff;" id="callerTitle">📞 اتصال وارد من عميل...</div>
+            <div style="font-size:0.92rem; font-weight:bold; color:#fff;" id="callerTitle">📞 اتصال وارد من عميل...</div>
             <div style="font-size:0.75rem; color:var(--text-muted);" id="callSubTitle">جهاز قيد المتابعة</div>
         </div>
-        <button class="btn-call-action btn-call-accept" onclick="acceptIncomingCall()">رد (قبول)</button>
-        <button class="btn-call-action btn-call-reject" onclick="rejectIncomingCall()">رفض</button>
+        <div style="display:flex; gap:8px;">
+            <button class="btn-call-action btn-call-accept" onclick="acceptIncomingCall()">رد</button>
+            <button class="btn-call-action btn-call-reject" onclick="rejectIncomingCall()">رفض</button>
+        </div>
     </div>
 
     <!-- نافذة الاتصال الصادر إلى العميل -->
     <div id="outgoingCallModal" class="call-modal-overlay" style="border: 2px solid var(--primary-color);">
         <div>
-            <div style="font-size:0.9rem; font-weight:bold; color:#fff;" id="outgoingCallerTitle">📞 جاري الاتصال بالعميل...</div>
+            <div style="font-size:0.92rem; font-weight:bold; color:#fff;" id="outgoingCallerTitle">📞 جاري الاتصال بالعميل...</div>
             <div style="font-size:0.75rem; color:var(--text-muted);" id="outgoingCallStatus">في انتظار الرد...</div>
         </div>
         <button class="btn-call-action btn-call-reject" onclick="endOutgoingCall(true)">إنهاء ✕</button>
@@ -475,15 +481,26 @@
         let activeChatDeviceId = null;
         let currentTech = localStorage.getItem('currentUser') || '';
 
-        // WebRTC ومتغيرات الاتصال
+        // WebRTC ومتغيرات الاتصال المتقدمة
         let callChannels = {};
         let activeIncomingCallDeviceId = null;
         let incomingOfferData = null;
         let peerConnection = null;
         let localStream = null;
-        const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+        let iceCandidatesQueue = [];
+
+        const rtcConfig = { 
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' }
+            ] 
+        };
+
         let dialAudioCtx = null;
         let dialInterval = null;
+        let ringAudioCtx = null;
+        let ringInterval = null;
         let alertCallback = null;
 
         function escapeHTML(str) {
@@ -505,7 +522,6 @@
             return [];
         }
 
-        /* دالة المودال الأنيقة البديلة لـ alert */
         function showCustomAlert(title, desc, icon = '⚠️', color = 'var(--primary-color)', callback = null) {
             const modal = document.getElementById('customAlertModal');
             const card = document.getElementById('customAlertCard');
@@ -541,7 +557,6 @@
             setTimeout(() => t.classList.remove('show'), 3500);
         }
 
-        /* دالة طرد الفني وتسجيل الخروج بمودال أنيق وبدون اسم الموقع */
         function forceLogoutWithReason(reason, icon = '🚫') {
             localStorage.removeItem('isLoggedIn');
             localStorage.removeItem('currentUser');
@@ -554,7 +569,6 @@
             });
         }
 
-        /* التحقق من صلاحية واشتراك حساب الفني */
         async function verifyTechnicianAccount() {
             if (!currentTech) {
                 forceLogoutWithReason('لم يتم العثور على جلسة صالحة، يرجى تسجيل الدخول مجدداً.', '🔒');
@@ -578,13 +592,11 @@
                     return;
                 }
 
-                // 1. فحص إيقاف الحساب
                 if (data.is_active === false || data.status === 'موقوف' || data.status === 'وقف') {
                     forceLogoutWithReason('عذراً، تم إيقاف حسابك من قبل الإدارة.', '⛔');
                     return;
                 }
 
-                // 2. فحص انتهاء الاشتراك
                 if (data.expiry_date) {
                     const today = new Date().toISOString().split('T')[0];
                     if (today > data.expiry_date) {
@@ -597,7 +609,6 @@
             }
         }
 
-        /* الاستماع اللحظي لتعديل حالة الحساب من Supabase Realtime */
         function listenToTechnicianAccountUpdates() {
             if (!currentTech) return;
             _supabase
@@ -623,14 +634,11 @@
         window.onload = async function() {
             document.getElementById('currentTechDisplay').innerText = currentTech;
             
-            // تحقق فوري عند الفتح
             await verifyTechnicianAccount();
             listenToTechnicianAccountUpdates();
 
             loadData(true);
             setInterval(() => loadData(false), 3000);
-            
-            // فحص دوري للاشتراك كل 15 ثانية
             setInterval(verifyTechnicianAccount, 15000);
         };
 
@@ -1042,7 +1050,7 @@
             a.click();
         }
 
-        /* --- الاتصال الصوتي WebRTC للفني --- */
+        /* --- الاتصال الصوتي وإدارة الرنين WebRTC --- */
         function listenToCallsForDevices(devices) {
             devices.forEach(d => {
                 if (!callChannels[d.id]) {
@@ -1056,29 +1064,40 @@
             });
         }
 
-        function handleCallSignal(deviceId, data) {
+        async function handleCallSignal(deviceId, data) {
             if (data.type === 'call_offer') {
                 activeIncomingCallDeviceId = deviceId;
                 incomingOfferData = data;
                 document.getElementById('callerTitle').innerText = `📞 اتصال وارد من: ${data.callerName}`;
                 document.getElementById('incomingCallModal').style.display = 'flex';
-                playBeep();
+                startRingtone(); // رنين مستمر عند الفني
             } else if (data.type === 'call_accepted') {
                 stopDialTone();
+                stopRingtone();
                 document.getElementById('outgoingCallStatus').innerText = 'متصل الآن 🎙️';
                 if (peerConnection && data.sdp) {
-                    peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
+                    while (iceCandidatesQueue.length > 0) {
+                        let c = iceCandidatesQueue.shift();
+                        await peerConnection.addIceCandidate(c).catch(()=>{});
+                    }
                 }
             } else if (data.type === 'call_rejected') {
                 stopDialTone();
+                stopRingtone();
                 document.getElementById('outgoingCallStatus').innerText = 'تم رفض الاتصال من قبل العميل';
                 setTimeout(() => endOutgoingCall(false), 2000);
             } else if (data.type === 'call_ended') {
                 stopDialTone();
+                stopRingtone();
                 closeIncomingCallModal();
                 endOutgoingCall(false);
-            } else if (data.type === 'ice_candidate' && peerConnection) {
-                peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(()=>{});
+            } else if (data.type === 'ice_candidate') {
+                if (peerConnection && peerConnection.remoteDescription) {
+                    peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(()=>{});
+                } else {
+                    iceCandidatesQueue.push(new RTCIceCandidate(data.candidate));
+                }
             }
         }
 
@@ -1091,7 +1110,10 @@
             if (!dev) return;
 
             try {
-                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                localStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, 
+                    video: false 
+                });
             } catch(e) {
                 showCustomAlert('إذن الميكروفون', 'يرجى السماح بالوصول إلى الميكروفون لإجراء المكالمة.', '🎙️', 'var(--danger-color)');
                 return;
@@ -1102,6 +1124,7 @@
             document.getElementById('outgoingCallModal').style.display = 'flex';
             startDialTone();
 
+            iceCandidatesQueue = [];
             peerConnection = new RTCPeerConnection(rtcConfig);
             localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
@@ -1117,11 +1140,13 @@
 
             peerConnection.ontrack = event => {
                 const rAudio = document.getElementById('remoteAudio');
-                rAudio.srcObject = event.streams[0];
-                rAudio.play().catch(()=>{});
+                if (rAudio.srcObject !== event.streams[0]) {
+                    rAudio.srcObject = event.streams[0];
+                    rAudio.play().catch(()=>{});
+                }
             };
 
-            const offer = await peerConnection.createOffer();
+            const offer = await peerConnection.createOffer({ offerToReceiveAudio: true });
             await peerConnection.setLocalDescription(offer);
 
             callChannels[activeChatDeviceId].send({
@@ -1137,6 +1162,7 @@
 
         function endOutgoingCall(notifyPeer = true) {
             stopDialTone();
+            stopRingtone();
             if (notifyPeer && activeChatDeviceId && callChannels[activeChatDeviceId]) {
                 callChannels[activeChatDeviceId].send({
                     type: 'broadcast',
@@ -1151,13 +1177,19 @@
 
         async function acceptIncomingCall() {
             if (!activeIncomingCallDeviceId || !incomingOfferData) return;
+            stopRingtone();
+
             try {
-                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                localStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, 
+                    video: false 
+                });
             } catch(e) {
                 showCustomAlert('إذن الميكروفون', 'يرجى السماح بصلاحية الميكروفون للرد على المكالمة.', '🎙️', 'var(--warning-color)');
                 return;
             }
 
+            iceCandidatesQueue = [];
             peerConnection = new RTCPeerConnection(rtcConfig);
             localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
@@ -1173,12 +1205,20 @@
 
             peerConnection.ontrack = event => {
                 const rAudio = document.getElementById('remoteAudio');
-                rAudio.srcObject = event.streams[0];
-                rAudio.play().catch(()=>{});
+                if (rAudio.srcObject !== event.streams[0]) {
+                    rAudio.srcObject = event.streams[0];
+                    rAudio.play().catch(()=>{});
+                }
             };
 
             await peerConnection.setRemoteDescription(new RTCSessionDescription(incomingOfferData.sdp));
-            const answer = await peerConnection.createAnswer();
+
+            while (iceCandidatesQueue.length > 0) {
+                let c = iceCandidatesQueue.shift();
+                await peerConnection.addIceCandidate(c).catch(()=>{});
+            }
+
+            const answer = await peerConnection.createAnswer({ offerToReceiveAudio: true });
             await peerConnection.setLocalDescription(answer);
 
             callChannels[activeIncomingCallDeviceId].send({
@@ -1192,6 +1232,7 @@
         }
 
         function rejectIncomingCall() {
+            stopRingtone();
             if (activeIncomingCallDeviceId && callChannels[activeIncomingCallDeviceId]) {
                 callChannels[activeIncomingCallDeviceId].send({
                     type: 'broadcast',
@@ -1203,6 +1244,7 @@
         }
 
         function closeIncomingCallModal() {
+            stopRingtone();
             document.getElementById('incomingCallModal').style.display = 'none';
             document.querySelector('#incomingCallModal .btn-call-accept').style.display = 'inline-block';
             activeIncomingCallDeviceId = null;
@@ -1210,6 +1252,7 @@
             if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
         }
 
+        // صوت الاتصال الصادر (Dial Tone)
         function startDialTone() {
             try {
                 if (dialInterval) return;
@@ -1231,6 +1274,38 @@
         function stopDialTone() {
             if (dialInterval) { clearInterval(dialInterval); dialInterval = null; }
             if (dialAudioCtx) { dialAudioCtx.close().catch(()=>{}); dialAudioCtx = null; }
+        }
+
+        // صوت الرنين للاتصال الوارد (Ringtone)
+        function startRingtone() {
+            try {
+                if (ringInterval) return;
+                ringAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                ringInterval = setInterval(() => {
+                    if (!ringAudioCtx) return;
+                    let osc1 = ringAudioCtx.createOscillator();
+                    let osc2 = ringAudioCtx.createOscillator();
+                    let gain = ringAudioCtx.createGain();
+                    
+                    osc1.frequency.setValueAtTime(440, ringAudioCtx.currentTime);
+                    osc2.frequency.setValueAtTime(480, ringAudioCtx.currentTime);
+                    
+                    gain.gain.setValueAtTime(0.2, ringAudioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ringAudioCtx.currentTime + 0.8);
+                    
+                    osc1.connect(gain);
+                    osc2.connect(gain);
+                    gain.connect(ringAudioCtx.destination);
+                    
+                    osc1.start(); osc1.stop(ringAudioCtx.currentTime + 0.8);
+                    osc2.start(); osc2.stop(ringAudioCtx.currentTime + 0.8);
+                }, 2000);
+            } catch(e) {}
+        }
+
+        function stopRingtone() {
+            if (ringInterval) { clearInterval(ringInterval); ringInterval = null; }
+            if (ringAudioCtx) { ringAudioCtx.close().catch(()=>{}); ringAudioCtx = null; }
         }
     </script>
 </body>
