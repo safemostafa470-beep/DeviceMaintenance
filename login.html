@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- منع المتصفح تماماً وبشكل إجباري من حفظ الصفحة في الكاش -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>تسجيل دخول الفنيين - نظام الصيانة</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        if (localStorage.getItem('isLoggedIn') === 'true' && localStorage.getItem('currentUser')) {
+            window.location.replace('dashboard.html?v=' + Date.now());
+        }
+    </script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.9);
+            --primary-color: #38bdf8;
+            --primary-hover: #0ea5e9;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --error-color: #ef4444;
+            --accent-gradient: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .login-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(14px);
+            border: 1px solid var(--border-color);
+            padding: 30px;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+        .login-card h2 { color: var(--primary-color); margin-bottom: 6px; font-size: 1.8rem; font-weight: 800; }
+        .login-card .sub-title { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px; }
+        
+        .btn-client-link {
+            display: block;
+            width: 100%;
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--primary-color);
+            border: 1px dashed var(--primary-color);
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: 0.2s;
+            text-decoration: none;
+            text-align: center;
+            outline: none;
+        }
+        .btn-client-link:hover { 
+            background: rgba(56, 189, 248, 0.25);
+            transform: translateY(-1px);
+        }
+
+        .form-group { margin-bottom: 15px; text-align: right; }
+        label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: var(--text-muted); }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background: rgba(15, 23, 42, 0.8);
+            color: white;
+            font-size: 1rem;
+            outline: none;
+        }
+        input:focus { border-color: var(--primary-color); }
+
+        .btn-login {
+            background: var(--accent-gradient);
+            color: #0f172a;
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: bold;
+            width: 100%;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: 0.2s;
+            margin-top: 10px;
+        }
+        .btn-login:disabled { background: #64748b; cursor: not-allowed; }
+
+        .error-msg {
+            color: var(--error-color);
+            font-size: 0.85rem;
+            margin-top: 15px;
+            display: none;
+            background: rgba(239, 68, 68, 0.12);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <h2>بوابة الفنيين</h2>
+        <div class="sub-title">نظام إدارة وتتبع صيانة الأجهزة</div>
+
+        <!-- زر الانتقال الفوري لصفحة العملاء بدون الاعتماد على الكاش -->
+        <button type="button" class="btn-client-link" onclick="forceGoToClient()">👤 الذهاب لصفحة تتبع واستعلام العملاء</button>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label>اسم المستخدم (الفني):</label>
+                <input type="text" id="username" placeholder="أدخل اسم المستخدم" required autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label>كلمة المرور:</label>
+                <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
+            </div>
+
+            <button type="submit" id="submitBtn" class="btn-login">تسجيل الدخول</button>
+        </form>
+
+        <p class="error-msg" id="errorMsg"></p>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://vvxkxmktkxawptbrqtut.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2eGt4bWt0a3hhd3B0YnJxdHV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0NDY2MTcsImV4cCI6MjEwNjAyMjYxN30.NkqXPEpMf6VFE3nFQ1V7T5HyjfoxIrT_apKh7S6a_14';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // دالة الانتقال لصفحة التتبع مع كسر الكاش تلقائياً في كل ضغطة
+        function forceGoToClient() {
+            window.location.href = 'index.html?v=' + new Date().getTime();
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const errorEl = document.getElementById('errorMsg');
+            const submitBtn = document.getElementById('submitBtn');
+            errorEl.style.display = 'none';
+
+            const user = document.getElementById('username').value.trim();
+            const pass = document.getElementById('password').value.trim();
+
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'جاري التحقق...';
+
+            try {
+                const { data, error } = await _supabase
+                    .from('technicians')
+                    .select('*')
+                    .eq('username', user)
+                    .maybeSingle();
+
+                if (error) throw new Error(error.message);
+
+                if (!data) {
+                    showError('اسم المستخدم غير صحيح أو غير مسجل بالنظام.');
+                    return;
+                }
+
+                const dbPass = data.password || data.pass;
+                if (dbPass !== pass) {
+                    showError('كلمة المرور غير صحيحة.');
+                    return;
+                }
+
+                if (data.is_active === false || data.status === 'موقوف') {
+                    showError('تم إيقاف هذا الحساب. يرجى مراجعة الإدارة.');
+                    return;
+                }
+
+                if (data.expiry_date) {
+                    const today = new Date().toISOString().split('T')[0];
+                    if (today > data.expiry_date) {
+                        showError('انتهت صلاحية اشتراك هذا الحساب، يرجى التجديد.');
+                        return;
+                    }
+                }
+
+                localStorage.setItem('isLoggedIn', 'true');
+                localStorage.setItem('currentUser', user);
+                localStorage.setItem('shopName', data.shop_name || user);
+
+                window.location.replace('dashboard.html?v=' + Date.now());
+
+            } catch (err) {
+                showError('خطأ بالاتصال: ' + err.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'تسجيل الدخول';
+            }
+        });
+
+        function showError(msg) {
+            const errorEl = document.getElementById('errorMsg');
+            errorEl.innerText = msg;
+            errorEl.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
