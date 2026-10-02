@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة تحكم الفني - إدارة الصيانة</title>
 
-    <!-- حماية فورية: فحص وجود جلسة مسجلة قبل رسم أي عنصر -->
     <script>
         (function() {
             const isLogged = localStorage.getItem('isLoggedIn');
@@ -17,6 +16,8 @@
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- مكتبة توليد كود الـ QR لسند الاستلام المباشر -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -96,7 +97,7 @@
             margin-bottom: 12px;
         }
         .form-group label { display: block; margin-bottom: 5px; font-size: 0.8rem; color: var(--text-muted); }
-        .form-group input, .form-group textarea {
+        .form-group input, .form-group textarea, .form-group select {
             width: 100%;
             padding: 9px 10px;
             border-radius: 8px;
@@ -119,6 +120,23 @@
             font-size: 0.85rem;
         }
 
+        /* كروت إحصائيات الأرباح والمصروفات */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        .stat-card {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px;
+            text-align: center;
+        }
+        .stat-card-title { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 5px; }
+        .stat-card-val { font-size: 1.3rem; font-weight: 800; }
+
         .search-filter-bar { margin-bottom: 12px; }
         .search-filter-bar input {
             width: 100%;
@@ -132,8 +150,8 @@
         }
 
         .table-responsive { width: 100%; overflow-x: auto; border-radius: 10px; border: 1px solid var(--border-color); }
-        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; min-width: 650px; }
-        th, td { padding: 9px 12px; text-align: center; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; min-width: 820px; }
+        th, td { padding: 9px 10px; text-align: center; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
         th { background: rgba(56, 189, 248, 0.12); color: var(--primary-color); }
 
         .action-btn {
@@ -145,7 +163,12 @@
             cursor: pointer;
             font-size: 0.75rem;
             transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
         }
+        .btn-wa { background: rgba(34, 197, 94, 0.15); border-color: var(--success-color); color: #86efac; }
+        .btn-print { background: rgba(56, 189, 248, 0.15); border-color: var(--primary-color); color: #bae6fd; }
 
         .status-select {
             padding: 6px 8px;
@@ -181,8 +204,9 @@
         .chat-msg-item { padding: 8px 12px; border-radius: 10px; max-width: 85%; }
         .chat-msg-tech { background: rgba(34, 197, 94, 0.18); align-self: flex-end; color: #86efac; text-align: right; }
         .chat-msg-client { background: rgba(56, 189, 248, 0.18); align-self: flex-start; color: #bae6fd; text-align: right; }
+        .chat-msg-image { max-width: 100%; border-radius: 8px; margin-top: 5px; cursor: pointer; display: block; border: 1px solid rgba(255,255,255,0.2); }
 
-        .chat-input-row { display: flex; gap: 8px; }
+        .chat-input-row { display: flex; gap: 8px; align-items: center; }
         .chat-input-row input {
             flex: 1;
             padding: 9px 12px;
@@ -192,6 +216,18 @@
             border: 1px solid var(--border-color);
             color: #fff;
             outline: none;
+        }
+        .btn-img-attach {
+            background: rgba(56, 189, 248, 0.15);
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .call-card-modal {
@@ -209,12 +245,12 @@
             justify-content: space-between;
             gap: 15px;
             width: 92%;
-            max-width: 400px;
+            max-width: 420px;
         }
 
         .btn-call-act {
             border: none;
-            padding: 8px 16px;
+            padding: 8px 14px;
             border-radius: 8px;
             font-weight: bold;
             cursor: pointer;
@@ -224,6 +260,7 @@
         }
         .btn-call-green { background: var(--success-color); }
         .btn-call-red { background: var(--danger-color); }
+        .btn-call-mute { background: #475569; }
 
         .call-timer-box {
             display: inline-block;
@@ -281,6 +318,16 @@
             padding: 11px 22px; border-radius: 10px;
             font-weight: 700; font-size: 0.9rem; cursor: pointer; width: 100%;
         }
+
+        /* نافذة سند الاستلام للطباعة */
+        @media print {
+            body * { visibility: hidden; }
+            #receiptPrintArea, #receiptPrintArea * { visibility: visible; }
+            #receiptPrintArea {
+                position: absolute; left: 0; top: 0; width: 100%;
+                color: #000 !important; background: #fff !important; padding: 10px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -303,11 +350,15 @@
             <div style="font-size:0.75rem; color:var(--text-muted);" id="callModalStatus">يرن الآن...</div>
             <div id="callTimerBox" class="call-timer-box" style="display:none;">00:00</div>
         </div>
-        <div style="display:flex; gap:8px;">
+        <div style="display:flex; gap:6px;">
+            <button id="btnCallMuteTech" class="btn-call-act btn-call-mute" style="display:none;" onclick="toggleTechMute()">🎤 كتم</button>
             <button id="btnCallAccept" class="btn-call-act btn-call-green" style="display:none;" onclick="acceptIncomingCall()">رد</button>
             <button id="btnCallEnd" class="btn-call-act btn-call-red" onclick="terminateCall(true)">إنهاء ✕</button>
         </div>
     </div>
+
+    <!-- منطقة طباعة سند الاستلام الحراري والمباشر -->
+    <div id="receiptPrintArea" style="display:none;"></div>
 
     <div class="top-nav">
         <div style="font-size: 0.9rem; font-weight: bold; color: var(--primary-color);">
@@ -318,7 +369,7 @@
             <button class="nav-btn" onclick="switchTab('current', this)">الأجهزة الحالية</button>
             <button class="nav-btn" onclick="switchTab('delivered', this)">المسلمة</button>
             <button class="nav-btn" onclick="switchTab('returned', this)">المسترجعة</button>
-            <button class="nav-btn" onclick="switchTab('reports', this)">التقارير</button>
+            <button class="nav-btn" onclick="switchTab('reports', this)">التقارير المالية</button>
         </div>
         <button type="button" class="logout-btn" onclick="logout()">تسجيل خروج</button>
     </div>
@@ -331,15 +382,27 @@
                 <div class="form-group"><label>اسم العميل *</label><input type="text" id="clientName"></div>
                 <div class="form-group"><label>رقم الهاتف *</label><input type="text" id="clientPhone"></div>
                 <div class="form-group"><label>نوع الجهاز وموديله *</label><input type="text" id="deviceType"></div>
+                <div class="form-group"><label>رقم السيريال / IMEI (اختياري)</label><input type="text" id="deviceImei" placeholder="لتفادي تبديل الأجهزة"></div>
                 <div class="form-group"><label>العطل المذكور</label><input type="text" id="deviceProblem"></div>
-                <div class="form-group"><label>التكلفة التقديرية (ر.س)</label><input type="number" id="deviceCost" value="0"></div>
+                <div class="form-group"><label>التكلفة للعميل (ر.س) *</label><input type="number" id="deviceCost" value="0"></div>
+                <div class="form-group"><label>سعر القطعة / التكلفة عليك (ر.س) (سري)</label><input type="number" id="devicePartCost" value="0" placeholder="لحساب صافي الربح"></div>
+                <div class="form-group">
+                    <label>فترة الضمان بعد الإصلاح</label>
+                    <select id="deviceWarranty">
+                        <option value="بدون ضمان">بدون ضمان</option>
+                        <option value="ضمان 7 أيام">ضمان 7 أيام</option>
+                        <option value="ضمان 14 يوم">ضمان 14 يوم</option>
+                        <option value="ضمان 30 يوم">ضمان 30 يوم</option>
+                        <option value="ضمان 3 شهور">ضمان 3 شهور</option>
+                    </select>
+                </div>
                 <div class="form-group"><label>وقت الاستلام المتوقع</label><input type="datetime-local" id="expectedTime"></div>
             </div>
             <div class="form-group" style="margin-bottom:12px;">
-                <label>ملاحظات إضافية / كلمة مرور الجهاز</label>
+                <label>ملاحظات إضافية / رمز القفل / الملحقات</label>
                 <textarea id="deviceNotes"></textarea>
             </div>
-            <button class="primary-btn" onclick="addNewDevice()">حفظ وطباعة رقم التتبع</button>
+            <button class="primary-btn" onclick="addNewDevice()">حفظ وتوليد سند الاستلام</button>
         </div>
     </div>
 
@@ -360,7 +423,8 @@
                             <th>الجهاز</th>
                             <th>الحالة</th>
                             <th>العطل الإضافي</th>
-                            <th>التكلفة (ر.س)</th>
+                            <th>سعر العميل</th>
+                            <th>تكلفتك</th>
                             <th>إجراءات</th>
                         </tr>
                     </thead>
@@ -380,6 +444,8 @@
                 </div>
                 <div class="chat-msgs" id="activeChatMsgsContainer"></div>
                 <div class="chat-input-row">
+                    <input type="file" id="techFileInput" accept="image/*" style="display:none;" onchange="handleTechImageUpload(event)">
+                    <button type="button" class="btn-img-attach" onclick="document.getElementById('techFileInput').click()" title="إرفاق صورة العطل">📷</button>
                     <input type="text" id="activeChatInput" placeholder="اكتب ردك للعميل..." onkeydown="if(event.key==='Enter') sendTechMsg()">
                     <button class="primary-btn" onclick="sendTechMsg()">إرسال</button>
                 </div>
@@ -393,7 +459,7 @@
             <h2>الأجهزة المسلمة</h2>
             <div class="table-responsive">
                 <table>
-                    <thead><tr><th>التتبع</th><th>العميل</th><th>الهاتف</th><th>الجهاز</th><th>الحالة</th><th>التكلفة</th></tr></thead>
+                    <thead><tr><th>التتبع</th><th>العميل</th><th>الهاتف</th><th>الجهاز</th><th>الحالة</th><th>السعر</th><th>تكلفتك</th><th>صافي الربح</th></tr></thead>
                     <tbody id="deliveredDevicesBody"></tbody>
                 </table>
             </div>
@@ -413,16 +479,32 @@
         </div>
     </div>
 
-    <!-- التقارير -->
+    <!-- التقارير المالية وصافي الأرباح -->
     <div id="tab-reports" class="section-content">
         <div class="card">
-            <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-                <h2>كافة تقارير الصيانة</h2>
+            <div style="display:flex; justify-content:space-between; margin-bottom:12px; align-items:center;">
+                <h2>التقارير المالية وحساب الأرباح</h2>
                 <button class="primary-btn" onclick="exportToCSV()" style="background:var(--success-color);">📥 تصدير Excel</button>
             </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-card-title">إجمالي إيرادات الصيانة</div>
+                    <div class="stat-card-val" style="color:#38bdf8;" id="totalRevenue">0 ر.س</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-title">إجمالي تكاليف قطع الغيار</div>
+                    <div class="stat-card-val" style="color:#ef4444;" id="totalPartsCost">0 ر.س</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-title">صافي أرباح المحل (المصنعية)</div>
+                    <div class="stat-card-val" style="color:#22c55e;" id="totalNetProfit">0 ر.س</div>
+                </div>
+            </div>
+
             <div class="table-responsive">
                 <table>
-                    <thead><tr><th>التتبع</th><th>العميل</th><th>الهاتف</th><th>الجهاز</th><th>الحالة</th><th>التكلفة</th></tr></thead>
+                    <thead><tr><th>التتبع</th><th>العميل</th><th>الهاتف</th><th>الجهاز</th><th>الحالة</th><th>السعر</th><th>القطعة</th><th>صافي الربح</th></tr></thead>
                     <tbody id="reportDevicesBody"></tbody>
                 </table>
             </div>
@@ -441,6 +523,8 @@
         // محرك الصوت المباشر للفني
         let callChannels = {};
         let activeCallDeviceId = null;
+        let isCallActive = false;
+        let isMuted = false;
         let audioCtx = null;
         let micStream = null;
         let micSourceNode = null;
@@ -547,7 +631,6 @@
                 .subscribe();
         }
 
-        /* الاستماع المباشر واللحظي لرد العميل (موافقة أو رفض) وتحديث الحالة فوراً */
         function setupRealtimeDeviceChat(deviceId) {
             _supabase.channel(`room_sync_${deviceId}`)
                 .on('broadcast', { event: 'new_msg' }, ({ payload }) => {
@@ -588,13 +671,10 @@
                     let dev = devicesList.find(d => String(d.id) === String(deviceId));
                     if (dev) {
                         dev.status = payload.status;
-                        
-                        // تحديث القائمة المنسدلة في نفس اللحظة
                         const selectEl = document.querySelector(`select[data-dev-id="${deviceId}"]`);
                         if (selectEl) {
                             selectEl.value = payload.status;
                         }
-                        
                         showToast(`🔔 رد العميل: تم تحويل الحالة تلقائياً إلى (${payload.status})`);
                         safeRenderTables();
                     }
@@ -628,13 +708,16 @@
             let name = document.getElementById('clientName').value.trim();
             let phone = document.getElementById('clientPhone').value.trim();
             let device = document.getElementById('deviceType').value.trim();
+            let imei = document.getElementById('deviceImei').value.trim();
             let problem = document.getElementById('deviceProblem').value.trim();
             let cost = document.getElementById('deviceCost').value.trim();
+            let partCost = document.getElementById('devicePartCost').value.trim();
+            let warranty = document.getElementById('deviceWarranty').value;
             let expectedTime = document.getElementById('expectedTime').value;
             let notes = document.getElementById('deviceNotes').value.trim();
 
             if (!name || !phone || !device) {
-                showCustomAlert('حقول مطلوبة', 'يرجى إدخال اسم العميل ورقم الهاتف ونوع الجهاز للمتابعة.');
+                showCustomAlert('حقول مطلوبة', 'يرجى إدخال اسم العميل ورقم الهاتف ونوع الجهاز للمتابعة.', '⚠️', 'var(--warning-color)');
                 return;
             }
 
@@ -644,8 +727,11 @@
                 customer_name: name,
                 phone: phone,
                 device_name: device,
+                imei: imei || null,
                 problem: problem,
                 cost: cost || '0',
+                part_cost: partCost || '0',
+                warranty: warranty || 'بدون ضمان',
                 expected_time: expectedTime || null,
                 details: notes,
                 status: 'جاري الفحص الفني',
@@ -660,10 +746,15 @@
             }
 
             showToast('تم تسجيل الجهاز بنجاح! كود التتبع: ' + trackCode);
+            printReceipt(newDev); // فتح سند الاستلام للطباعة مباشرة
+
             document.getElementById('clientName').value = '';
             document.getElementById('clientPhone').value = '';
             document.getElementById('deviceType').value = '';
+            document.getElementById('deviceImei').value = '';
             document.getElementById('deviceProblem').value = '';
+            document.getElementById('deviceCost').value = '0';
+            document.getElementById('devicePartCost').value = '0';
             document.getElementById('deviceNotes').value = '';
             await loadData(true);
             switchTab('current', document.querySelectorAll('.nav-btn')[1]);
@@ -682,6 +773,7 @@
 
             devicesList = data;
             safeRenderTables();
+            calculateFinancialStats();
             listenToCallsForDevices(data);
 
             devicesList.forEach(d => {
@@ -692,6 +784,24 @@
                 renderActiveChat();
                 markClientMessagesAsRead(activeChatDeviceId);
             }
+        }
+
+        function calculateFinancialStats() {
+            let totalRev = 0;
+            let totalParts = 0;
+
+            devicesList.forEach(d => {
+                let st = d.status || '';
+                if (st !== 'مسترجع') {
+                    totalRev += parseFloat(d.cost || 0);
+                    totalParts += parseFloat(d.part_cost || 0);
+                }
+            });
+
+            let netProfit = totalRev - totalParts;
+            document.getElementById('totalRevenue').innerText = totalRev.toLocaleString('ar-SA') + ' ر.س';
+            document.getElementById('totalPartsCost').innerText = totalParts.toLocaleString('ar-SA') + ' ر.س';
+            document.getElementById('totalNetProfit').innerText = netProfit.toLocaleString('ar-SA') + ' ر.س';
         }
 
         function safeRenderTables() {
@@ -719,16 +829,20 @@
                 let safePhone = escapeHTML(d.phone);
                 let safeDevice = escapeHTML(d.device_name);
 
+                let cost = parseFloat(d.cost || 0);
+                let partCost = parseFloat(d.part_cost || 0);
+                let netProfit = cost - partCost;
+
                 let isDelivered = st === 'تم تسليم الجهاز للعميل';
                 let isReturned = st === 'مسترجع';
 
-                let repRow = `<tr><td><b>${safeTrack}</b></td><td>${safeName}</td><td>${safePhone}</td><td>${safeDevice}</td><td>${st}</td><td>${d.cost} ر.س</td></tr>`;
+                let repRow = `<tr><td><b>${safeTrack}</b></td><td>${safeName}</td><td>${safePhone}</td><td>${safeDevice}</td><td>${st}</td><td style="color:#38bdf8;">${cost} ر.س</td><td style="color:#ef4444;">${partCost} ر.س</td><td style="color:#22c55e; font-weight:bold;">${netProfit} ر.س</td></tr>`;
                 repHtml += repRow;
 
                 if (isReturned) {
                     retHtml += `<tr><td><b>${safeTrack}</b></td><td>${safeName}</td><td>${safePhone}</td><td>${safeDevice}</td><td>${st}</td></tr>`;
                 } else if (isDelivered) {
-                    delHtml += `<tr><td><b>${safeTrack}</b></td><td>${safeName}</td><td>${safePhone}</td><td>${safeDevice}</td><td>${st}</td><td>${d.cost} ر.س</td></tr>`;
+                    delHtml += `<tr><td><b>${safeTrack}</b></td><td>${safeName}</td><td>${safePhone}</td><td>${safeDevice}</td><td>${st}</td><td>${cost} ر.س</td><td>${partCost} ر.س</td><td style="color:#22c55e; font-weight:bold;">${netProfit} ر.س</td></tr>`;
                 } else {
                     let fullText = `${safeTrack} ${safeName} ${safePhone} ${safeDevice}`.toLowerCase();
                     if (!searchVal || fullText.includes(searchVal)) {
@@ -762,9 +876,20 @@
                                     <input type="number" id="cost-${d.id}" value="${d.cost || 0}" style="width:65px; text-align:center; padding:4px 6px; background:#0f172a; color:#fff; border:1px solid var(--border-color); border-radius:6px; font-size:0.8rem;" onchange="updateCostOnly('${d.id}', this.value)">
                                 </td>
                                 <td>
-                                    <button type="button" class="action-btn" onclick="openChatBox('${d.id}')" style="background:${isChatOpen ? 'var(--primary-color)' : ''}; color:${isChatOpen ? '#0f172a' : ''}; font-weight:bold; padding:5px 10px;">
-                                        💬 ${hasUnread ? '🔴 ' : ''}شات
-                                    </button>
+                                    <input type="number" id="part-cost-${d.id}" value="${d.part_cost || 0}" style="width:65px; text-align:center; padding:4px 6px; background:#0f172a; color:#ef4444; border:1px solid var(--border-color); border-radius:6px; font-size:0.8rem;" onchange="updatePartCostOnly('${d.id}', this.value)">
+                                </td>
+                                <td>
+                                    <div style="display:flex; gap:4px; align-items:center; justify-content:center;">
+                                        <button type="button" class="action-btn" onclick="openChatBox('${d.id}')" style="background:${isChatOpen ? 'var(--primary-color)' : ''}; color:${isChatOpen ? '#0f172a' : ''}; font-weight:bold;">
+                                            💬 ${hasUnread ? '🔴 ' : ''}شات
+                                        </button>
+                                        <button type="button" class="action-btn btn-wa" onclick="sendWhatsAppLink('${d.id}')" title="مشاركة عبر واتساب">
+                                            📲 واتس
+                                        </button>
+                                        <button type="button" class="action-btn btn-print" onclick="printReceiptById('${d.id}')" title="طباعة سند الاستلام الحراري">
+                                            🖨️ سند
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         `;
@@ -778,22 +903,20 @@
             reportTbody.innerHTML = repHtml;
         }
 
-        /* تعديل دالة تغيير الحالة لإرسال الإشعار اللحظي للعميل مباشرة وبدون تحديث الصفحة */
         async function changeStatus(deviceId, newStatus) {
             let dev = devicesList.find(d => String(d.id) === String(deviceId));
             if (dev) dev.status = newStatus;
 
-            // 1. إرسال إشعار لحظي للعميل مباشرة لتتغير الحالة أمامه في نفس اللحظة
             _supabase.channel(`room_sync_${deviceId}`).send({
                 type: 'broadcast',
                 event: 'device_status_changed',
                 payload: { status: newStatus }
             });
 
-            // 2. التحديث في قاعدة بيانات Supabase
             await _supabase.from('devices').update({ status: newStatus }).eq('id', deviceId);
             showToast('تم تغيير الحالة إلى: ' + newStatus);
             safeRenderTables();
+            calculateFinancialStats();
         }
 
         async function sendExtraFaultAndCost(deviceId) {
@@ -810,6 +933,7 @@
                 id: 'msg_' + Date.now(),
                 sender: 'tech',
                 text: noticeText,
+                image: null,
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 read: false,
                 readTime: null
@@ -817,7 +941,6 @@
 
             chatArr.push(newMsg);
 
-            // إرسال تنبيه العطل الإضافي عبر البث اللحظي للعميل مباشرة
             _supabase.channel(`room_sync_${deviceId}`).send({
                 type: 'broadcast',
                 event: 'extra_fault_alert',
@@ -828,7 +951,6 @@
                 }
             });
 
-            // إرسال رسالة الشات اللحظية
             _supabase.channel(`room_sync_${deviceId}`).send({
                 type: 'broadcast',
                 event: 'new_msg',
@@ -852,7 +974,89 @@
 
         async function updateCostOnly(deviceId, newCost) {
             await _supabase.from('devices').update({ cost: newCost }).eq('id', deviceId);
-            showToast('تم حفظ التكلفة: ' + newCost + ' ر.س');
+            let dev = devicesList.find(d => String(d.id) === String(deviceId));
+            if (dev) dev.cost = newCost;
+            showToast('تم حفظ سعر العميل: ' + newCost + ' ر.س');
+            calculateFinancialStats();
+        }
+
+        async function updatePartCostOnly(deviceId, newPartCost) {
+            await _supabase.from('devices').update({ part_cost: newPartCost }).eq('id', deviceId);
+            let dev = devicesList.find(d => String(d.id) === String(deviceId));
+            if (dev) dev.part_cost = newPartCost;
+            showToast('تم حفظ تكلفة القطعة: ' + newPartCost + ' ر.س');
+            calculateFinancialStats();
+        }
+
+        /* مشاركة رابط التتبع عبر WhatsApp بضغطة زر */
+        function sendWhatsAppLink(deviceId) {
+            let dev = devicesList.find(d => String(d.id) === String(deviceId));
+            if (!dev) return;
+
+            let phone = dev.phone.replace(/[^0-9]/g, '');
+            if (!phone.startsWith('966') && !phone.startsWith('20') && phone.length === 10 && phone.startsWith('0')) {
+                phone = phone.substring(1); // إزالة الصفر في البداية عند الحاجة
+            }
+
+            const currentUrl = window.location.origin + window.location.pathname.replace('dashboard.html', 'index.html');
+            const message = encodeURIComponent(
+                `مرحباً أستاذ ${dev.customer_name} 🌸\n` +
+                `تم استلام جهازك (${dev.device_name}) في مركز الصيانة بنجاح.\n\n` +
+                `رقم تتبع طلبك: *${dev.tracking_number}*\n` +
+                `يمكنك متابعة حالة الفحص والإصلاح والتحدث مباشرة مع الفني عبر الرابط:\n` +
+                `${currentUrl}\n\nشكراً لثقتكم بنا.`
+            );
+
+            window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${message}`, '_blank');
+        }
+
+        /* طباعة سند الاستلام الحراري والمباشر المزود بـ QR Code */
+        function printReceiptById(deviceId) {
+            let dev = devicesList.find(d => String(d.id) === String(deviceId));
+            if (dev) printReceipt(dev);
+        }
+
+        function printReceipt(dev) {
+            const printArea = document.getElementById('receiptPrintArea');
+            const trackUrl = window.location.origin + window.location.pathname.replace('dashboard.html', 'index.html');
+
+            printArea.innerHTML = `
+                <div style="width: 280px; margin: auto; font-family: Tahoma, sans-serif; text-align: center; font-size: 11px; line-height: 1.4; color: #000;">
+                    <h3 style="margin: 0; font-size: 14px;">مركز الصيانة الاحترافي</h3>
+                    <p style="margin: 2px 0;">سند استلام جهاز صيانة</p>
+                    <hr style="border: 0.5px dashed #000; margin: 6px 0;">
+                    <div style="text-align: right;">
+                        <p><b>التاريخ:</b> ${new Date().toLocaleDateString('ar-SA')} - ${new Date().toLocaleTimeString('ar-SA')}</p>
+                        <p><b>العميل:</b> ${escapeHTML(dev.customer_name)}</p>
+                        <p><b>الهاتف:</b> ${escapeHTML(dev.phone)}</p>
+                        <p><b>الجهاز:</b> ${escapeHTML(dev.device_name)}</p>
+                        ${dev.imei ? `<p><b>السيريال/IMEI:</b> ${escapeHTML(dev.imei)}</p>` : ''}
+                        <p><b>العطل:</b> ${escapeHTML(dev.problem || 'فحص شامل')}</p>
+                        <p><b>التكلفة المبدئية:</b> ${dev.cost || 0} ر.س</p>
+                        <p><b>الضمان:</b> ${escapeHTML(dev.warranty || 'بدون ضمان')}</p>
+                    </div>
+                    <hr style="border: 0.5px dashed #000; margin: 6px 0;">
+                    <div style="margin: 8px 0;">
+                        <canvas id="receiptQrCanvas" style="margin: auto;"></canvas>
+                        <p style="margin-top: 4px; font-weight: bold; font-size: 13px;">${escapeHTML(dev.tracking_number)}</p>
+                        <p style="font-size: 10px; color: #555;">امسح الكود بكاميرا هاتفك لتتبع حالة الجهاز مباشرة</p>
+                    </div>
+                    <hr style="border: 0.5px dashed #000; margin: 6px 0;">
+                    <p style="font-size: 9px; text-align: justify; margin: 4px 0;">
+                        تنبيه: المركز غير مسؤول عن الجهاز بعد مرور 30 يوماً من إشعار الجاهزية. يرجى الاحتفاظ بهذا الإيصال عند الاستلام.
+                    </p>
+                </div>
+            `;
+
+            printArea.style.display = 'block';
+
+            // توليد الـ QR Code
+            QRCode.toCanvas(document.getElementById('receiptQrCanvas'), trackUrl, { width: 110, margin: 1 }, function (error) {
+                setTimeout(() => {
+                    window.print();
+                    printArea.style.display = 'none';
+                }, 300);
+            });
         }
 
         function openChatBox(deviceId) {
@@ -864,6 +1068,7 @@
             document.getElementById('activeChatTitle').innerText = `💬 محادثة العميل: ${dev.customer_name} (${dev.tracking_number})`;
             chatContainer.style.display = 'block';
 
+            updateCallButtonState();
             renderActiveChat();
             markClientMessagesAsRead(deviceId);
         }
@@ -871,6 +1076,22 @@
         function closeChatBox() {
             activeChatDeviceId = null;
             document.getElementById('chatSectionContainer').style.display = 'none';
+        }
+
+        function updateCallButtonState() {
+            const btnCall = document.getElementById('btnCallClient');
+            if (!btnCall) return;
+            if (isCallActive) {
+                btnCall.disabled = true;
+                btnCall.style.opacity = '0.5';
+                btnCall.style.cursor = 'not-allowed';
+                btnCall.innerHTML = '📞 مكالمة جارية...';
+            } else {
+                btnCall.disabled = false;
+                btnCall.style.opacity = '1';
+                btnCall.style.cursor = 'pointer';
+                btnCall.innerHTML = '📞 اتصال بالعميل';
+            }
         }
 
         async function markClientMessagesAsRead(deviceId) {
@@ -928,10 +1149,13 @@
                     }
                 }
 
+                let imageHtml = m.image ? `<img src="${m.image}" class="chat-msg-image" onclick="window.open('${m.image}','_blank')">` : '';
+
                 html += `
                     <div class="chat-msg-item ${cls}">
                         <div style="font-size:0.65rem; font-weight:bold; margin-bottom:2px;">${lbl}</div>
-                        <div>${escapeHTML(m.text)}</div>
+                        ${m.text ? `<div>${escapeHTML(m.text)}</div>` : ''}
+                        ${imageHtml}
                         <div style="font-size:0.55rem; opacity:0.8; margin-top:3px; display:flex; justify-content:space-between; align-items:center;">
                             <span>${escapeHTML(m.time)}</span>
                             ${readInfo}
@@ -943,10 +1167,11 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        async function sendTechMsg() {
+        async function sendTechMsg(imagePayload = null) {
             let input = document.getElementById('activeChatInput');
             let text = input ? input.value.trim() : '';
-            if (!text || activeChatDeviceId === null) return;
+            if (!text && !imagePayload) return;
+            if (activeChatDeviceId === null) return;
 
             let dev = devicesList.find(d => String(d.id) === String(activeChatDeviceId));
             if (!dev) return;
@@ -955,6 +1180,7 @@
                 id: 'msg_' + Date.now(),
                 sender: 'tech',
                 text: text,
+                image: imagePayload,
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 read: false,
                 readTime: null
@@ -962,7 +1188,7 @@
 
             let chat = parseChat(dev.chat);
             chat.push(newMsg);
-            input.value = '';
+            if (input) input.value = '';
             dev.chat = chat;
             renderActiveChat();
 
@@ -973,6 +1199,35 @@
             });
 
             await _supabase.from('devices').update({ chat: chat }).eq('id', activeChatDeviceId);
+        }
+
+        function handleTechImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    const maxDim = 800;
+                    if (width > maxDim || height > maxDim) {
+                        if (width > height) { height = Math.round((height * maxDim) / width); width = maxDim; }
+                        else { width = Math.round((width * maxDim) / height); height = maxDim; }
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                    sendTechMsg(compressedBase64);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+            event.target.value = '';
         }
 
         /* ----------------------------------------------------
@@ -1012,7 +1267,7 @@
             scriptProcessor = audioCtx.createScriptProcessor(1024, 1, 1);
 
             scriptProcessor.onaudioprocess = (e) => {
-                if (!activeCallDeviceId || !callChannels[activeCallDeviceId]) return;
+                if (!activeCallDeviceId || !callChannels[activeCallDeviceId] || isMuted) return;
                 const inputData = e.inputBuffer.getChannelData(0);
                 const pcm16 = new Int16Array(inputData.length);
                 for (let i = 0; i < inputData.length; i++) {
@@ -1033,11 +1288,21 @@
             scriptProcessor.connect(audioCtx.destination);
         }
 
+        function toggleTechMute() {
+            isMuted = !isMuted;
+            const btn = document.getElementById('btnCallMuteTech');
+            if (btn) {
+                btn.innerText = isMuted ? '🔇 مكتوم' : '🎤 كتم';
+                btn.style.background = isMuted ? 'var(--danger-color)' : '#475569';
+            }
+        }
+
         function stopMicCapture() {
             if (scriptProcessor) { scriptProcessor.disconnect(); scriptProcessor = null; }
             if (micSourceNode) { micSourceNode.disconnect(); micSourceNode = null; }
             if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
             nextPlayTime = 0;
+            isMuted = false;
         }
 
         function startCallTimer() {
@@ -1076,16 +1341,23 @@
 
         async function handleCallSignal(deviceId, data) {
             if (data.type === 'call_offer') {
+                if (isCallActive) return;
                 activeCallDeviceId = deviceId;
+                isCallActive = true;
+                updateCallButtonState();
                 document.getElementById('callModalTitle').innerText = `📞 اتصال وارد من: ${data.callerName}`;
                 document.getElementById('callModalStatus').innerText = 'يرن الآن...';
                 document.getElementById('btnCallAccept').style.display = 'inline-block';
+                document.getElementById('btnCallMuteTech').style.display = 'none';
                 document.getElementById('callModal').style.display = 'flex';
                 startRingtone();
             } else if (data.type === 'call_accepted') {
                 stopDialTone();
                 stopRingtone();
+                isCallActive = true;
+                updateCallButtonState();
                 document.getElementById('callModalStatus').innerText = 'متصل الآن 🎙';
+                document.getElementById('btnCallMuteTech').style.display = 'inline-block';
                 startCallTimer();
                 await startMicCapture();
             } else if (data.type === 'call_rejected' || data.type === 'call_ended') {
@@ -1102,16 +1374,23 @@
         }
 
         async function startCallToClient() {
+            if (isCallActive) {
+                showCustomAlert('تنبيه', 'يوجد مكالمة جارية بالفعل، لا يمكنك بدء مكالمة أخرى.', '⚠️', 'var(--warning-color)');
+                return;
+            }
             if (activeChatDeviceId === null) return;
             let dev = devicesList.find(d => String(d.id) === String(activeChatDeviceId));
             if (!dev) return;
 
             activeCallDeviceId = activeChatDeviceId;
+            isCallActive = true;
+            updateCallButtonState();
             initAudioContext();
 
             document.getElementById('callModalTitle').innerText = `📞 جاري الاتصال بالعميل: ${dev.customer_name}`;
             document.getElementById('callModalStatus').innerText = 'في انتظار الرد...';
             document.getElementById('btnCallAccept').style.display = 'none';
+            document.getElementById('btnCallMuteTech').style.display = 'none';
             document.getElementById('callModal').style.display = 'flex';
             startDialTone();
 
@@ -1130,9 +1409,13 @@
             stopRingtone();
             initAudioContext();
 
+            isCallActive = true;
+            updateCallButtonState();
+
             document.getElementById('callModalTitle').innerText = `🎙 متصل في مكالمة صوتية`;
             document.getElementById('callModalStatus').innerText = 'مكالمة جارية';
             document.getElementById('btnCallAccept').style.display = 'none';
+            document.getElementById('btnCallMuteTech').style.display = 'inline-block';
             startCallTimer();
 
             callChannels[activeCallDeviceId].send({
@@ -1158,6 +1441,8 @@
                 });
             }
 
+            isCallActive = false;
+            updateCallButtonState();
             document.getElementById('callModal').style.display = 'none';
         }
 
@@ -1211,15 +1496,18 @@
         }
 
         function exportToCSV() {
-            let csvContent = "\uFEFFرقم التتبع,اسم العميل,رقم الهاتف,نوع الجهاز,الحالة,التكلفة\n";
+            let csvContent = "\uFEFFرقم التتبع,اسم العميل,رقم الهاتف,نوع الجهاز,الحالة,سعر العميل,تكلفة القطعة,صافي الربح\n";
             devicesList.forEach(d => {
-                csvContent += `"${d.tracking_number}","${d.customer_name}","${d.phone}","${d.device_name}","${d.status || ''}","${d.cost || '0'}"\n`;
+                let cost = parseFloat(d.cost || 0);
+                let partCost = parseFloat(d.part_cost || 0);
+                let netProfit = cost - partCost;
+                csvContent += `"${d.tracking_number}","${d.customer_name}","${d.phone}","${d.device_name}","${d.status || ''}","${cost}","${partCost}","${netProfit}"\n`;
             });
             let blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             let url = URL.createObjectURL(blob);
             let a = document.createElement("a");
             a.href = url;
-            a.download = `تقرير_الصيانة_${new Date().toISOString().slice(0,10)}.csv`;
+            a.download = `تقرير_الأرباح_والصيانة_${new Date().toISOString().slice(0,10)}.csv`;
             a.click();
         }
     </script>

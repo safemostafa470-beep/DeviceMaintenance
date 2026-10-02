@@ -195,7 +195,6 @@
             transition: all 0.3s ease;
         }
 
-        /* صندوق الموافقة على العطل الإضافي والتكلفة */
         .approval-box {
             background: rgba(245, 158, 11, 0.15);
             border: 2px solid var(--warning-color);
@@ -224,7 +223,7 @@
             margin-bottom: 10px;
         }
         .chat-msgs {
-            height: 260px;
+            height: 270px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
@@ -240,8 +239,9 @@
         .chat-msg-item { padding: 8px 12px; border-radius: 10px; max-width: 85%; }
         .chat-msg-client { background: rgba(56, 189, 248, 0.2); align-self: flex-end; color: #bae6fd; text-align: right; }
         .chat-msg-tech { background: rgba(34, 197, 94, 0.2); align-self: flex-start; color: #86efac; text-align: right; }
+        .chat-msg-image { max-width: 100%; border-radius: 8px; margin-top: 5px; cursor: pointer; display: block; border: 1px solid rgba(255,255,255,0.2); }
 
-        .chat-input-row { display: flex; gap: 8px; }
+        .chat-input-row { display: flex; gap: 8px; align-items: center; }
         .chat-input-row input {
             flex: 1;
             padding: 10px 12px;
@@ -252,11 +252,24 @@
             color: #fff;
             outline: none;
         }
-        .chat-input-row button {
+        .btn-img-attach {
+            background: rgba(56, 189, 248, 0.15);
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 9px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .chat-input-row button.btn-send {
             background: var(--accent-gradient);
             color: #0f172a;
             border: none;
             padding: 0 16px;
+            height: 40px;
             border-radius: 8px;
             font-weight: bold;
             cursor: pointer;
@@ -277,12 +290,12 @@
             justify-content: space-between;
             gap: 15px;
             width: 92%;
-            max-width: 400px;
+            max-width: 420px;
         }
 
         .btn-call-act {
             border: none;
-            padding: 8px 16px;
+            padding: 8px 14px;
             border-radius: 8px;
             font-weight: bold;
             cursor: pointer;
@@ -292,6 +305,7 @@
         }
         .btn-call-green { background: var(--success-color); }
         .btn-call-red { background: var(--danger-color); }
+        .btn-call-mute { background: #475569; }
 
         .call-timer-box {
             display: inline-block;
@@ -373,7 +387,8 @@
             <div style="font-size:0.75rem; color:var(--text-muted);" id="callModalStatus">يرن الآن...</div>
             <div id="callTimerBox" class="call-timer-box" style="display:none;">00:00</div>
         </div>
-        <div style="display:flex; gap:8px;">
+        <div style="display:flex; gap:6px;">
+            <button id="btnCallMuteClient" class="btn-call-act btn-call-mute" style="display:none;" onclick="toggleClientMute()">🎤 كتم</button>
             <button id="btnCallAccept" class="btn-call-act btn-call-green" style="display:none;" onclick="acceptIncomingCall()">رد</button>
             <button id="btnCallEnd" class="btn-call-act btn-call-red" onclick="terminateCall(true)">إنهاء ✕</button>
         </div>
@@ -418,6 +433,8 @@
 
             <div class="info-row"><span class="info-label">اسم العميل:</span><span class="info-val" id="resCustomerName">-</span></div>
             <div class="info-row"><span class="info-label">الجهاز والموديل:</span><span class="info-val" id="resDeviceName">-</span></div>
+            <div class="info-row" id="rowImei" style="display:none;"><span class="info-label">رقم الـ IMEI / السيريال:</span><span class="info-val" id="resImei">-</span></div>
+            <div class="info-row" id="rowWarranty" style="display:none;"><span class="info-label">فترة الضمان:</span><span class="info-val" style="color:#38bdf8;" id="resWarranty">-</span></div>
             <div class="info-row"><span class="info-label">العطل المسجل:</span><span class="info-val" id="resProblem">-</span></div>
             <div class="info-row"><span class="info-label">التكلفة المحددة:</span><span class="info-val" style="color:#22c55e;" id="resCost">- ر.س</span></div>
             <div class="info-row"><span class="info-label">وقت التسليم المتوقع:</span><span class="info-val" id="resExpectedTime">-</span></div>
@@ -440,8 +457,10 @@
                 </div>
                 <div class="chat-msgs" id="chatMsgsContainer"></div>
                 <div class="chat-input-row">
+                    <input type="file" id="clientFileInput" accept="image/*" style="display:none;" onchange="handleClientImageUpload(event)">
+                    <button type="button" class="btn-img-attach" onclick="document.getElementById('clientFileInput').click()" title="إرفاق صورة">📷</button>
                     <input type="text" id="chatInput" placeholder="اكتب استفسارك للفني هنا..." onkeydown="if(event.key==='Enter') sendClientMsg()">
-                    <button type="button" onclick="sendClientMsg()">إرسال</button>
+                    <button type="button" class="btn-send" onclick="sendClientMsg()">إرسال</button>
                 </div>
             </div>
         </div>
@@ -461,6 +480,8 @@
         let micSourceNode = null;
         let scriptProcessor = null;
         let nextPlayTime = 0;
+        let isCallActive = false;
+        let isMuted = false;
 
         let callTimerInterval = null;
         let callSeconds = 0;
@@ -597,7 +618,6 @@
             setupLiveSync(currentDevice.id);
             markTechMessagesAsRead();
 
-            // فحص صامت كل ثانيتين في الخلفية لضمان تطابق البيانات تماماً دون ريفريش
             if (silentSyncInterval) clearInterval(silentSyncInterval);
             silentSyncInterval = setInterval(silentSyncData, 2000);
         }
@@ -658,7 +678,6 @@
 
             document.getElementById('resTrackingNum').innerText = currentDevice.tracking_number;
             
-            // تحديث شارة الحالة اللحظي
             const resStatusBadge = document.getElementById('resStatus');
             resStatusBadge.innerText = currentDevice.status;
             if (st === 'جاهز للاستلام') {
@@ -671,11 +690,27 @@
 
             document.getElementById('resCustomerName').innerText = currentDevice.customer_name;
             document.getElementById('resDeviceName').innerText = currentDevice.device_name;
+
+            // عرض حقل السيريال / IMEI إذا وجد
+            if (currentDevice.imei && currentDevice.imei.trim() !== '') {
+                document.getElementById('resImei').innerText = currentDevice.imei;
+                document.getElementById('rowImei').style.display = 'flex';
+            } else {
+                document.getElementById('rowImei').style.display = 'none';
+            }
+
+            // عرض فترة الضمان إذا وجدت
+            if (currentDevice.warranty && currentDevice.warranty.trim() !== '') {
+                document.getElementById('resWarranty').innerText = currentDevice.warranty;
+                document.getElementById('rowWarranty').style.display = 'flex';
+            } else {
+                document.getElementById('rowWarranty').style.display = 'none';
+            }
+
             document.getElementById('resProblem').innerText = currentDevice.problem || 'غير محدد';
             document.getElementById('resCost').innerText = (currentDevice.cost || '0') + ' ر.س';
             document.getElementById('resExpectedTime').innerText = currentDevice.expected_time ? new Date(currentDevice.expected_time).toLocaleString('ar-SA') : 'سيتم تحديده لاحقاً';
 
-            // إظهار وتحديث صندوق الموافقة/الرفض
             const approvalBox = document.getElementById('approvalBox');
             if (st.includes('بانتظار موافقة العميل')) {
                 approvalBox.style.display = 'block';
@@ -684,10 +719,26 @@
                 approvalBox.style.display = 'none';
             }
 
+            updateClientCallBtnState();
             renderChat();
         }
 
-        /* المزامنة اللحظية الشاملة (رسائل، قراءة، تغيرات الحالة الفورية من الفني) */
+        function updateClientCallBtnState() {
+            const btnCall = document.getElementById('btnCallTech');
+            if (!btnCall) return;
+            if (isCallActive) {
+                btnCall.disabled = true;
+                btnCall.style.opacity = '0.5';
+                btnCall.style.cursor = 'not-allowed';
+                btnCall.innerHTML = '📞 مكالمة جارية...';
+            } else {
+                btnCall.disabled = false;
+                btnCall.style.opacity = '1';
+                btnCall.style.cursor = 'pointer';
+                btnCall.innerHTML = '📞 اتصال بالفني';
+            }
+        }
+
         function setupLiveSync(deviceId) {
             _supabase.channel(`room_sync_${deviceId}`)
                 .on('broadcast', { event: 'new_msg' }, ({ payload }) => {
@@ -723,7 +774,6 @@
                     showCustomAlert('⚠️ عطل إضافي وتكلفة جديدة', `تم فحص جهازك وتبين وجود: <b>${escapeHTML(payload.new_fault)}</b> بتكلفة: <b>${payload.cost} ر.س</b>.<br>يرجى تحديد الموافقة أو الرفض في الصندوق المخصص.`, '🔔', 'var(--warning-color)');
                 })
                 .on('broadcast', { event: 'device_status_changed' }, ({ payload }) => {
-                    // استقبال التغيير اللحظي الفوري للحالة من صفحة الفني بدون ريفريش
                     if (currentDevice) {
                         currentDevice.status = payload.status;
                         displayDeviceInfo();
@@ -733,7 +783,6 @@
                 })
                 .subscribe();
 
-            // المزامنة مع قاعدة البيانات
             _supabase.channel(`db_sync_${deviceId}`)
                 .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'devices', filter: `id=eq.${deviceId}` }, payload => {
                     if (payload.new && currentDevice) {
@@ -795,10 +844,13 @@
                     }
                 }
 
+                let imageHtml = m.image ? `<img src="${m.image}" class="chat-msg-image" onclick="window.open('${m.image}','_blank')">` : '';
+
                 html += `
                     <div class="chat-msg-item ${cls}">
                         <div style="font-size:0.65rem; font-weight:bold; margin-bottom:2px;">${lbl}</div>
-                        <div>${escapeHTML(m.text)}</div>
+                        ${m.text ? `<div>${escapeHTML(m.text)}</div>` : ''}
+                        ${imageHtml}
                         <div style="font-size:0.55rem; opacity:0.8; margin-top:3px; display:flex; justify-content:space-between; align-items:center;">
                             <span>${escapeHTML(m.time)}</span>
                             ${readInfo}
@@ -810,15 +862,17 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        async function sendClientMsg() {
+        async function sendClientMsg(imagePayload = null) {
             let input = document.getElementById('chatInput');
             let text = input ? input.value.trim() : '';
-            if (!text || !currentDevice) return;
+            if (!text && !imagePayload) return;
+            if (!currentDevice) return;
 
             let newMsg = {
                 id: 'msg_' + Date.now(),
                 sender: 'client',
                 text: text,
+                image: imagePayload,
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 read: false,
                 readTime: null
@@ -826,7 +880,7 @@
 
             let chat = parseChat(currentDevice.chat);
             chat.push(newMsg);
-            input.value = '';
+            if (input) input.value = '';
             currentDevice.chat = chat;
             renderChat();
 
@@ -837,6 +891,35 @@
             });
 
             await _supabase.from('devices').update({ chat: chat }).eq('id', currentDevice.id);
+        }
+
+        function handleClientImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    const maxDim = 800;
+                    if (width > maxDim || height > maxDim) {
+                        if (width > height) { height = Math.round((height * maxDim) / width); width = maxDim; }
+                        else { width = Math.round((width * maxDim) / height); height = maxDim; }
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                    sendClientMsg(compressedBase64);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+            event.target.value = '';
         }
 
         async function respondToFault(accepted) {
@@ -850,6 +933,7 @@
                 id: 'msg_' + Date.now(),
                 sender: 'client',
                 text: responseText,
+                image: null,
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 read: false,
                 readTime: null
@@ -858,21 +942,18 @@
             let chatArr = parseChat(currentDevice.chat);
             chatArr.push(newMsg);
 
-            // 1. إرسال إشعار تحديث الحالة اللحظي ليتحول الـ select عند الفني إلى (إصلاح) فوراً
             _supabase.channel(`room_sync_${currentDevice.id}`).send({
                 type: 'broadcast',
                 event: 'status_updated',
                 payload: { status: newStatus }
             });
 
-            // 2. إرسال الرسالة في الشات
             _supabase.channel(`room_sync_${currentDevice.id}`).send({
                 type: 'broadcast',
                 event: 'new_msg',
                 payload: newMsg
             });
 
-            // 3. تحديث قاعدة البيانات
             await _supabase.from('devices').update({
                 status: newStatus,
                 chat: chatArr
@@ -921,7 +1002,7 @@
             scriptProcessor = audioCtx.createScriptProcessor(1024, 1, 1);
 
             scriptProcessor.onaudioprocess = (e) => {
-                if (!activeCallChannel) return;
+                if (!activeCallChannel || isMuted) return;
                 const inputData = e.inputBuffer.getChannelData(0);
                 const pcm16 = new Int16Array(inputData.length);
                 for (let i = 0; i < inputData.length; i++) {
@@ -942,11 +1023,21 @@
             scriptProcessor.connect(audioCtx.destination);
         }
 
+        function toggleClientMute() {
+            isMuted = !isMuted;
+            const btn = document.getElementById('btnCallMuteClient');
+            if (btn) {
+                btn.innerText = isMuted ? '🔇 مكتوم' : '🎤 كتم';
+                btn.style.background = isMuted ? 'var(--danger-color)' : '#475569';
+            }
+        }
+
         function stopMicCapture() {
             if (scriptProcessor) { scriptProcessor.disconnect(); scriptProcessor = null; }
             if (micSourceNode) { micSourceNode.disconnect(); micSourceNode = null; }
             if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
             nextPlayTime = 0;
+            isMuted = false;
         }
 
         function startCallTimer() {
@@ -981,15 +1072,22 @@
 
         async function handleCallSignal(data) {
             if (data.type === 'call_offer') {
+                if (isCallActive) return;
+                isCallActive = true;
+                updateClientCallBtnState();
                 document.getElementById('callModalTitle').innerText = `📞 اتصال وارد من: ${data.callerName}`;
                 document.getElementById('callModalStatus').innerText = 'يرن الآن...';
                 document.getElementById('btnCallAccept').style.display = 'inline-block';
+                document.getElementById('btnCallMuteClient').style.display = 'none';
                 document.getElementById('callModal').style.display = 'flex';
                 startRingtone();
             } else if (data.type === 'call_accepted') {
                 stopDialTone();
                 stopRingtone();
+                isCallActive = true;
+                updateClientCallBtnState();
                 document.getElementById('callModalStatus').innerText = 'متصل الآن 🎙';
+                document.getElementById('btnCallMuteClient').style.display = 'inline-block';
                 startCallTimer();
                 await startMicCapture();
             } else if (data.type === 'call_rejected' || data.type === 'call_ended') {
@@ -1006,12 +1104,20 @@
         }
 
         async function startCallToTech() {
+            if (isCallActive) {
+                showCustomAlert('تنبيه', 'يوجد مكالمة جارية بالفعل، لا يمكنك بدء مكالمة أخرى.', '⚠️', 'var(--warning-color)');
+                return;
+            }
             if (!currentDevice) return;
+
+            isCallActive = true;
+            updateClientCallBtnState();
             initAudioContext();
 
             document.getElementById('callModalTitle').innerText = `📞 جاري الاتصال بالفني...`;
             document.getElementById('callModalStatus').innerText = 'في انتظار الرد...';
             document.getElementById('btnCallAccept').style.display = 'none';
+            document.getElementById('btnCallMuteClient').style.display = 'none';
             document.getElementById('callModal').style.display = 'flex';
             startDialTone();
 
@@ -1029,9 +1135,13 @@
             stopRingtone();
             initAudioContext();
 
+            isCallActive = true;
+            updateClientCallBtnState();
+
             document.getElementById('callModalTitle').innerText = `🎙 متصل في مكالمة صوتية`;
             document.getElementById('callModalStatus').innerText = 'مكالمة جارية';
             document.getElementById('btnCallAccept').style.display = 'none';
+            document.getElementById('btnCallMuteClient').style.display = 'inline-block';
             startCallTimer();
 
             activeCallChannel.send({
@@ -1057,6 +1167,8 @@
                 });
             }
 
+            isCallActive = false;
+            updateClientCallBtnState();
             document.getElementById('callModal').style.display = 'none';
         }
 
