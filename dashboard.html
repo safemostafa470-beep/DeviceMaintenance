@@ -157,6 +157,7 @@
             cursor: pointer;
         }
 
+        /* صندوق الشات */
         .chat-container-card {
             background: rgba(15, 23, 42, 0.98);
             border: 2px solid var(--primary-color);
@@ -221,6 +222,7 @@
             cursor: pointer;
             font-size: 0.85rem;
             color: white;
+            transition: 0.2s;
         }
         .btn-call-green { background: var(--success-color); }
         .btn-call-red { background: var(--danger-color); }
@@ -296,7 +298,7 @@
         </div>
     </div>
 
-    <!-- نافذة المكالمة الموحدة -->
+    <!-- نافذة المكالمة الموحدة للفني -->
     <div id="callModal" class="call-card-modal" style="border: 2px solid var(--primary-color);">
         <div>
             <div style="font-size:0.92rem; font-weight:bold; color:#fff;" id="callModalTitle">📞 جاري الاتصال...</div>
@@ -309,6 +311,7 @@
         </div>
     </div>
 
+    <!-- مشغل الصوت البعيد -->
     <audio id="remoteAudio" autoplay playsinline></audio>
 
     <div class="top-nav">
@@ -440,7 +443,7 @@
         let activeChatDeviceId = null;
         let currentTech = localStorage.getItem('currentUser') || '';
 
-        // WebRTC & Audio
+        // WebRTC & Audio State
         let callChannels = {};
         let activeCallDeviceId = null;
         let incomingOfferData = null;
@@ -458,7 +461,8 @@
                 { urls: 'stun:stun2.l.google.com:19302' },
                 { urls: 'stun:stun.services.mozilla.com' },
                 { urls: 'turn:openrelay.metered.ca:80', username: 'openrelay', credential: 'openrelay' },
-                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelay', credential: 'openrelay' }
+                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelay', credential: 'openrelay' },
+                { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelay', credential: 'openrelay' }
             ]
         };
 
@@ -706,7 +710,7 @@
                                 <td>
                                     <select class="status-select" onchange="changeStatus('${d.id}', this.value)">
                                         <option value="جاري الفحص الفني" ${st==='جاري الفحص الفني'?'selected':''}>🔍 فحص</option>
-                                        <option value="جاري الإصلاح" ${st==='جاري الإصلاح'?'selected':''}>⚙️ إصلاح</option>
+                                        <option value="جاري الإصلاح" ${st==='جاري الإصلاح'?'selected':''}>⚙️️ إصلاح</option>
                                         <option value="بانتظار موافقة العميل على التكلفة" ${st.includes('بانتظار')?'selected':''}>⏳ انتظار الموافقة</option>
                                         <option value="صيانة غير متوفرة" ${st.includes('غير متوفرة')?'selected':''}>❌ غير متوفرة</option>
                                         <option value="جاهز للاستلام" ${st==='جاهز للاستلام'?'selected':''}>✅ جاهز</option>
@@ -799,7 +803,7 @@
             document.getElementById('chatSectionContainer').style.display = 'none';
         }
 
-        /* قراءة رسائل العميل وتحديثها في Supabase بدقة */
+        /* قراءة رسائل العميل وتحديثها لحظياً في Supabase */
         async function markClientMessagesAsRead(deviceId) {
             let dev = devicesList.find(d => String(d.id) === String(deviceId));
             if (!dev) return;
@@ -890,35 +894,6 @@
             await _supabase.from('devices').update({ chat: chat }).eq('id', activeChatDeviceId);
         }
 
-        function playBeep() {
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-                osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
-                gain.gain.setValueAtTime(0.15, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start();
-                osc.stop(ctx.currentTime + 0.4);
-            } catch(e) {}
-        }
-
-        function exportToCSV() {
-            let csvContent = "\uFEFFرقم التتبع,اسم العميل,رقم الهاتف,نوع الجهاز,الحالة,التكلفة\n";
-            devicesList.forEach(d => {
-                csvContent += `"${d.tracking_number}","${d.customer_name}","${d.phone}","${d.device_name}","${d.status || ''}","${d.cost || '0'}"\n`;
-            });
-            let blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            let url = URL.createObjectURL(blob);
-            let a = document.createElement("a");
-            a.href = url;
-            a.download = `تقرير_الصيانة_${new Date().toISOString().slice(0,10)}.csv`;
-            a.click();
-        }
-
         /* تشغيل العداد الموحد */
         function startCallTimer() {
             stopCallTimer();
@@ -947,17 +922,30 @@
             if (el) { el.style.display = 'none'; el.innerText = '00:00'; }
         }
 
-        /* ربط الصوت المباشر للهاتف */
+        /* ربط مسار الصوت وحل صمت الأندرويد */
         function attachRemoteAudio(stream) {
             const rAudio = document.getElementById('remoteAudio');
             if (!rAudio) return;
             rAudio.srcObject = stream;
             rAudio.muted = false;
             rAudio.volume = 1.0;
-            rAudio.play().catch(e => console.log('Remote audio playback notice:', e));
+            
+            // إلغاء كتم سياق الصوت
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtx) {
+                    const ctx = new AudioCtx();
+                    if (ctx.state === 'suspended') {
+                        ctx.resume();
+                    }
+                    const src = ctx.createMediaStreamSource(stream);
+                    src.connect(ctx.destination);
+                }
+            } catch (e) {}
+
+            rAudio.play().catch(e => console.log('Audio autoplay retry:', e));
         }
 
-        /* إدارة الاتصال والقنوات */
         function listenToCallsForDevices(devices) {
             devices.forEach(d => {
                 if (!callChannels[d.id]) {
@@ -996,11 +984,11 @@
             } else if (data.type === 'call_rejected' || data.type === 'call_ended') {
                 terminateCall(false);
             } else if (data.type === 'ice_candidate' && data.candidate) {
-                const candidateObj = new RTCIceCandidate(data.candidate);
+                const cand = new RTCIceCandidate(data.candidate);
                 if (peerConnection && peerConnection.remoteDescription) {
-                    peerConnection.addIceCandidate(candidateObj).catch(()=>{});
+                    await peerConnection.addIceCandidate(cand).catch(()=>{});
                 } else {
-                    iceCandidatesQueue.push(candidateObj);
+                    iceCandidatesQueue.push(cand);
                 }
             }
         }
@@ -1018,7 +1006,7 @@
                     video: false
                 });
             } catch (err) {
-                showCustomAlert('إذن الميكروفون', 'يرجى تفعيل صلاحية الميكروفون لإتمام المكالمة.');
+                showCustomAlert('إذن الميكروفون', 'يرجى السماح بالوصول للميكروفون لإجراء المكالمة.');
                 return;
             }
 
@@ -1031,6 +1019,7 @@
             iceCandidatesQueue = [];
             peerConnection = new RTCPeerConnection(rtcConfig);
             localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            peerConnection.addTransceiver('audio', { direction: 'sendrecv' });
 
             peerConnection.onicecandidate = event => {
                 if (event.candidate && callChannels[activeCallDeviceId]) {
@@ -1070,13 +1059,14 @@
                     video: false
                 });
             } catch (err) {
-                showCustomAlert('إذن الميكروفون', 'يرجى تفعيل صلاحية الميكروفون للرد.');
+                showCustomAlert('إذن الميكروفون', 'يرجى السماح بصلاحية الميكروفون للرد.');
                 return;
             }
 
             iceCandidatesQueue = [];
             peerConnection = new RTCPeerConnection(rtcConfig);
             localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            peerConnection.addTransceiver('audio', { direction: 'sendrecv' });
 
             peerConnection.onicecandidate = event => {
                 if (event.candidate && callChannels[activeCallDeviceId]) {
@@ -1093,7 +1083,6 @@
             };
 
             await peerConnection.setRemoteDescription(new RTCSessionDescription(incomingOfferData.sdp));
-
             while (iceCandidatesQueue.length > 0) {
                 let c = iceCandidatesQueue.shift();
                 await peerConnection.addIceCandidate(c).catch(()=>{});
@@ -1180,6 +1169,19 @@
         function stopRingtone() {
             if (ringInterval) { clearInterval(ringInterval); ringInterval = null; }
             if (ringAudioCtx) { ringAudioCtx.close().catch(()=>{}); ringAudioCtx = null; }
+        }
+
+        function exportToCSV() {
+            let csvContent = "\uFEFFرقم التتبع,اسم العميل,رقم الهاتف,نوع الجهاز,الحالة,التكلفة\n";
+            devicesList.forEach(d => {
+                csvContent += `"${d.tracking_number}","${d.customer_name}","${d.phone}","${d.device_name}","${d.status || ''}","${d.cost || '0'}"\n`;
+            });
+            let blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            let url = URL.createObjectURL(blob);
+            let a = document.createElement("a");
+            a.href = url;
+            a.download = `تقرير_الصيانة_${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
         }
     </script>
 </body>
