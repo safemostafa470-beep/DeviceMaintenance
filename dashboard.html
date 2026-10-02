@@ -311,9 +311,6 @@
         </div>
     </div>
 
-    <!-- مشغل الصوت البعيد -->
-    <audio id="remoteAudio" autoplay playsinline></audio>
-
     <div class="top-nav">
         <div style="font-size: 0.9rem; font-weight: bold; color: var(--primary-color);">
             🛠️ فني الصيانة: <span id="currentTechDisplay" style="color: #22c55e;">-</span>
@@ -443,28 +440,15 @@
         let activeChatDeviceId = null;
         let currentTech = localStorage.getItem('currentUser') || '';
 
-        // WebRTC & Audio State
+        // نظام بث الصوت الحي المستقل
         let callChannels = {};
         let activeCallDeviceId = null;
-        let incomingOfferData = null;
-        let peerConnection = null;
         let localStream = null;
-        let iceCandidatesQueue = [];
+        let mediaRecorder = null;
+        let audioPlaybackContext = null;
 
         let callTimerInterval = null;
         let callSeconds = 0;
-
-        const rtcConfig = { 
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun.services.mozilla.com' },
-                { urls: 'turn:openrelay.metered.ca:80', username: 'openrelay', credential: 'openrelay' },
-                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelay', credential: 'openrelay' },
-                { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelay', credential: 'openrelay' }
-            ]
-        };
 
         let dialAudioCtx = null;
         let dialInterval = null;
@@ -710,7 +694,7 @@
                                 <td>
                                     <select class="status-select" onchange="changeStatus('${d.id}', this.value)">
                                         <option value="جاري الفحص الفني" ${st==='جاري الفحص الفني'?'selected':''}>🔍 فحص</option>
-                                        <option value="جاري الإصلاح" ${st==='جاري الإصلاح'?'selected':''}>⚙️️ إصلاح</option>
+                                        <option value="جاري الإصلاح" ${st==='جاري الإصلاح'?'selected':''}>⚙ إصلاح</option>
                                         <option value="بانتظار موافقة العميل على التكلفة" ${st.includes('بانتظار')?'selected':''}>⏳ انتظار الموافقة</option>
                                         <option value="صيانة غير متوفرة" ${st.includes('غير متوفرة')?'selected':''}>❌ غير متوفرة</option>
                                         <option value="جاهز للاستلام" ${st==='جاهز للاستلام'?'selected':''}>✅ جاهز</option>
@@ -894,7 +878,7 @@
             await _supabase.from('devices').update({ chat: chat }).eq('id', activeChatDeviceId);
         }
 
-        /* تشغيل العداد الموحد */
+        /* إدارة عداد المكالمة الموحد */
         function startCallTimer() {
             stopCallTimer();
             callSeconds = 0;
@@ -922,28 +906,67 @@
             if (el) { el.style.display = 'none'; el.innerText = '00:00'; }
         }
 
-        /* ربط مسار الصوت وحل صمت الأندرويد */
-        function attachRemoteAudio(stream) {
-            const rAudio = document.getElementById('remoteAudio');
-            if (!rAudio) return;
-            rAudio.srcObject = stream;
-            rAudio.muted = false;
-            rAudio.volume = 1.0;
-            
-            // إلغاء كتم سياق الصوت
+        /* محرك استقبال وتشغيل الصوت الحي عبر Web Audio API */
+        function playRawAudioChunk(base64Audio) {
             try {
-                const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                if (AudioCtx) {
-                    const ctx = new AudioCtx();
-                    if (ctx.state === 'suspended') {
-                        ctx.resume();
-                    }
-                    const src = ctx.createMediaStreamSource(stream);
-                    src.connect(ctx.destination);
+                if (!audioPlaybackContext) {
+                    audioPlaybackContext = new (window.AudioContext || window.webkitAudioContext)();
                 }
-            } catch (e) {}
+                if (audioPlaybackContext.state === 'suspended') {
+                    audioPlaybackContext.resume();
+                }
+                const binaryString = atob(base64Audio);
+                const len = binaryString.length;
+                const bytes = new Uint8Array(len);
+                for (let i = 0; i < len; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                audioPlaybackContext.decodeAudioData(bytes.buffer, (buffer) => {
+                    const source = audioPlaybackContext.createBufferSource();
+                    source.buffer = buffer;
+                    source.connect(audioPlaybackContext.destination);
+                    source.start(0);
+                }, (e) => {});
+            } catch (err) {}
+        }
 
-            rAudio.play().catch(e => console.log('Audio autoplay retry:', e));
+        /* بدء تسجيل وبث الصوت الحي */
+        function startStreamingAudio(channel) {
+            if (!localStream) return;
+            try {
+                mediaRecorder = new MediaRecorder(localStream, { mimeType: 'audio/webm;codecs=opus' });
+            } catch(e) {
+                try {
+                    mediaRecorder = new MediaRecorder(localStream);
+                } catch(e2) { return; }
+            }
+
+            mediaRecorder.ondataavailable = async (e) => {
+                if (e.data && e.data.size > 0 && channel) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        const base64data = reader.result.split(',')[1];
+                        channel.send({
+                            type: 'broadcast',
+                            event: 'call_signal',
+                            payload: { type: 'audio_chunk', chunk: base64data }
+                        });
+                    };
+                    reader.readAsDataURL(e.data);
+                }
+            };
+            mediaRecorder.start(200); // إرسال الصوت لحظة بلحظة كل 200 مللي ثانية
+        }
+
+        function stopStreamingAudio() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                try { mediaRecorder.stop(); } catch(e){}
+                mediaRecorder = null;
+            }
+            if (localStream) {
+                localStream.getTracks().forEach(t => t.stop());
+                localStream = null;
+            }
         }
 
         function listenToCallsForDevices(devices) {
@@ -962,7 +985,6 @@
         async function handleCallSignal(deviceId, data) {
             if (data.type === 'call_offer') {
                 activeCallDeviceId = deviceId;
-                incomingOfferData = data;
                 document.getElementById('callModalTitle').innerText = `📞 اتصال وارد من: ${data.callerName}`;
                 document.getElementById('callModalStatus').innerText = 'يرن الآن...';
                 document.getElementById('btnCallAccept').style.display = 'inline-block';
@@ -973,23 +995,11 @@
                 stopRingtone();
                 document.getElementById('callModalStatus').innerText = 'متصل الآن 🎙';
                 startCallTimer();
-
-                if (peerConnection && data.sdp) {
-                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
-                    while (iceCandidatesQueue.length > 0) {
-                        let c = iceCandidatesQueue.shift();
-                        await peerConnection.addIceCandidate(c).catch(()=>{});
-                    }
-                }
+                startStreamingAudio(callChannels[activeCallDeviceId]);
             } else if (data.type === 'call_rejected' || data.type === 'call_ended') {
                 terminateCall(false);
-            } else if (data.type === 'ice_candidate' && data.candidate) {
-                const cand = new RTCIceCandidate(data.candidate);
-                if (peerConnection && peerConnection.remoteDescription) {
-                    await peerConnection.addIceCandidate(cand).catch(()=>{});
-                } else {
-                    iceCandidatesQueue.push(cand);
-                }
+            } else if (data.type === 'audio_chunk' && data.chunk) {
+                playRawAudioChunk(data.chunk);
             }
         }
 
@@ -1001,12 +1011,9 @@
             activeCallDeviceId = activeChatDeviceId;
 
             try {
-                localStream = await navigator.mediaDevices.getUserMedia({
-                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-                    video: false
-                });
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             } catch (err) {
-                showCustomAlert('إذن الميكروفون', 'يرجى السماح بالوصول للميكروفون لإجراء المكالمة.');
+                showCustomAlert('إذن الميكروفون', 'يرجى تفعيل صلاحية الميكروفون لإجراء المكالمة.');
                 return;
             }
 
@@ -1016,97 +1023,53 @@
             document.getElementById('callModal').style.display = 'flex';
             startDialTone();
 
-            iceCandidatesQueue = [];
-            peerConnection = new RTCPeerConnection(rtcConfig);
-            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-            peerConnection.addTransceiver('audio', { direction: 'sendrecv' });
-
-            peerConnection.onicecandidate = event => {
-                if (event.candidate && callChannels[activeCallDeviceId]) {
-                    callChannels[activeCallDeviceId].send({
-                        type: 'broadcast',
-                        event: 'call_signal',
-                        payload: { type: 'ice_candidate', candidate: event.candidate.toJSON() }
-                    });
-                }
-            };
-
-            peerConnection.ontrack = event => {
-                attachRemoteAudio(event.streams[0]);
-            };
-
-            const offer = await peerConnection.createOffer({ offerToReceiveAudio: true });
-            await peerConnection.setLocalDescription(offer);
-
             callChannels[activeCallDeviceId].send({
                 type: 'broadcast',
                 event: 'call_signal',
                 payload: {
                     type: 'call_offer',
-                    callerName: `الفني المسؤول (${currentTech})`,
-                    sdp: offer
+                    callerName: `الفني المسؤول (${currentTech})`
                 }
             });
         }
 
         async function acceptIncomingCall() {
-            if (!activeCallDeviceId || !incomingOfferData) return;
+            if (!activeCallDeviceId) return;
             stopRingtone();
 
             try {
-                localStream = await navigator.mediaDevices.getUserMedia({
-                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-                    video: false
-                });
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             } catch (err) {
                 showCustomAlert('إذن الميكروفون', 'يرجى السماح بصلاحية الميكروفون للرد.');
                 return;
             }
 
-            iceCandidatesQueue = [];
-            peerConnection = new RTCPeerConnection(rtcConfig);
-            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-            peerConnection.addTransceiver('audio', { direction: 'sendrecv' });
-
-            peerConnection.onicecandidate = event => {
-                if (event.candidate && callChannels[activeCallDeviceId]) {
-                    callChannels[activeCallDeviceId].send({
-                        type: 'broadcast',
-                        event: 'call_signal',
-                        payload: { type: 'ice_candidate', candidate: event.candidate.toJSON() }
-                    });
-                }
-            };
-
-            peerConnection.ontrack = event => {
-                attachRemoteAudio(event.streams[0]);
-            };
-
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(incomingOfferData.sdp));
-            while (iceCandidatesQueue.length > 0) {
-                let c = iceCandidatesQueue.shift();
-                await peerConnection.addIceCandidate(c).catch(()=>{});
+            // فك حظر الصوت في المتصفح فوراً بعد الضغط
+            if (!audioPlaybackContext) {
+                audioPlaybackContext = new (window.AudioContext || window.webkitAudioContext)();
             }
-
-            const answer = await peerConnection.createAnswer({ offerToReceiveAudio: true });
-            await peerConnection.setLocalDescription(answer);
+            if (audioPlaybackContext.state === 'suspended') {
+                audioPlaybackContext.resume();
+            }
 
             callChannels[activeCallDeviceId].send({
                 type: 'broadcast',
                 event: 'call_signal',
-                payload: { type: 'call_accepted', sdp: answer }
+                payload: { type: 'call_accepted' }
             });
 
             document.getElementById('callModalTitle').innerText = `🎙 متصل في مكالمة صوتية`;
             document.getElementById('callModalStatus').innerText = 'مكالمة جارية';
             document.getElementById('btnCallAccept').style.display = 'none';
             startCallTimer();
+            startStreamingAudio(callChannels[activeCallDeviceId]);
         }
 
         function terminateCall(notify = true) {
             stopDialTone();
             stopRingtone();
             stopCallTimer();
+            stopStreamingAudio();
 
             if (notify && activeCallDeviceId && callChannels[activeCallDeviceId]) {
                 callChannels[activeCallDeviceId].send({
@@ -1116,10 +1079,7 @@
                 });
             }
 
-            if (peerConnection) { peerConnection.close(); peerConnection = null; }
-            if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
             document.getElementById('callModal').style.display = 'none';
-            incomingOfferData = null;
         }
 
         function startDialTone() {

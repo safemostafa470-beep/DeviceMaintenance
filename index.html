@@ -123,6 +123,7 @@
         .closed-title { font-size: 1.3rem; font-weight: bold; margin-bottom: 8px; }
         .closed-desc { font-size: 0.92rem; color: #cbd5e1; line-height: 1.6; margin-bottom: 18px; }
         
+        /* إبراز رسالة المركز المخصصة */
         .special-thanks-box {
             background: linear-gradient(135deg, rgba(56, 189, 248, 0.12) 0%, rgba(34, 197, 94, 0.12) 100%);
             border: 1px dashed var(--primary-color);
@@ -313,6 +314,7 @@
             display: none;
             align-items: center; justify-content: center;
             padding: 20px;
+            animation: fadeIn 0.2s ease;
         }
         .custom-modal-box {
             background: #1e293b;
@@ -321,19 +323,56 @@
             width: 100%; max-width: 420px;
             padding: 24px; text-align: center;
             box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            transform: scale(0.95);
+            animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
+        @keyframes popIn { to { transform: scale(1); } }
+        .modal-icon { font-size: 2.8rem; margin-bottom: 12px; }
+        .modal-title { font-size: 1.15rem; font-weight: bold; margin-bottom: 10px; color: #fff; }
+        .modal-body { font-size: 0.9rem; color: #cbd5e1; line-height: 1.6; margin-bottom: 20px; }
+        .modal-btn {
+            background: var(--accent-gradient);
+            color: #0f172a;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            cursor: pointer;
+            width: 100%;
+            transition: opacity 0.2s;
+        }
+        .modal-btn:hover { opacity: 0.9; }
+
+        .toast {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--success-color);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: transform 0.3s ease;
+            z-index: 99999;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            text-align: center;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); }
     </style>
 </head>
 <body>
 
-    <div id="toast" style="position:fixed; bottom:25px; left:50%; transform:translateX(-50%) translateY(100px); background:var(--success-color); color:white; padding:10px 20px; border-radius:10px; font-weight:bold; font-size:0.9rem; transition:transform 0.3s ease; z-index:99999; box-shadow:0 4px 15px rgba(0,0,0,0.4); text-align:center;">تم الإرسال</div>
+    <div id="toast" class="toast">تم الإرسال</div>
 
     <div id="customModal" class="custom-modal-backdrop">
         <div class="custom-modal-box">
-            <div id="modalIcon" style="font-size:2.8rem; margin-bottom:12px;">🔔</div>
-            <div id="modalTitle" style="font-size:1.15rem; font-weight:bold; margin-bottom:10px; color:#fff;">تنبيه</div>
-            <div id="modalBody" style="font-size:0.9rem; color:#cbd5e1; line-height:1.6; margin-bottom:20px;"></div>
-            <button type="button" style="background:var(--accent-gradient); color:#0f172a; border:none; padding:10px 24px; border-radius:10px; font-weight:bold; font-size:0.9rem; cursor:pointer; width:100%;" onclick="closeCustomModal()">حسناً، فهمت</button>
+            <div id="modalIcon" class="modal-icon">🔔</div>
+            <div id="modalTitle" class="modal-title">تنبيه</div>
+            <div id="modalBody" class="modal-body"></div>
+            <button type="button" class="modal-btn" onclick="closeCustomModal()">حسناً، فهمت</button>
         </div>
     </div>
 
@@ -350,9 +389,8 @@
         </div>
     </div>
 
-    <audio id="remoteAudio" autoplay playsinline></audio>
-
     <div class="container">
+        <!-- الواجهة العلوية للبحث -->
         <div class="header-card">
             <a href="login.html" class="tech-portal-link">🛠️ بوابة الفنيين</a>
             <h1>تتبع حالة صيانة جهازك</h1>
@@ -364,6 +402,7 @@
             </div>
         </div>
 
+        <!-- بطاقة رسالة الشكر وإنهاء الخدمة -->
         <div id="closedCard" class="closed-card">
             <div id="closedIcon" class="closed-icon">✨</div>
             <div id="closedTitle" class="closed-title">شكراً لثقتكم بنا</div>
@@ -383,6 +422,7 @@
             <div class="auto-redirect-bar" id="redirectBar"></div>
         </div>
 
+        <!-- بطاقة متابعة الجهاز النشط -->
         <div id="resultCard" class="result-card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                 <span class="status-badge" id="resStatus">-</span>
@@ -426,24 +466,12 @@
 
         let currentDevice = null;
         let activeCallChannel = null;
-        let incomingOfferData = null;
-        let peerConnection = null;
         let localStream = null;
-        let iceCandidatesQueue = [];
+        let mediaRecorder = null;
+        let audioPlaybackContext = null;
 
         let callTimerInterval = null;
         let callSeconds = 0;
-
-        const rtcConfig = { 
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun.services.mozilla.com' },
-                { urls: 'turn:openrelay.metered.ca:80', username: 'openrelay', credential: 'openrelay' },
-                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelay', credential: 'openrelay' }
-            ]
-        };
 
         let dialAudioCtx = null;
         let dialInterval = null;
@@ -487,8 +515,8 @@
             let t = document.getElementById('toast');
             if (!t) return;
             t.innerText = msg;
-            t.style.transform = 'translateX(-50%) translateY(0)';
-            setTimeout(() => t.style.transform = 'translateX(-50%) translateY(100px)', 3500);
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3500);
         }
 
         function resetToNewSearch() {
@@ -655,7 +683,7 @@
             }
         }
 
-        /* قراءة رسائل الفني وتحديثها في Supabase */
+        /* قراءة رسائل الفني وتحديثها في Supabase بدقة لتعمل علامتي الصح الزرقاء */
         async function markTechMessagesAsRead() {
             if (!currentDevice) return;
             let chatArr = parseChat(currentDevice.chat);
@@ -795,27 +823,67 @@
             if (el) { el.style.display = 'none'; el.innerText = '00:00'; }
         }
 
-        /* ربط الصوت المباشر للهاتف */
-        function attachRemoteAudio(stream) {
-            const rAudio = document.getElementById('remoteAudio');
-            if (!rAudio) return;
-            rAudio.srcObject = stream;
-            rAudio.muted = false;
-            rAudio.volume = 1.0;
-
+        /* محرك استقبال وتشغيل الصوت الحي عبر Web Audio API */
+        function playRawAudioChunk(base64Audio) {
             try {
-                const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                if (AudioCtx) {
-                    const ctx = new AudioCtx();
-                    if (ctx.state === 'suspended') {
-                        ctx.resume();
-                    }
-                    const src = ctx.createMediaStreamSource(stream);
-                    src.connect(ctx.destination);
+                if (!audioPlaybackContext) {
+                    audioPlaybackContext = new (window.AudioContext || window.webkitAudioContext)();
                 }
-            } catch (e) {}
+                if (audioPlaybackContext.state === 'suspended') {
+                    audioPlaybackContext.resume();
+                }
+                const binaryString = atob(base64Audio);
+                const len = binaryString.length;
+                const bytes = new Uint8Array(len);
+                for (let i = 0; i < len; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                audioPlaybackContext.decodeAudioData(bytes.buffer, (buffer) => {
+                    const source = audioPlaybackContext.createBufferSource();
+                    source.buffer = buffer;
+                    source.connect(audioPlaybackContext.destination);
+                    source.start(0);
+                }, (e) => {});
+            } catch (err) {}
+        }
 
-            rAudio.play().catch(e => console.log('Remote play error:', e));
+        /* بدء تسجيل وبث الصوت الحي */
+        function startStreamingAudio(channel) {
+            if (!localStream) return;
+            try {
+                mediaRecorder = new MediaRecorder(localStream, { mimeType: 'audio/webm;codecs=opus' });
+            } catch(e) {
+                try {
+                    mediaRecorder = new MediaRecorder(localStream);
+                } catch(e2) { return; }
+            }
+
+            mediaRecorder.ondataavailable = async (e) => {
+                if (e.data && e.data.size > 0 && channel) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        const base64data = reader.result.split(',')[1];
+                        channel.send({
+                            type: 'broadcast',
+                            event: 'call_signal',
+                            payload: { type: 'audio_chunk', chunk: base64data }
+                        });
+                    };
+                    reader.readAsDataURL(e.data);
+                }
+            };
+            mediaRecorder.start(200); // إرسال الصوت لحظة بلحظة كل 200 مللي ثانية
+        }
+
+        function stopStreamingAudio() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                try { mediaRecorder.stop(); } catch(e){}
+                mediaRecorder = null;
+            }
+            if (localStream) {
+                localStream.getTracks().forEach(t => t.stop());
+                localStream = null;
+            }
         }
 
         function setupCallChannel() {
@@ -829,7 +897,6 @@
 
         async function handleCallSignal(data) {
             if (data.type === 'call_offer') {
-                incomingOfferData = data;
                 document.getElementById('callModalTitle').innerText = `📞 اتصال وارد من: ${data.callerName}`;
                 document.getElementById('callModalStatus').innerText = 'يرن الآن...';
                 document.getElementById('btnCallAccept').style.display = 'inline-block';
@@ -840,23 +907,11 @@
                 stopRingtone();
                 document.getElementById('callModalStatus').innerText = 'متصل الآن 🎙';
                 startCallTimer();
-
-                if (peerConnection && data.sdp) {
-                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
-                    while (iceCandidatesQueue.length > 0) {
-                        let c = iceCandidatesQueue.shift();
-                        await peerConnection.addIceCandidate(c).catch(()=>{});
-                    }
-                }
+                startStreamingAudio(activeCallChannel);
             } else if (data.type === 'call_rejected' || data.type === 'call_ended') {
                 terminateCall(false);
-            } else if (data.type === 'ice_candidate' && data.candidate) {
-                const cand = new RTCIceCandidate(data.candidate);
-                if (peerConnection && peerConnection.remoteDescription) {
-                    await peerConnection.addIceCandidate(cand).catch(()=>{});
-                } else {
-                    iceCandidatesQueue.push(cand);
-                }
+            } else if (data.type === 'audio_chunk' && data.chunk) {
+                playRawAudioChunk(data.chunk);
             }
         }
 
@@ -864,10 +919,7 @@
             if (!currentDevice) return;
 
             try {
-                localStream = await navigator.mediaDevices.getUserMedia({
-                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-                    video: false
-                });
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             } catch (err) {
                 showCustomAlert('إذن الميكروفون مطلوب', 'يرجى تفعيل صلاحية الميكروفون لإجراء المكالمة.');
                 return;
@@ -879,97 +931,52 @@
             document.getElementById('callModal').style.display = 'flex';
             startDialTone();
 
-            iceCandidatesQueue = [];
-            peerConnection = new RTCPeerConnection(rtcConfig);
-            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-            peerConnection.addTransceiver('audio', { direction: 'sendrecv' });
-
-            peerConnection.onicecandidate = event => {
-                if (event.candidate && activeCallChannel) {
-                    activeCallChannel.send({
-                        type: 'broadcast',
-                        event: 'call_signal',
-                        payload: { type: 'ice_candidate', candidate: event.candidate.toJSON() }
-                    });
-                }
-            };
-
-            peerConnection.ontrack = event => {
-                attachRemoteAudio(event.streams[0]);
-            };
-
-            const offer = await peerConnection.createOffer({ offerToReceiveAudio: true });
-            await peerConnection.setLocalDescription(offer);
-
             activeCallChannel.send({
                 type: 'broadcast',
                 event: 'call_signal',
                 payload: {
                     type: 'call_offer',
-                    callerName: `العميل (${currentDevice.customer_name})`,
-                    sdp: offer
+                    callerName: `العميل (${currentDevice.customer_name})`
                 }
             });
         }
 
         async function acceptIncomingCall() {
-            if (!incomingOfferData) return;
             stopRingtone();
 
             try {
-                localStream = await navigator.mediaDevices.getUserMedia({
-                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-                    video: false
-                });
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             } catch (err) {
                 showCustomAlert('إذن الميكروفون مطلوب', 'يرجى السماح بصلاحية الميكروفون للرد.');
                 return;
             }
 
-            iceCandidatesQueue = [];
-            peerConnection = new RTCPeerConnection(rtcConfig);
-            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-            peerConnection.addTransceiver('audio', { direction: 'sendrecv' });
-
-            peerConnection.onicecandidate = event => {
-                if (event.candidate && activeCallChannel) {
-                    activeCallChannel.send({
-                        type: 'broadcast',
-                        event: 'call_signal',
-                        payload: { type: 'ice_candidate', candidate: event.candidate.toJSON() }
-                    });
-                }
-            };
-
-            peerConnection.ontrack = event => {
-                attachRemoteAudio(event.streams[0]);
-            };
-
-            await peerConnection.setRemoteDescription(new RTCSessionDescription(incomingOfferData.sdp));
-            while (iceCandidatesQueue.length > 0) {
-                let c = iceCandidatesQueue.shift();
-                await peerConnection.addIceCandidate(c).catch(()=>{});
+            // فك حظر تشغيل الصوت في المتصفح فوراً بعد نقرة العميل
+            if (!audioPlaybackContext) {
+                audioPlaybackContext = new (window.AudioContext || window.webkitAudioContext)();
             }
-
-            const answer = await peerConnection.createAnswer({ offerToReceiveAudio: true });
-            await peerConnection.setLocalDescription(answer);
+            if (audioPlaybackContext.state === 'suspended') {
+                audioPlaybackContext.resume();
+            }
 
             activeCallChannel.send({
                 type: 'broadcast',
                 event: 'call_signal',
-                payload: { type: 'call_accepted', sdp: answer }
+                payload: { type: 'call_accepted' }
             });
 
             document.getElementById('callModalTitle').innerText = `🎙 متصل في مكالمة صوتية`;
             document.getElementById('callModalStatus').innerText = 'مكالمة جارية';
             document.getElementById('btnCallAccept').style.display = 'none';
             startCallTimer();
+            startStreamingAudio(activeCallChannel);
         }
 
         function terminateCall(notify = true) {
             stopDialTone();
             stopRingtone();
             stopCallTimer();
+            stopStreamingAudio();
 
             if (notify && activeCallChannel) {
                 activeCallChannel.send({
@@ -979,10 +986,7 @@
                 });
             }
 
-            if (peerConnection) { peerConnection.close(); peerConnection = null; }
-            if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
             document.getElementById('callModal').style.display = 'none';
-            incomingOfferData = null;
         }
 
         function startDialTone() {
