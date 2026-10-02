@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة تحكم الفني - إدارة الصيانة</title>
 
+    <!-- حماية فورية: فحص وجود جلسة مسجلة قبل رسم أي عنصر -->
     <script>
         (function() {
             const isLogged = localStorage.getItem('isLoggedIn');
@@ -193,49 +194,46 @@
             outline: none;
         }
 
-        /* نافذة الاتصال */
-        .call-modal-overlay {
+        /* نافذة الاتصال الموحدة */
+        .call-card-modal {
             position: fixed;
-            top: 25px;
+            top: 20px;
             left: 50%;
             transform: translateX(-50%);
             background: #1e293b;
             padding: 14px 20px;
-            border-radius: 16px;
+            border-radius: 14px;
             box-shadow: 0 15px 35px rgba(0,0,0,0.85);
-            z-index: 10000;
+            z-index: 100000;
             display: none;
             align-items: center;
             justify-content: space-between;
-            gap: 16px;
-            width: 90%;
+            gap: 15px;
+            width: 92%;
             max-width: 400px;
-            animation: bounceIn 0.3s ease;
         }
-        @keyframes bounceIn { from { transform: translate(-50%, -40px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
 
-        .btn-call-action {
+        .btn-call-act {
             border: none;
             padding: 8px 16px;
-            border-radius: 10px;
+            border-radius: 8px;
             font-weight: bold;
             cursor: pointer;
             font-size: 0.85rem;
             color: white;
-            transition: 0.2s;
         }
-        .btn-call-accept { background: var(--success-color); }
-        .btn-call-reject { background: var(--danger-color); }
+        .btn-call-green { background: var(--success-color); }
+        .btn-call-red { background: var(--danger-color); }
 
-        .call-timer-badge {
+        .call-timer-box {
             display: inline-block;
-            background: rgba(56, 189, 248, 0.2);
-            color: var(--primary-color);
-            padding: 3px 8px;
+            background: #0284c7;
+            color: #fff;
+            padding: 3px 9px;
             border-radius: 6px;
             font-weight: bold;
             font-family: monospace;
-            font-size: 0.85rem;
+            font-size: 0.88rem;
             margin-top: 4px;
         }
 
@@ -259,46 +257,29 @@
 
         .custom-alert-backdrop {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
+            top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(15, 23, 42, 0.8);
             backdrop-filter: blur(8px);
             z-index: 999999;
             display: none;
-            align-items: center;
-            justify-content: center;
+            align-items: center; justify-content: center;
             padding: 20px;
-            animation: modalFadeIn 0.25s ease;
         }
-        @keyframes modalFadeIn { from { opacity: 0; } to { opacity: 1; } }
         .custom-alert-card {
             background: #1e293b;
             border: 1px solid var(--border-color);
             border-radius: 18px;
-            width: 100%;
-            max-width: 420px;
-            padding: 25px 20px;
-            text-align: center;
+            width: 100%; max-width: 420px;
+            padding: 25px 20px; text-align: center;
             box-shadow: 0 20px 50px rgba(0,0,0,0.7);
-            transform: scale(0.92);
-            animation: modalPopIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
-        @keyframes modalPopIn { to { transform: scale(1); } }
-        .alert-icon-wrap { font-size: 3rem; margin-bottom: 12px; display: inline-block; }
         .alert-card-title { font-size: 1.2rem; font-weight: 800; color: #fff; margin-bottom: 8px; }
         .alert-card-desc { font-size: 0.92rem; color: #cbd5e1; line-height: 1.6; margin-bottom: 22px; }
         .alert-card-btn {
             background: var(--accent-gradient);
-            color: #0f172a;
-            border: none;
-            padding: 11px 22px;
-            border-radius: 10px;
-            font-weight: 700;
-            font-size: 0.9rem;
-            cursor: pointer;
-            width: 100%;
+            color: #0f172a; border: none;
+            padding: 11px 22px; border-radius: 10px;
+            font-weight: 700; font-size: 0.9rem; cursor: pointer; width: 100%;
         }
     </style>
 </head>
@@ -308,34 +289,24 @@
 
     <div id="customAlertModal" class="custom-alert-backdrop">
         <div id="customAlertCard" class="custom-alert-card">
-            <div id="customAlertIcon" class="alert-icon-wrap">⚠️</div>
+            <div id="customAlertIcon" style="font-size:3rem; margin-bottom:12px;">⚠️</div>
             <div id="customAlertTitle" class="alert-card-title">تنبيه</div>
             <div id="customAlertDesc" class="alert-card-desc"></div>
-            <button type="button" id="customAlertBtn" class="alert-card-btn" onclick="closeCustomAlert()">حسناً، فهمت</button>
+            <button type="button" class="alert-card-btn" onclick="closeCustomAlert()">حسناً، فهمت</button>
         </div>
     </div>
 
-    <!-- نافذة الاتصال الوارد من العميل -->
-    <div id="incomingCallModal" class="call-modal-overlay" style="border: 2px solid var(--success-color);">
+    <!-- نافذة المكالمة الموحدة -->
+    <div id="callModal" class="call-card-modal" style="border: 2px solid var(--primary-color);">
         <div>
-            <div style="font-size:0.92rem; font-weight:bold; color:#fff;" id="callerTitle">📞 اتصال وارد من عميل...</div>
-            <div style="font-size:0.75rem; color:var(--text-muted);" id="callSubTitle">جهاز قيد المتابعة</div>
-            <div id="incomingCallTimer" class="call-timer-badge" style="display:none;">00:00</div>
+            <div style="font-size:0.92rem; font-weight:bold; color:#fff;" id="callModalTitle">📞 جاري الاتصال...</div>
+            <div style="font-size:0.75rem; color:var(--text-muted);" id="callModalStatus">يرن الآن...</div>
+            <div id="callTimerBox" class="call-timer-box" style="display:none;">00:00</div>
         </div>
         <div style="display:flex; gap:8px;">
-            <button class="btn-call-action btn-call-accept" onclick="acceptIncomingCall()">رد</button>
-            <button class="btn-call-action btn-call-reject" onclick="rejectIncomingCall()">رفض</button>
+            <button id="btnCallAccept" class="btn-call-act btn-call-green" style="display:none;" onclick="acceptIncomingCall()">رد</button>
+            <button id="btnCallEnd" class="btn-call-act btn-call-red" onclick="terminateCall(true)">إنهاء ✕</button>
         </div>
-    </div>
-
-    <!-- نافذة الاتصال الصادر إلى العميل -->
-    <div id="outgoingCallModal" class="call-modal-overlay" style="border: 2px solid var(--primary-color);">
-        <div>
-            <div style="font-size:0.92rem; font-weight:bold; color:#fff;" id="outgoingCallerTitle">📞 جاري الاتصال بالعميل...</div>
-            <div style="font-size:0.75rem; color:var(--text-muted);" id="outgoingCallStatus">في انتظار الرد...</div>
-            <div id="outgoingCallTimer" class="call-timer-badge" style="display:none;">00:00</div>
-        </div>
-        <button class="btn-call-action btn-call-reject" onclick="endOutgoingCall(true)">إنهاء ✕</button>
     </div>
 
     <audio id="remoteAudio" autoplay playsinline></audio>
@@ -469,9 +440,9 @@
         let activeChatDeviceId = null;
         let currentTech = localStorage.getItem('currentUser') || '';
 
-        // WebRTC
+        // WebRTC & Audio
         let callChannels = {};
-        let activeIncomingCallDeviceId = null;
+        let activeCallDeviceId = null;
         let incomingOfferData = null;
         let peerConnection = null;
         let localStream = null;
@@ -485,11 +456,10 @@
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
                 { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun.services.mozilla.com' },
                 { urls: 'turn:openrelay.metered.ca:80', username: 'openrelay', credential: 'openrelay' },
-                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelay', credential: 'openrelay' },
-                { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelay', credential: 'openrelay' }
-            ],
-            iceCandidatePoolSize: 10
+                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelay', credential: 'openrelay' }
+            ]
         };
 
         let dialAudioCtx = null;
@@ -519,17 +489,11 @@
 
         function showCustomAlert(title, desc, icon = '⚠️', color = 'var(--primary-color)', callback = null) {
             const modal = document.getElementById('customAlertModal');
-            const card = document.getElementById('customAlertCard');
-            const titleEl = document.getElementById('customAlertTitle');
-            const descEl = document.getElementById('customAlertDesc');
-            const iconEl = document.getElementById('customAlertIcon');
-
-            titleEl.innerText = title;
-            titleEl.style.color = color;
-            descEl.innerHTML = desc;
-            iconEl.innerText = icon;
-            card.style.borderColor = color;
-
+            document.getElementById('customAlertTitle').innerText = title;
+            document.getElementById('customAlertTitle').style.color = color;
+            document.getElementById('customAlertDesc').innerHTML = desc;
+            document.getElementById('customAlertIcon').innerText = icon;
+            document.getElementById('customAlertCard').style.borderColor = color;
             alertCallback = callback;
             modal.style.display = 'flex';
         }
@@ -552,24 +516,17 @@
             setTimeout(() => t.classList.remove('show'), 3500);
         }
 
-        function forceLogoutWithReason(reason, icon = '🚫') {
+        function forceLogoutWithReason(reason) {
             localStorage.removeItem('isLoggedIn');
             localStorage.removeItem('currentUser');
-            localStorage.removeItem('shopName');
             sessionStorage.clear();
-            localStorage.setItem('logout_reason', reason);
-
-            showCustomAlert('تنبيه من النظام', reason, icon, 'var(--danger-color)', () => {
+            showCustomAlert('تنبيه من النظام', reason, '🚫', 'var(--danger-color)', () => {
                 window.location.replace('login.html');
             });
         }
 
         async function verifyTechnicianAccount() {
-            if (!currentTech) {
-                forceLogoutWithReason('لم يتم العثور على جلسة صالحة، يرجى تسجيل الدخول مجدداً.', '🔒');
-                return;
-            }
-
+            if (!currentTech) return;
             try {
                 let { data, error } = await _supabase
                     .from('technicians')
@@ -580,20 +537,9 @@
                 if (error || !data) return;
 
                 if (data.is_active === false || data.status === 'موقوف' || data.status === 'وقف') {
-                    forceLogoutWithReason('عذراً، تم إيقاف حسابك من قبل الإدارة.', '⛔');
-                    return;
+                    forceLogoutWithReason('عذراً، تم إيقاف حسابك من قبل الإدارة.');
                 }
-
-                if (data.expiry_date) {
-                    const today = new Date().toISOString().split('T')[0];
-                    if (today > data.expiry_date) {
-                        forceLogoutWithReason('عذراً، انتهت صلاحية اشتراكك الشهري في تاريخ: ' + data.expiry_date + '. يرجى تجديد الاشتراك للمتابعة.', '⏳');
-                        return;
-                    }
-                }
-            } catch (err) {
-                console.error(err);
-            }
+            } catch (err) {}
         }
 
         function listenToTechnicianAccountUpdates() {
@@ -606,12 +552,7 @@
                     payload => {
                         let updated = payload.new;
                         if (updated.is_active === false || updated.status === 'موقوف' || updated.status === 'وقف') {
-                            forceLogoutWithReason('عذراً، تم إيقاف حسابك من قبل الإدارة الآن.', '⛔');
-                        } else if (updated.expiry_date) {
-                            const today = new Date().toISOString().split('T')[0];
-                            if (today > updated.expiry_date) {
-                                forceLogoutWithReason('عذراً، انتهت صلاحية اشتراكك الشهري في تاريخ: ' + updated.expiry_date, '⏳');
-                            }
+                            forceLogoutWithReason('عذراً، تم إيقاف حسابك من قبل الإدارة الآن.');
                         }
                     }
                 )
@@ -624,7 +565,7 @@
             listenToTechnicianAccountUpdates();
 
             loadData(true);
-            setInterval(() => loadData(false), 3000);
+            setInterval(() => loadData(false), 2000);
             setInterval(verifyTechnicianAccount, 15000);
         };
 
@@ -638,7 +579,6 @@
         function logout() {
             localStorage.removeItem('isLoggedIn');
             localStorage.removeItem('currentUser');
-            localStorage.removeItem('shopName');
             sessionStorage.clear();
             window.location.replace('login.html');
         }
@@ -653,7 +593,7 @@
             let notes = document.getElementById('deviceNotes').value.trim();
 
             if (!name || !phone || !device) {
-                showCustomAlert('حقول مطلوبة', 'يرجى إدخال اسم العميل ورقم الهاتف ونوع الجهاز للمتابعة.', '⚠️', 'var(--warning-color)');
+                showCustomAlert('حقول مطلوبة', 'يرجى إدخال اسم العميل ورقم الهاتف ونوع الجهاز للمتابعة.');
                 return;
             }
 
@@ -674,7 +614,7 @@
 
             let { error } = await _supabase.from('devices').insert([newDev]);
             if (error) {
-                showCustomAlert('خطأ في الحفظ', 'حدث خطأ أثناء الحفظ: ' + error.message, '❌', 'var(--danger-color)');
+                showCustomAlert('خطأ في الحفظ', error.message, '❌', 'var(--danger-color)');
                 return;
             }
 
@@ -691,13 +631,13 @@
         async function loadData(isInitial = false) {
             if (!currentTech) return;
 
-            let { data, error } = await _supabase
+            let { data } = await _supabase
                 .from('devices')
                 .select('*')
                 .eq('technician', currentTech)
                 .order('id', { ascending: false });
 
-            if (error || !data) return;
+            if (!data) return;
 
             if (!isInitial && devicesList.length > 0) {
                 let hasNewMsg = false;
@@ -716,13 +656,7 @@
             }
 
             devicesList = data;
-
-            const activeEl = document.activeElement;
-            const isUserTyping = activeEl && activeEl.tagName === 'INPUT' && activeEl.closest('table');
-            if (!isUserTyping) {
-                renderTables();
-            }
-
+            renderTables();
             listenToCallsForDevices(data);
 
             if (activeChatDeviceId !== null) {
@@ -764,13 +698,13 @@
                         let isChatOpen = String(activeChatDeviceId) === String(d.id);
 
                         curHtml += `
-                            <tr id="row-${d.id}">
+                            <tr>
                                 <td><b>${safeTrack}</b></td>
                                 <td>${safeName}</td>
                                 <td>${safePhone}</td>
                                 <td>${safeDevice}</td>
                                 <td>
-                                    <select class="status-select" data-dev-id="${d.id}" onchange="changeStatus('${d.id}', this.value)">
+                                    <select class="status-select" onchange="changeStatus('${d.id}', this.value)">
                                         <option value="جاري الفحص الفني" ${st==='جاري الفحص الفني'?'selected':''}>🔍 فحص</option>
                                         <option value="جاري الإصلاح" ${st==='جاري الإصلاح'?'selected':''}>⚙️ إصلاح</option>
                                         <option value="بانتظار موافقة العميل على التكلفة" ${st.includes('بانتظار')?'selected':''}>⏳ انتظار الموافقة</option>
@@ -790,7 +724,7 @@
                                     <input type="number" id="cost-${d.id}" value="${d.cost || 0}" style="width:65px; text-align:center; padding:4px 6px; background:#0f172a; color:#fff; border:1px solid var(--border-color); border-radius:6px; font-size:0.8rem;" onchange="updateCostOnly('${d.id}', this.value)">
                                 </td>
                                 <td>
-                                    <button type="button" class="action-btn" data-chat-btn="${d.id}" onclick="openChatBox('${d.id}')" style="background:${isChatOpen ? 'var(--primary-color)' : ''}; color:${isChatOpen ? '#0f172a' : ''}; font-weight:bold; padding:5px 10px;">
+                                    <button type="button" class="action-btn" onclick="openChatBox('${d.id}')" style="background:${isChatOpen ? 'var(--primary-color)' : ''}; color:${isChatOpen ? '#0f172a' : ''}; font-weight:bold; padding:5px 10px;">
                                         💬 ${hasUnread ? '🔴 ' : ''}شات
                                     </button>
                                 </td>
@@ -807,84 +741,44 @@
         }
 
         async function changeStatus(deviceId, newStatus) {
-            try {
-                let { error } = await _supabase.from('devices').update({ status: newStatus }).eq('id', deviceId);
-                if (error) throw error;
-                let dev = devicesList.find(d => String(d.id) === String(deviceId));
-                if (dev) dev.status = newStatus;
-                showToast('تم تغيير الحالة إلى: ' + newStatus);
-            } catch (err) {
-                showCustomAlert('خطأ في التحديث', 'فشل تحديث الحالة: ' + err.message, '❌', 'var(--danger-color)');
-            }
+            await _supabase.from('devices').update({ status: newStatus }).eq('id', deviceId);
+            showToast('تم تغيير الحالة إلى: ' + newStatus);
+            loadData();
         }
 
         async function sendExtraFaultAndCost(deviceId) {
-            const faultInput = document.getElementById('fault-' + deviceId);
-            const costInput = document.getElementById('cost-' + deviceId);
-            const faultVal = faultInput ? faultInput.value.trim() : '';
-            const costVal = costInput ? costInput.value.trim() : '0';
+            const faultVal = document.getElementById('fault-' + deviceId)?.value.trim() || '';
+            const costVal = document.getElementById('cost-' + deviceId)?.value.trim() || '0';
 
-            if (!faultVal && !costVal) {
-                showToast('الرجاء إدخال العطل أو التكلفة أولاً', true);
-                return;
-            }
+            let dev = devicesList.find(d => String(d.id) === String(deviceId));
+            if (!dev) return;
 
-            try {
-                let dev = devicesList.find(d => String(d.id) === String(deviceId));
-                if (!dev) return;
+            let chatArr = parseChat(dev.chat);
+            let noticeText = `⚠️ تنبيه من الفني: تم فحص الجهاز وتبين وجود عطل جديد (${faultVal})، والتكلفة: ${costVal} ر.س. يرجى تأكيد الموافقة.`;
+            
+            chatArr.push({
+                id: 'msg_' + Date.now(),
+                sender: 'tech',
+                text: noticeText,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                read: false,
+                readTime: null
+            });
 
-                let chatArr = parseChat(dev.chat);
-                let noticeText = faultVal 
-                    ? `⚠️ تنبيه من الفني: تم فحص الجهاز وتبين وجود عطل جديد (${faultVal})، والتكلفة المحددة: ${costVal} ر.س. الرجاء تأكيد الموافقة أو الرفض.` 
-                    : `⚠️ تنبيه من الفني: تم تعديل تكلفة الصيانة إلى: ${costVal} ر.س. الرجاء تأكيد الموافقة.`;
-                
-                chatArr.push({
-                    id: 'msg_' + Date.now(),
-                    sender: 'tech',
-                    text: noticeText,
-                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    read: false,
-                    readTime: null
-                });
+            await _supabase.from('devices').update({
+                new_fault: faultVal,
+                cost: costVal,
+                status: 'بانتظار موافقة العميل على التكلفة',
+                chat: chatArr
+            }).eq('id', deviceId);
 
-                let updateData = {
-                    new_fault: faultVal,
-                    cost: costVal,
-                    status: 'بانتظار موافقة العميل على التكلفة',
-                    chat: chatArr
-                };
-
-                let { error } = await _supabase.from('devices').update(updateData).eq('id', deviceId);
-                if (error) throw error;
-
-                dev.new_fault = faultVal;
-                dev.cost = costVal;
-                dev.status = 'بانتظار موافقة العميل على التكلفة';
-                dev.chat = chatArr;
-
-                showToast(`✅ تم إرسال العطل (${faultVal}) والتكلفة (${costVal} ر.س)`);
-                
-                const selectEl = document.querySelector(`select[data-dev-id="${deviceId}"]`);
-                if (selectEl) selectEl.value = 'بانتظار موافقة العميل على التكلفة';
-
-                if (String(activeChatDeviceId) === String(deviceId)) {
-                    renderActiveChat();
-                }
-            } catch (err) {
-                showCustomAlert('خطأ في الإرسال', 'حدث خطأ أثناء الإرسال: ' + err.message, '❌', 'var(--danger-color)');
-            }
+            showToast(`✅ تم إرسال الطلب والتكلفة للعميل`);
+            loadData();
         }
 
         async function updateCostOnly(deviceId, newCost) {
-            try {
-                let { error } = await _supabase.from('devices').update({ cost: newCost }).eq('id', deviceId);
-                if (error) throw error;
-                let dev = devicesList.find(d => String(d.id) === String(deviceId));
-                if (dev) dev.cost = newCost;
-                showToast('تم حفظ التكلفة: ' + newCost + ' ر.س');
-            } catch (err) {
-                console.error(err);
-            }
+            await _supabase.from('devices').update({ cost: newCost }).eq('id', deviceId);
+            showToast('تم حفظ التكلفة: ' + newCost + ' ر.س');
         }
 
         function openChatBox(deviceId) {
@@ -897,13 +791,6 @@
             chatContainer.style.display = 'block';
 
             renderActiveChat();
-
-            setTimeout(() => {
-                chatContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                const input = document.getElementById('activeChatInput');
-                if (input) input.focus();
-            }, 100);
-
             markClientMessagesAsRead(deviceId);
         }
 
@@ -912,27 +799,26 @@
             document.getElementById('chatSectionContainer').style.display = 'none';
         }
 
+        /* قراءة رسائل العميل وتحديثها في Supabase بدقة */
         async function markClientMessagesAsRead(deviceId) {
             let dev = devicesList.find(d => String(d.id) === String(deviceId));
             if (!dev) return;
 
             let chatArr = parseChat(dev.chat);
-            let hasUnread = false;
+            let hasChanges = false;
             let currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-            let updatedChat = chatArr.map(m => {
+            chatArr.forEach(m => {
                 if (m.sender === 'client' && (m.read === false || !m.read)) {
-                    hasUnread = true;
-                    return { ...m, read: true, readTime: currentTime };
+                    m.read = true;
+                    m.readTime = currentTime;
+                    hasChanges = true;
                 }
-                return m;
             });
 
-            if (hasUnread) {
-                dev.chat = updatedChat;
-                await _supabase.from('devices').update({ chat: updatedChat }).eq('id', deviceId);
-                const chatBtn = document.querySelector(`button[data-chat-btn="${deviceId}"]`);
-                if (chatBtn) chatBtn.innerHTML = '💬 شات';
+            if (hasChanges) {
+                dev.chat = chatArr;
+                await _supabase.from('devices').update({ chat: chatArr }).eq('id', deviceId);
             }
         }
 
@@ -954,13 +840,13 @@
                 let cls = isTech ? 'chat-msg-tech' : 'chat-msg-client';
                 let lbl = isTech ? '🛠 أنت (الفني):' : '👤 العميل:';
                 
-                let statusCheckHTML = '';
+                let readInfo = '';
                 if (isTech) {
-                    if (m.read === true) {
-                        let rTime = m.readTime ? ` (${escapeHTML(m.readTime)})` : '';
-                        statusCheckHTML = `<span style="color:#38bdf8; font-size:0.7rem; font-weight:bold;">✓✓ مقروءة${rTime}</span>`;
+                    if (m.read === true || m.read === 'true') {
+                        let rt = m.readTime ? ` (${escapeHTML(m.readTime)})` : '';
+                        readInfo = `<span style="color:#38bdf8; font-size:0.72rem; font-weight:bold;">✓✓ مقروءة${rt}</span>`;
                     } else {
-                        statusCheckHTML = `<span style="color:#94a3b8; font-size:0.65rem;">✓ أُرسلت</span>`;
+                        readInfo = `<span style="color:#94a3b8; font-size:0.65rem;">✓ أُرسلت</span>`;
                     }
                 }
 
@@ -970,7 +856,7 @@
                         <div>${escapeHTML(m.text)}</div>
                         <div style="font-size:0.55rem; opacity:0.8; margin-top:3px; display:flex; justify-content:space-between; align-items:center;">
                             <span>${escapeHTML(m.time)}</span>
-                            ${statusCheckHTML}
+                            ${readInfo}
                         </div>
                     </div>
                 `;
@@ -1001,10 +887,7 @@
             dev.chat = chat;
             renderActiveChat();
 
-            let { error } = await _supabase.from('devices').update({ chat: chat }).eq('id', activeChatDeviceId);
-            if (error) {
-                showCustomAlert('فشل الإرسال', 'فشل إرسال الرسالة: ' + error.message, '❌', 'var(--danger-color)');
-            }
+            await _supabase.from('devices').update({ chat: chat }).eq('id', activeChatDeviceId);
         }
 
         function playBeep() {
@@ -1036,11 +919,11 @@
             a.click();
         }
 
-        /* تشغيل عداد المكالمة لكلا الطرفين بدقة */
-        function startCallTimer(elementId) {
+        /* تشغيل العداد الموحد */
+        function startCallTimer() {
             stopCallTimer();
             callSeconds = 0;
-            const el = document.getElementById(elementId);
+            const el = document.getElementById('callTimerBox');
             if (el) {
                 el.innerText = '00:00';
                 el.style.display = 'inline-block';
@@ -1060,41 +943,21 @@
                 callTimerInterval = null;
             }
             callSeconds = 0;
-            const el1 = document.getElementById('incomingCallTimer');
-            const el2 = document.getElementById('outgoingCallTimer');
-            if (el1) { el1.style.display = 'none'; el1.innerText = '00:00'; }
-            if (el2) { el2.style.display = 'none'; el2.innerText = '00:00'; }
+            const el = document.getElementById('callTimerBox');
+            if (el) { el.style.display = 'none'; el.innerText = '00:00'; }
         }
 
-        /* ربط مسار الصوت وحل مشكلة صمت الهواتف */
+        /* ربط الصوت المباشر للهاتف */
         function attachRemoteAudio(stream) {
             const rAudio = document.getElementById('remoteAudio');
             if (!rAudio) return;
-
             rAudio.srcObject = stream;
             rAudio.muted = false;
             rAudio.volume = 1.0;
-
-            try {
-                const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                if (AudioCtx) {
-                    const ctx = new AudioCtx();
-                    if (ctx.state === 'suspended') {
-                        ctx.resume();
-                    }
-                    const src = ctx.createMediaStreamSource(stream);
-                    src.connect(ctx.destination);
-                }
-            } catch (e) {
-                console.warn('AudioContext bridge notice:', e);
-            }
-
-            rAudio.play().catch(e => {
-                console.log('Playback triggered, waiting interaction:', e);
-            });
+            rAudio.play().catch(e => console.log('Remote audio playback notice:', e));
         }
 
-        /* الاتصال الصوتي وإدارة القنوات */
+        /* إدارة الاتصال والقنوات */
         function listenToCallsForDevices(devices) {
             devices.forEach(d => {
                 if (!callChannels[d.id]) {
@@ -1110,17 +973,18 @@
 
         async function handleCallSignal(deviceId, data) {
             if (data.type === 'call_offer') {
-                activeIncomingCallDeviceId = deviceId;
+                activeCallDeviceId = deviceId;
                 incomingOfferData = data;
-                document.getElementById('callerTitle').innerText = `📞 اتصال وارد من: ${data.callerName}`;
-                document.getElementById('incomingCallModal').style.display = 'flex';
-                document.querySelector('#incomingCallModal .btn-call-accept').style.display = 'inline-block';
+                document.getElementById('callModalTitle').innerText = `📞 اتصال وارد من: ${data.callerName}`;
+                document.getElementById('callModalStatus').innerText = 'يرن الآن...';
+                document.getElementById('btnCallAccept').style.display = 'inline-block';
+                document.getElementById('callModal').style.display = 'flex';
                 startRingtone();
             } else if (data.type === 'call_accepted') {
                 stopDialTone();
                 stopRingtone();
-                document.getElementById('outgoingCallStatus').innerText = 'متصل الآن 🎙';
-                startCallTimer('outgoingCallTimer');
+                document.getElementById('callModalStatus').innerText = 'متصل الآن 🎙';
+                startCallTimer();
 
                 if (peerConnection && data.sdp) {
                     await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
@@ -1129,18 +993,8 @@
                         await peerConnection.addIceCandidate(c).catch(()=>{});
                     }
                 }
-            } else if (data.type === 'call_rejected') {
-                stopDialTone();
-                stopRingtone();
-                stopCallTimer();
-                document.getElementById('outgoingCallStatus').innerText = 'تم رفض الاتصال من قبل العميل';
-                setTimeout(() => endOutgoingCall(false), 2000);
-            } else if (data.type === 'call_ended') {
-                stopDialTone();
-                stopRingtone();
-                stopCallTimer();
-                closeIncomingCallModal();
-                endOutgoingCall(false);
+            } else if (data.type === 'call_rejected' || data.type === 'call_ended') {
+                terminateCall(false);
             } else if (data.type === 'ice_candidate' && data.candidate) {
                 const candidateObj = new RTCIceCandidate(data.candidate);
                 if (peerConnection && peerConnection.remoteDescription) {
@@ -1152,12 +1006,11 @@
         }
 
         async function startCallToClient() {
-            if (activeChatDeviceId === null) {
-                showCustomAlert('تنبيه', 'الرجاء فتح شات الجهاز أولاً لإجراء المكالمة.', '💬', 'var(--warning-color)');
-                return;
-            }
+            if (activeChatDeviceId === null) return;
             let dev = devicesList.find(d => String(d.id) === String(activeChatDeviceId));
             if (!dev) return;
+
+            activeCallDeviceId = activeChatDeviceId;
 
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({
@@ -1165,13 +1018,14 @@
                     video: false
                 });
             } catch (err) {
-                showCustomAlert('إذن الميكروفون مطلوب', 'يرجى تفعيل صلاحية الميكروفون من إعدادات المتصفح أو أيقونة القفل لإتمام المكالمة.', '🎙️', 'var(--danger-color)');
+                showCustomAlert('إذن الميكروفون', 'يرجى تفعيل صلاحية الميكروفون لإتمام المكالمة.');
                 return;
             }
 
-            document.getElementById('outgoingCallerTitle').innerText = `📞 جاري الاتصال بالعميل: ${dev.customer_name}...`;
-            document.getElementById('outgoingCallStatus').innerText = 'يرن الآن...';
-            document.getElementById('outgoingCallModal').style.display = 'flex';
+            document.getElementById('callModalTitle').innerText = `📞 جاري الاتصال بالعميل: ${dev.customer_name}`;
+            document.getElementById('callModalStatus').innerText = 'في انتظار الرد...';
+            document.getElementById('btnCallAccept').style.display = 'none';
+            document.getElementById('callModal').style.display = 'flex';
             startDialTone();
 
             iceCandidatesQueue = [];
@@ -1179,8 +1033,8 @@
             localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
             peerConnection.onicecandidate = event => {
-                if (event.candidate && callChannels[activeChatDeviceId]) {
-                    callChannels[activeChatDeviceId].send({
+                if (event.candidate && callChannels[activeCallDeviceId]) {
+                    callChannels[activeCallDeviceId].send({
                         type: 'broadcast',
                         event: 'call_signal',
                         payload: { type: 'ice_candidate', candidate: event.candidate.toJSON() }
@@ -1195,7 +1049,7 @@
             const offer = await peerConnection.createOffer({ offerToReceiveAudio: true });
             await peerConnection.setLocalDescription(offer);
 
-            callChannels[activeChatDeviceId].send({
+            callChannels[activeCallDeviceId].send({
                 type: 'broadcast',
                 event: 'call_signal',
                 payload: {
@@ -1206,24 +1060,8 @@
             });
         }
 
-        function endOutgoingCall(notifyPeer = true) {
-            stopDialTone();
-            stopRingtone();
-            stopCallTimer();
-            if (notifyPeer && activeChatDeviceId && callChannels[activeChatDeviceId]) {
-                callChannels[activeChatDeviceId].send({
-                    type: 'broadcast',
-                    event: 'call_signal',
-                    payload: { type: 'call_ended' }
-                });
-            }
-            if (peerConnection) { peerConnection.close(); peerConnection = null; }
-            if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-            document.getElementById('outgoingCallModal').style.display = 'none';
-        }
-
         async function acceptIncomingCall() {
-            if (!activeIncomingCallDeviceId || !incomingOfferData) return;
+            if (!activeCallDeviceId || !incomingOfferData) return;
             stopRingtone();
 
             try {
@@ -1232,7 +1070,7 @@
                     video: false
                 });
             } catch (err) {
-                showCustomAlert('إذن الميكروفون مطلوب', 'يرجى تفعيل صلاحية الميكروفون من إعدادات المتصفح للرد على المكالمة.', '🎙', 'var(--danger-color)');
+                showCustomAlert('إذن الميكروفون', 'يرجى تفعيل صلاحية الميكروفون للرد.');
                 return;
             }
 
@@ -1241,8 +1079,8 @@
             localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
             peerConnection.onicecandidate = event => {
-                if (event.candidate && callChannels[activeIncomingCallDeviceId]) {
-                    callChannels[activeIncomingCallDeviceId].send({
+                if (event.candidate && callChannels[activeCallDeviceId]) {
+                    callChannels[activeCallDeviceId].send({
                         type: 'broadcast',
                         event: 'call_signal',
                         payload: { type: 'ice_candidate', candidate: event.candidate.toJSON() }
@@ -1264,38 +1102,35 @@
             const answer = await peerConnection.createAnswer({ offerToReceiveAudio: true });
             await peerConnection.setLocalDescription(answer);
 
-            callChannels[activeIncomingCallDeviceId].send({
+            callChannels[activeCallDeviceId].send({
                 type: 'broadcast',
                 event: 'call_signal',
                 payload: { type: 'call_accepted', sdp: answer }
             });
 
-            document.getElementById('callerTitle').innerText = `🎙 متصل في مكالمة صوتية`;
-            document.querySelector('#incomingCallModal .btn-call-accept').style.display = 'none';
-            startCallTimer('incomingCallTimer');
+            document.getElementById('callModalTitle').innerText = `🎙 متصل في مكالمة صوتية`;
+            document.getElementById('callModalStatus').innerText = 'مكالمة جارية';
+            document.getElementById('btnCallAccept').style.display = 'none';
+            startCallTimer();
         }
 
-        function rejectIncomingCall() {
+        function terminateCall(notify = true) {
+            stopDialTone();
             stopRingtone();
             stopCallTimer();
-            if (activeIncomingCallDeviceId && callChannels[activeIncomingCallDeviceId]) {
-                callChannels[activeIncomingCallDeviceId].send({
+
+            if (notify && activeCallDeviceId && callChannels[activeCallDeviceId]) {
+                callChannels[activeCallDeviceId].send({
                     type: 'broadcast',
                     event: 'call_signal',
-                    payload: { type: 'call_rejected' }
+                    payload: { type: 'call_ended' }
                 });
             }
-            closeIncomingCallModal();
-        }
 
-        function closeIncomingCallModal() {
-            stopRingtone();
-            stopCallTimer();
-            document.getElementById('incomingCallModal').style.display = 'none';
-            document.querySelector('#incomingCallModal .btn-call-accept').style.display = 'inline-block';
-            activeIncomingCallDeviceId = null;
-            incomingOfferData = null;
+            if (peerConnection) { peerConnection.close(); peerConnection = null; }
             if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+            document.getElementById('callModal').style.display = 'none';
+            incomingOfferData = null;
         }
 
         function startDialTone() {
@@ -1330,18 +1165,15 @@
                     let osc1 = ringAudioCtx.createOscillator();
                     let osc2 = ringAudioCtx.createOscillator();
                     let gain = ringAudioCtx.createGain();
-                    
                     osc1.frequency.setValueAtTime(440, ringAudioCtx.currentTime);
                     osc2.frequency.setValueAtTime(480, ringAudioCtx.currentTime);
-                    gain.gain.setValueAtTime(0.2, ringAudioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.15, ringAudioCtx.currentTime);
                     gain.gain.exponentialRampToValueAtTime(0.01, ringAudioCtx.currentTime + 0.8);
-                    
                     osc1.connect(gain); osc2.connect(gain);
                     gain.connect(ringAudioCtx.destination);
-                    
                     osc1.start(); osc1.stop(ringAudioCtx.currentTime + 0.8);
                     osc2.start(); osc2.stop(ringAudioCtx.currentTime + 0.8);
-                }, 2000);
+                }, 1800);
             } catch(e) {}
         }
 

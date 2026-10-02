@@ -92,6 +92,7 @@
             font-size: 0.95rem;
         }
 
+        /* بطاقة رسالة الشكر وإنهاء الخدمة */
         .closed-card {
             background: var(--card-bg);
             border-radius: 16px;
@@ -161,6 +162,7 @@
         }
         .btn-new-search:hover { background: var(--primary-color); color: #0f172a; }
 
+        /* بطاقة تفاصيل الجهاز النشط */
         .result-card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -258,149 +260,93 @@
             cursor: pointer;
         }
 
+        /* نافذة الاتصال الموحدة */
+        .call-card-modal {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            padding: 14px 20px;
+            border-radius: 14px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.85);
+            z-index: 100000;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            width: 92%;
+            max-width: 400px;
+        }
+
+        .btn-call-act {
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: white;
+        }
+        .btn-call-green { background: var(--success-color); }
+        .btn-call-red { background: var(--danger-color); }
+
+        .call-timer-box {
+            display: inline-block;
+            background: #0284c7;
+            color: #fff;
+            padding: 3px 9px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-family: monospace;
+            font-size: 0.88rem;
+            margin-top: 4px;
+        }
+
         .custom-modal-backdrop {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
+            top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(15, 23, 42, 0.75);
             backdrop-filter: blur(6px);
             z-index: 99999;
             display: none;
-            align-items: center;
-            justify-content: center;
+            align-items: center; justify-content: center;
             padding: 20px;
-            animation: fadeIn 0.2s ease;
         }
         .custom-modal-box {
             background: #1e293b;
             border: 1px solid var(--border-color);
             border-radius: 18px;
-            width: 100%;
-            max-width: 420px;
-            padding: 24px;
-            text-align: center;
+            width: 100%; max-width: 420px;
+            padding: 24px; text-align: center;
             box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-            transform: scale(0.95);
-            animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
-        @keyframes popIn { to { transform: scale(1); } }
-        .modal-icon { font-size: 2.8rem; margin-bottom: 12px; }
-        .modal-title { font-size: 1.15rem; font-weight: bold; margin-bottom: 10px; color: #fff; }
-        .modal-body { font-size: 0.9rem; color: #cbd5e1; line-height: 1.6; margin-bottom: 20px; }
-        .modal-btn {
-            background: var(--accent-gradient);
-            color: #0f172a;
-            border: none;
-            padding: 10px 24px;
-            border-radius: 10px;
-            font-weight: bold;
-            font-size: 0.9rem;
-            cursor: pointer;
-            width: 100%;
-            transition: opacity 0.2s;
-        }
-        .modal-btn:hover { opacity: 0.9; }
-
-        .call-modal-overlay {
-            position: fixed;
-            top: 25px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #1e293b;
-            padding: 14px 20px;
-            border-radius: 16px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.85);
-            z-index: 10000;
-            display: none;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            width: 90%;
-            max-width: 400px;
-            animation: bounceIn 0.3s ease;
-        }
-        @keyframes bounceIn { from { transform: translate(-50%, -40px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
-
-        .btn-call-action {
-            border: none;
-            padding: 8px 16px;
-            border-radius: 10px;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 0.85rem;
-            color: white;
-            transition: 0.2s;
-        }
-        .btn-call-accept { background: var(--success-color); }
-        .btn-call-reject { background: var(--danger-color); }
-
-        .call-timer-badge {
-            display: inline-block;
-            background: rgba(56, 189, 248, 0.2);
-            color: var(--primary-color);
-            padding: 3px 8px;
-            border-radius: 6px;
-            font-weight: bold;
-            font-family: monospace;
-            font-size: 0.85rem;
-            margin-top: 4px;
-        }
-
-        .toast {
-            position: fixed;
-            bottom: 25px;
-            left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: var(--success-color);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 10px;
-            font-weight: bold;
-            font-size: 0.9rem;
-            transition: transform 0.3s ease;
-            z-index: 99999;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-            text-align: center;
-        }
-        .toast.show { transform: translateX(-50%) translateY(0); }
     </style>
 </head>
 <body>
 
-    <div id="toast" class="toast">تم الإرسال</div>
+    <div id="toast" style="position:fixed; bottom:25px; left:50%; transform:translateX(-50%) translateY(100px); background:var(--success-color); color:white; padding:10px 20px; border-radius:10px; font-weight:bold; font-size:0.9rem; transition:transform 0.3s ease; z-index:99999; box-shadow:0 4px 15px rgba(0,0,0,0.4); text-align:center;">تم الإرسال</div>
 
     <div id="customModal" class="custom-modal-backdrop">
         <div class="custom-modal-box">
-            <div id="modalIcon" class="modal-icon">🔔</div>
-            <div id="modalTitle" class="modal-title">تنبيه</div>
-            <div id="modalBody" class="modal-body"></div>
-            <button type="button" class="modal-btn" onclick="closeCustomModal()">حسناً، فهمت</button>
+            <div id="modalIcon" style="font-size:2.8rem; margin-bottom:12px;">🔔</div>
+            <div id="modalTitle" style="font-size:1.15rem; font-weight:bold; margin-bottom:10px; color:#fff;">تنبيه</div>
+            <div id="modalBody" style="font-size:0.9rem; color:#cbd5e1; line-height:1.6; margin-bottom:20px;"></div>
+            <button type="button" style="background:var(--accent-gradient); color:#0f172a; border:none; padding:10px 24px; border-radius:10px; font-weight:bold; font-size:0.9rem; cursor:pointer; width:100%;" onclick="closeCustomModal()">حسناً، فهمت</button>
         </div>
     </div>
 
-    <!-- نافذة الاتصال الوارد من الفني -->
-    <div id="incomingCallModal" class="call-modal-overlay" style="border: 2px solid var(--success-color);">
+    <!-- نافذة الاتصال الموحدة للعميل -->
+    <div id="callModal" class="call-card-modal" style="border: 2px solid var(--success-color);">
         <div>
-            <div style="font-size:0.92rem; font-weight:bold; color:#fff;" id="callerTitle">📞 اتصال وارد من مركز الصيانة...</div>
-            <div style="font-size:0.75rem; color:var(--text-muted);">الفني المسؤول يود التواصل معك</div>
-            <div id="incomingCallTimer" class="call-timer-badge" style="display:none;">00:00</div>
+            <div style="font-size:0.92rem; font-weight:bold; color:#fff;" id="callModalTitle">📞 جاري الاتصال...</div>
+            <div style="font-size:0.75rem; color:var(--text-muted);" id="callModalStatus">يرن الآن...</div>
+            <div id="callTimerBox" class="call-timer-box" style="display:none;">00:00</div>
         </div>
         <div style="display:flex; gap:8px;">
-            <button class="btn-call-action btn-call-accept" onclick="acceptIncomingCall()">رد</button>
-            <button class="btn-call-action btn-call-reject" onclick="rejectIncomingCall()">رفض</button>
+            <button id="btnCallAccept" class="btn-call-act btn-call-green" style="display:none;" onclick="acceptIncomingCall()">رد</button>
+            <button id="btnCallEnd" class="btn-call-act btn-call-red" onclick="terminateCall(true)">إنهاء ✕</button>
         </div>
-    </div>
-
-    <!-- نافذة الاتصال الصادر إلى الفني -->
-    <div id="outgoingCallModal" class="call-modal-overlay" style="border: 2px solid var(--primary-color);">
-        <div>
-            <div style="font-size:0.92rem; font-weight:bold; color:#fff;">📞 جاري الاتصال بالفني...</div>
-            <div style="font-size:0.75rem; color:var(--text-muted);" id="outgoingCallStatus">في انتظار الرد...</div>
-            <div id="outgoingCallTimer" class="call-timer-badge" style="display:none;">00:00</div>
-        </div>
-        <button class="btn-call-action btn-call-reject" onclick="endOutgoingCall(true)">إنهاء ✕</button>
     </div>
 
     <audio id="remoteAudio" autoplay playsinline></audio>
@@ -492,11 +438,10 @@
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
                 { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun.services.mozilla.com' },
                 { urls: 'turn:openrelay.metered.ca:80', username: 'openrelay', credential: 'openrelay' },
-                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelay', credential: 'openrelay' },
-                { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelay', credential: 'openrelay' }
-            ],
-            iceCandidatePoolSize: 10
+                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelay', credential: 'openrelay' }
+            ]
         };
 
         let dialAudioCtx = null;
@@ -527,11 +472,9 @@
 
         function showCustomAlert(title, message, icon = '🔔', borderColor = 'var(--primary-color)') {
             const modal = document.getElementById('customModal');
-            const box = modal.querySelector('.custom-modal-box');
             document.getElementById('modalTitle').innerText = title;
             document.getElementById('modalBody').innerHTML = message;
             document.getElementById('modalIcon').innerText = icon;
-            box.style.borderColor = borderColor;
             modal.style.display = 'flex';
         }
 
@@ -543,8 +486,8 @@
             let t = document.getElementById('toast');
             if (!t) return;
             t.innerText = msg;
-            t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 3500);
+            t.style.transform = 'translateX(-50%) translateY(0)';
+            setTimeout(() => t.style.transform = 'translateX(-50%) translateY(100px)', 3500);
         }
 
         function resetToNewSearch() {
@@ -556,62 +499,6 @@
             input.focus();
             currentDevice = null;
             if (syncInterval) clearInterval(syncInterval);
-        }
-
-        function startCallTimer(elementId) {
-            stopCallTimer();
-            callSeconds = 0;
-            const el = document.getElementById(elementId);
-            if (el) {
-                el.innerText = '00:00';
-                el.style.display = 'inline-block';
-            }
-            callTimerInterval = setInterval(() => {
-                callSeconds++;
-                let mins = Math.floor(callSeconds / 60);
-                let secs = callSeconds % 60;
-                let fmt = (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
-                if (el) el.innerText = fmt;
-            }, 1000);
-        }
-
-        function stopCallTimer() {
-            if (callTimerInterval) {
-                clearInterval(callTimerInterval);
-                callTimerInterval = null;
-            }
-            callSeconds = 0;
-            const el1 = document.getElementById('incomingCallTimer');
-            const el2 = document.getElementById('outgoingCallTimer');
-            if (el1) { el1.style.display = 'none'; el1.innerText = '00:00'; }
-            if (el2) { el2.style.display = 'none'; el2.innerText = '00:00'; }
-        }
-
-        function attachRemoteAudio(stream) {
-            const rAudio = document.getElementById('remoteAudio');
-            if (!rAudio) return;
-
-            rAudio.srcObject = stream;
-            rAudio.muted = false;
-            rAudio.volume = 1.0;
-
-            try {
-                const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                if (AudioCtx) {
-                    const ctx = new AudioCtx();
-                    if (ctx.state === 'suspended') {
-                        ctx.resume();
-                    }
-                    const src = ctx.createMediaStreamSource(stream);
-                    src.connect(ctx.destination);
-                }
-            } catch (e) {
-                console.warn('AudioContext bridge notice:', e);
-            }
-
-            rAudio.play().catch(e => {
-                console.log('Playback triggered, waiting interaction:', e);
-            });
         }
 
         async function searchDevice() {
@@ -665,12 +552,13 @@
 
             currentDevice = data;
             displayDeviceInfo();
-
             setupCallChannel();
+
+            // قراءة رسائل الفني فوراً
             markTechMessagesAsRead();
 
             if (syncInterval) clearInterval(syncInterval);
-            syncInterval = setInterval(syncDeviceData, 3000);
+            syncInterval = setInterval(syncDeviceData, 2000);
         }
 
         function displayDeviceInfo() {
@@ -766,23 +654,24 @@
             }
         }
 
+        /* قراءة رسائل الفني وتحديثها في Supabase */
         async function markTechMessagesAsRead() {
             if (!currentDevice) return;
             let chatArr = parseChat(currentDevice.chat);
-            let hasUnreadTech = false;
+            let hasChanges = false;
             let currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-            let updatedChat = chatArr.map(m => {
+            chatArr.forEach(m => {
                 if (m.sender === 'tech' && (m.read === false || !m.read)) {
-                    hasUnreadTech = true;
-                    return { ...m, read: true, readTime: currentTime };
+                    m.read = true;
+                    m.readTime = currentTime;
+                    hasChanges = true;
                 }
-                return m;
             });
 
-            if (hasUnreadTech) {
-                currentDevice.chat = updatedChat;
-                await _supabase.from('devices').update({ chat: updatedChat }).eq('id', currentDevice.id);
+            if (hasChanges) {
+                currentDevice.chat = chatArr;
+                await _supabase.from('devices').update({ chat: chatArr }).eq('id', currentDevice.id);
             }
         }
 
@@ -802,13 +691,13 @@
                 let cls = isClient ? 'chat-msg-client' : 'chat-msg-tech';
                 let lbl = isClient ? '👤 أنت:' : `🛠 الفني (${escapeHTML(currentDevice.technician || '')}):`;
 
-                let statusCheckHTML = '';
+                let readInfo = '';
                 if (isClient) {
-                    if (m.read === true) {
-                        let rTime = m.readTime ? ` (${escapeHTML(m.readTime)})` : '';
-                        statusCheckHTML = `<span style="color:#38bdf8; font-size:0.7rem; font-weight:bold;">✓✓ مقروءة${rTime}</span>`;
+                    if (m.read === true || m.read === 'true') {
+                        let rt = m.readTime ? ` (${escapeHTML(m.readTime)})` : '';
+                        readInfo = `<span style="color:#38bdf8; font-size:0.72rem; font-weight:bold;">✓✓ مقروءة${rt}</span>`;
                     } else {
-                        statusCheckHTML = `<span style="color:#94a3b8; font-size:0.65rem;">✓ أُرسلت</span>`;
+                        readInfo = `<span style="color:#94a3b8; font-size:0.65rem;">✓ أُرسلت</span>`;
                     }
                 }
 
@@ -818,7 +707,7 @@
                         <div>${escapeHTML(m.text)}</div>
                         <div style="font-size:0.55rem; opacity:0.8; margin-top:3px; display:flex; justify-content:space-between; align-items:center;">
                             <span>${escapeHTML(m.time)}</span>
-                            ${statusCheckHTML}
+                            ${readInfo}
                         </div>
                     </div>
                 `;
@@ -877,6 +766,44 @@
             showToast('تم إرسال قرارك للفني بنجاح');
         }
 
+        /* إدارة عداد المكالمة الموحد */
+        function startCallTimer() {
+            stopCallTimer();
+            callSeconds = 0;
+            const el = document.getElementById('callTimerBox');
+            if (el) {
+                el.innerText = '00:00';
+                el.style.display = 'inline-block';
+            }
+            callTimerInterval = setInterval(() => {
+                callSeconds++;
+                let mins = Math.floor(callSeconds / 60);
+                let secs = callSeconds % 60;
+                let fmt = (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
+                if (el) el.innerText = fmt;
+            }, 1000);
+        }
+
+        function stopCallTimer() {
+            if (callTimerInterval) {
+                clearInterval(callTimerInterval);
+                callTimerInterval = null;
+            }
+            callSeconds = 0;
+            const el = document.getElementById('callTimerBox');
+            if (el) { el.style.display = 'none'; el.innerText = '00:00'; }
+        }
+
+        /* ربط الصوت المباشر للهاتف */
+        function attachRemoteAudio(stream) {
+            const rAudio = document.getElementById('remoteAudio');
+            if (!rAudio) return;
+            rAudio.srcObject = stream;
+            rAudio.muted = false;
+            rAudio.volume = 1.0;
+            rAudio.play().catch(e => console.log('Remote audio playback notice:', e));
+        }
+
         function setupCallChannel() {
             if (!currentDevice || activeCallChannel) return;
             activeCallChannel = _supabase.channel(`call_room_${currentDevice.id}`, { config: { broadcast: { self: false } } })
@@ -889,15 +816,16 @@
         async function handleCallSignal(data) {
             if (data.type === 'call_offer') {
                 incomingOfferData = data;
-                document.getElementById('callerTitle').innerText = `📞 اتصال وارد من: ${data.callerName}`;
-                document.getElementById('incomingCallModal').style.display = 'flex';
-                document.querySelector('#incomingCallModal .btn-call-accept').style.display = 'inline-block';
+                document.getElementById('callModalTitle').innerText = `📞 اتصال وارد من: ${data.callerName}`;
+                document.getElementById('callModalStatus').innerText = 'يرن الآن...';
+                document.getElementById('btnCallAccept').style.display = 'inline-block';
+                document.getElementById('callModal').style.display = 'flex';
                 startRingtone();
             } else if (data.type === 'call_accepted') {
                 stopDialTone();
                 stopRingtone();
-                document.getElementById('outgoingCallStatus').innerText = 'متصل الآن 🎙️️';
-                startCallTimer('outgoingCallTimer');
+                document.getElementById('callModalStatus').innerText = 'متصل الآن 🎙';
+                startCallTimer();
 
                 if (peerConnection && data.sdp) {
                     await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
@@ -906,18 +834,8 @@
                         await peerConnection.addIceCandidate(c).catch(()=>{});
                     }
                 }
-            } else if (data.type === 'call_rejected') {
-                stopDialTone();
-                stopRingtone();
-                stopCallTimer();
-                document.getElementById('outgoingCallStatus').innerText = 'تم رفض الاتصال من قبل الفني';
-                setTimeout(() => endOutgoingCall(false), 2000);
-            } else if (data.type === 'call_ended') {
-                stopDialTone();
-                stopRingtone();
-                stopCallTimer();
-                closeIncomingCallModal();
-                endOutgoingCall(false);
+            } else if (data.type === 'call_rejected' || data.type === 'call_ended') {
+                terminateCall(false);
             } else if (data.type === 'ice_candidate' && data.candidate) {
                 const candidateObj = new RTCIceCandidate(data.candidate);
                 if (peerConnection && peerConnection.remoteDescription) {
@@ -930,18 +848,21 @@
 
         async function startCallToTech() {
             if (!currentDevice) return;
+
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({
                     audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
                     video: false
                 });
             } catch (err) {
-                showCustomAlert('إذن الميكروفون مطلوب', 'يرجى تفعيل صلاحية الميكروفون من إعدادات المتصفح أو أيقونة القفل لإتمام المكالمة.', '🎙️', 'var(--danger-color)');
+                showCustomAlert('إذن الميكروفون مطلوب', 'يرجى تفعيل صلاحية الميكروفون لإجراء المكالمة.');
                 return;
             }
 
-            document.getElementById('outgoingCallStatus').innerText = 'يرن الآن...';
-            document.getElementById('outgoingCallModal').style.display = 'flex';
+            document.getElementById('callModalTitle').innerText = `📞 جاري الاتصال بالفني...`;
+            document.getElementById('callModalStatus').innerText = 'في انتظار الرد...';
+            document.getElementById('btnCallAccept').style.display = 'none';
+            document.getElementById('callModal').style.display = 'flex';
             startDialTone();
 
             iceCandidatesQueue = [];
@@ -976,22 +897,6 @@
             });
         }
 
-        function endOutgoingCall(notifyPeer = true) {
-            stopDialTone();
-            stopRingtone();
-            stopCallTimer();
-            if (notifyPeer && activeCallChannel) {
-                activeCallChannel.send({
-                    type: 'broadcast',
-                    event: 'call_signal',
-                    payload: { type: 'call_ended' }
-                });
-            }
-            if (peerConnection) { peerConnection.close(); peerConnection = null; }
-            if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-            document.getElementById('outgoingCallModal').style.display = 'none';
-        }
-
         async function acceptIncomingCall() {
             if (!incomingOfferData) return;
             stopRingtone();
@@ -1002,7 +907,7 @@
                     video: false
                 });
             } catch (err) {
-                showCustomAlert('إذن الميكروفون مطلوب', 'يرجى تفعيل صلاحية الميكروفون من إعدادات المتصفح للرد على المكالمة.', '🎙', 'var(--danger-color)');
+                showCustomAlert('إذن الميكروفون مطلوب', 'يرجى تفعيل صلاحية الميكروفون للرد.');
                 return;
             }
 
@@ -1040,31 +945,29 @@
                 payload: { type: 'call_accepted', sdp: answer }
             });
 
-            document.getElementById('callerTitle').innerText = `🎙 متصل في مكالمة صوتية`;
-            document.querySelector('#incomingCallModal .btn-call-accept').style.display = 'none';
-            startCallTimer('incomingCallTimer');
+            document.getElementById('callModalTitle').innerText = `🎙 متصل في مكالمة صوتية`;
+            document.getElementById('callModalStatus').innerText = 'مكالمة جارية';
+            document.getElementById('btnCallAccept').style.display = 'none';
+            startCallTimer();
         }
 
-        function rejectIncomingCall() {
+        function terminateCall(notify = true) {
+            stopDialTone();
             stopRingtone();
             stopCallTimer();
-            if (activeCallChannel) {
+
+            if (notify && activeCallChannel) {
                 activeCallChannel.send({
                     type: 'broadcast',
                     event: 'call_signal',
-                    payload: { type: 'call_rejected' }
+                    payload: { type: 'call_ended' }
                 });
             }
-            closeIncomingCallModal();
-        }
 
-        function closeIncomingCallModal() {
-            stopRingtone();
-            stopCallTimer();
-            document.getElementById('incomingCallModal').style.display = 'none';
-            document.querySelector('#incomingCallModal .btn-call-accept').style.display = 'inline-block';
-            incomingOfferData = null;
+            if (peerConnection) { peerConnection.close(); peerConnection = null; }
             if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+            document.getElementById('callModal').style.display = 'none';
+            incomingOfferData = null;
         }
 
         function startDialTone() {
@@ -1099,18 +1002,15 @@
                     let osc1 = ringAudioCtx.createOscillator();
                     let osc2 = ringAudioCtx.createOscillator();
                     let gain = ringAudioCtx.createGain();
-                    
                     osc1.frequency.setValueAtTime(440, ringAudioCtx.currentTime);
                     osc2.frequency.setValueAtTime(480, ringAudioCtx.currentTime);
-                    gain.gain.setValueAtTime(0.2, ringAudioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.15, ringAudioCtx.currentTime);
                     gain.gain.exponentialRampToValueAtTime(0.01, ringAudioCtx.currentTime + 0.8);
-                    
                     osc1.connect(gain); osc2.connect(gain);
                     gain.connect(ringAudioCtx.destination);
-                    
                     osc1.start(); osc1.stop(ringAudioCtx.currentTime + 0.8);
                     osc2.start(); osc2.stop(ringAudioCtx.currentTime + 0.8);
-                }, 2000);
+                }, 1800);
             } catch(e) {}
         }
 
