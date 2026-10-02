@@ -311,6 +311,8 @@
         </div>
     </div>
 
+    <audio id="remoteAudio" autoplay playsinline></audio>
+
     <div class="top-nav">
         <div style="font-size: 0.9rem; font-weight: bold; color: var(--primary-color);">
             🛠️ فني الصيانة: <span id="currentTechDisplay" style="color: #22c55e;">-</span>
@@ -440,15 +442,30 @@
         let activeChatDeviceId = null;
         let currentTech = localStorage.getItem('currentUser') || '';
 
-        // نظام بث الصوت الحي المستقل
+        // WebRTC & Audio
         let callChannels = {};
         let activeCallDeviceId = null;
+        let incomingOfferData = null;
+        let peerConnection = null;
         let localStream = null;
-        let mediaRecorder = null;
-        let audioPlaybackContext = null;
+        let iceCandidatesQueue = [];
 
         let callTimerInterval = null;
         let callSeconds = 0;
+
+        // خوادم TURN مجانية موثوقة عالمياً لتخطي جدران حماية شبكات الموبايل
+        const rtcConfig = { 
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun.services.mozilla.com' },
+                { urls: 'turn:openrelay.metered.ca:80', username: 'openrelay', credential: 'openrelay' },
+                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelay', credential: 'openrelay' },
+                { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelay', credential: 'openrelay' }
+            ],
+            iceCandidatePoolSize: 10
+        };
 
         let dialAudioCtx = null;
         let dialInterval = null;
@@ -547,13 +564,37 @@
                 .subscribe();
         }
 
+        /* الاستماع اللحظي للرسائل وتحديثات الأجهزة بدون Polling */
+        function setupRealtimeDatabase() {
+            _supabase
+                .channel('public:devices_dashboard')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'devices' }, payload => {
+                    let updatedRow = payload.new;
+                    if (updatedRow && updatedRow.technician === currentTech) {
+                        let idx = devicesList.findIndex(d => String(d.id) === String(updatedRow.id));
+                        if (idx !== -1) {
+                            devicesList[idx] = updatedRow;
+                        } else {
+                            devicesList.unshift(updatedRow);
+                        }
+                        renderTables();
+
+                        if (activeChatDeviceId && String(activeChatDeviceId) === String(updatedRow.id)) {
+                            renderActiveChat();
+                            markClientMessagesAsRead(activeChatDeviceId);
+                        }
+                    }
+                })
+                .subscribe();
+        }
+
         window.onload = async function() {
             document.getElementById('currentTechDisplay').innerText = currentTech;
             await verifyTechnicianAccount();
             listenToTechnicianAccountUpdates();
 
-            loadData(true);
-            setInterval(() => loadData(false), 2000);
+            await loadData(true);
+            setupRealtimeDatabase(); // تفعيل التحديث اللحظي الفوري
             setInterval(verifyTechnicianAccount, 15000);
         };
 
@@ -787,7 +828,7 @@
             document.getElementById('chatSectionContainer').style.display = 'none';
         }
 
-        /* قراءة رسائل العميل وتحديثها لحظياً في Supabase */
+        /* قراءة رسائل العميل وتحديثها لحظياً في Supabase مع حفظ وقت القراءة الدقيق */
         async function markClientMessagesAsRead(deviceId) {
             let dev = devicesList.find(d => String(d.id) === String(deviceId));
             if (!dev) return;
@@ -875,7 +916,24 @@
             dev.chat = chat;
             renderActiveChat();
 
+            // حفظ مباشر في Supabase
             await _supabase.from('devices').update({ chat: chat }).eq('id', activeChatDeviceId);
+        }
+
+        function playBeep() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+                osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.4);
+            } catch(e) {}
         }
 
         /* إدارة عداد المكالمة الموحد */
@@ -906,67 +964,26 @@
             if (el) { el.style.display = 'none'; el.innerText = '00:00'; }
         }
 
-        /* محرك استقبال وتشغيل الصوت الحي عبر Web Audio API */
-        function playRawAudioChunk(base64Audio) {
+        /* تشغيل مسار الصوت الخارجي لضمان الخروج عبر السماعات */
+        function attachRemoteAudio(stream) {
+            const rAudio = document.getElementById('remoteAudio');
+            if (!rAudio) return;
+            rAudio.srcObject = stream;
+            rAudio.muted = false;
+            rAudio.volume = 1.0;
+            
+            // إلغاء تعليق سياق الصوت للموبايل
             try {
-                if (!audioPlaybackContext) {
-                    audioPlaybackContext = new (window.AudioContext || window.webkitAudioContext)();
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtx) {
+                    const ctx = new AudioCtx();
+                    if (ctx.state === 'suspended') ctx.resume();
+                    const src = ctx.createMediaStreamSource(stream);
+                    src.connect(ctx.destination);
                 }
-                if (audioPlaybackContext.state === 'suspended') {
-                    audioPlaybackContext.resume();
-                }
-                const binaryString = atob(base64Audio);
-                const len = binaryString.length;
-                const bytes = new Uint8Array(len);
-                for (let i = 0; i < len; i++) {
-                    bytes[i] = binaryString.charCodeAt(i);
-                }
-                audioPlaybackContext.decodeAudioData(bytes.buffer, (buffer) => {
-                    const source = audioPlaybackContext.createBufferSource();
-                    source.buffer = buffer;
-                    source.connect(audioPlaybackContext.destination);
-                    source.start(0);
-                }, (e) => {});
-            } catch (err) {}
-        }
+            } catch(e){}
 
-        /* بدء تسجيل وبث الصوت الحي */
-        function startStreamingAudio(channel) {
-            if (!localStream) return;
-            try {
-                mediaRecorder = new MediaRecorder(localStream, { mimeType: 'audio/webm;codecs=opus' });
-            } catch(e) {
-                try {
-                    mediaRecorder = new MediaRecorder(localStream);
-                } catch(e2) { return; }
-            }
-
-            mediaRecorder.ondataavailable = async (e) => {
-                if (e.data && e.data.size > 0 && channel) {
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                        const base64data = reader.result.split(',')[1];
-                        channel.send({
-                            type: 'broadcast',
-                            event: 'call_signal',
-                            payload: { type: 'audio_chunk', chunk: base64data }
-                        });
-                    };
-                    reader.readAsDataURL(e.data);
-                }
-            };
-            mediaRecorder.start(200); // إرسال الصوت لحظة بلحظة كل 200 مللي ثانية
-        }
-
-        function stopStreamingAudio() {
-            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-                try { mediaRecorder.stop(); } catch(e){}
-                mediaRecorder = null;
-            }
-            if (localStream) {
-                localStream.getTracks().forEach(t => t.stop());
-                localStream = null;
-            }
+            rAudio.play().catch(e => console.log('Audio autoplay retry:', e));
         }
 
         function listenToCallsForDevices(devices) {
@@ -985,6 +1002,7 @@
         async function handleCallSignal(deviceId, data) {
             if (data.type === 'call_offer') {
                 activeCallDeviceId = deviceId;
+                incomingOfferData = data;
                 document.getElementById('callModalTitle').innerText = `📞 اتصال وارد من: ${data.callerName}`;
                 document.getElementById('callModalStatus').innerText = 'يرن الآن...';
                 document.getElementById('btnCallAccept').style.display = 'inline-block';
@@ -995,11 +1013,23 @@
                 stopRingtone();
                 document.getElementById('callModalStatus').innerText = 'متصل الآن 🎙';
                 startCallTimer();
-                startStreamingAudio(callChannels[activeCallDeviceId]);
+
+                if (peerConnection && data.sdp) {
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
+                    while (iceCandidatesQueue.length > 0) {
+                        let c = iceCandidatesQueue.shift();
+                        await peerConnection.addIceCandidate(c).catch(()=>{});
+                    }
+                }
             } else if (data.type === 'call_rejected' || data.type === 'call_ended') {
                 terminateCall(false);
-            } else if (data.type === 'audio_chunk' && data.chunk) {
-                playRawAudioChunk(data.chunk);
+            } else if (data.type === 'ice_candidate' && data.candidate) {
+                const cand = new RTCIceCandidate(data.candidate);
+                if (peerConnection && peerConnection.remoteDescription) {
+                    await peerConnection.addIceCandidate(cand).catch(()=>{});
+                } else {
+                    iceCandidatesQueue.push(cand);
+                }
             }
         }
 
@@ -1011,7 +1041,10 @@
             activeCallDeviceId = activeChatDeviceId;
 
             try {
-                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                    video: false
+                });
             } catch (err) {
                 showCustomAlert('إذن الميكروفون', 'يرجى تفعيل صلاحية الميكروفون لإجراء المكالمة.');
                 return;
@@ -1023,53 +1056,97 @@
             document.getElementById('callModal').style.display = 'flex';
             startDialTone();
 
+            iceCandidatesQueue = [];
+            peerConnection = new RTCPeerConnection(rtcConfig);
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            peerConnection.addTransceiver('audio', { direction: 'sendrecv' });
+
+            peerConnection.onicecandidate = event => {
+                if (event.candidate && callChannels[activeCallDeviceId]) {
+                    callChannels[activeCallDeviceId].send({
+                        type: 'broadcast',
+                        event: 'call_signal',
+                        payload: { type: 'ice_candidate', candidate: event.candidate.toJSON() }
+                    });
+                }
+            };
+
+            peerConnection.ontrack = event => {
+                attachRemoteAudio(event.streams[0]);
+            };
+
+            const offer = await peerConnection.createOffer({ offerToReceiveAudio: true });
+            await peerConnection.setLocalDescription(offer);
+
             callChannels[activeCallDeviceId].send({
                 type: 'broadcast',
                 event: 'call_signal',
                 payload: {
                     type: 'call_offer',
-                    callerName: `الفني المسؤول (${currentTech})`
+                    callerName: `الفني المسؤول (${currentTech})`,
+                    sdp: offer
                 }
             });
         }
 
         async function acceptIncomingCall() {
-            if (!activeCallDeviceId) return;
+            if (!activeCallDeviceId || !incomingOfferData) return;
             stopRingtone();
 
             try {
-                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                    video: false
+                });
             } catch (err) {
                 showCustomAlert('إذن الميكروفون', 'يرجى السماح بصلاحية الميكروفون للرد.');
                 return;
             }
 
-            // فك حظر الصوت في المتصفح فوراً بعد الضغط
-            if (!audioPlaybackContext) {
-                audioPlaybackContext = new (window.AudioContext || window.webkitAudioContext)();
+            iceCandidatesQueue = [];
+            peerConnection = new RTCPeerConnection(rtcConfig);
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            peerConnection.addTransceiver('audio', { direction: 'sendrecv' });
+
+            peerConnection.onicecandidate = event => {
+                if (event.candidate && callChannels[activeCallDeviceId]) {
+                    callChannels[activeCallDeviceId].send({
+                        type: 'broadcast',
+                        event: 'call_signal',
+                        payload: { type: 'ice_candidate', candidate: event.candidate.toJSON() }
+                    });
+                }
+            };
+
+            peerConnection.ontrack = event => {
+                attachRemoteAudio(event.streams[0]);
+            };
+
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(incomingOfferData.sdp));
+            while (iceCandidatesQueue.length > 0) {
+                let c = iceCandidatesQueue.shift();
+                await peerConnection.addIceCandidate(c).catch(()=>{});
             }
-            if (audioPlaybackContext.state === 'suspended') {
-                audioPlaybackContext.resume();
-            }
+
+            const answer = await peerConnection.createAnswer({ offerToReceiveAudio: true });
+            await peerConnection.setLocalDescription(answer);
 
             callChannels[activeCallDeviceId].send({
                 type: 'broadcast',
                 event: 'call_signal',
-                payload: { type: 'call_accepted' }
+                payload: { type: 'call_accepted', sdp: answer }
             });
 
             document.getElementById('callModalTitle').innerText = `🎙 متصل في مكالمة صوتية`;
             document.getElementById('callModalStatus').innerText = 'مكالمة جارية';
             document.getElementById('btnCallAccept').style.display = 'none';
             startCallTimer();
-            startStreamingAudio(callChannels[activeCallDeviceId]);
         }
 
         function terminateCall(notify = true) {
             stopDialTone();
             stopRingtone();
             stopCallTimer();
-            stopStreamingAudio();
 
             if (notify && activeCallDeviceId && callChannels[activeCallDeviceId]) {
                 callChannels[activeCallDeviceId].send({
@@ -1079,7 +1156,10 @@
                 });
             }
 
+            if (peerConnection) { peerConnection.close(); peerConnection = null; }
+            if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
             document.getElementById('callModal').style.display = 'none';
+            incomingOfferData = null;
         }
 
         function startDialTone() {
