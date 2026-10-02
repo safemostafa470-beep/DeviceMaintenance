@@ -192,6 +192,7 @@
             background: rgba(56, 189, 248, 0.15);
             color: var(--primary-color);
             border: 1px solid var(--primary-color);
+            transition: all 0.3s ease;
         }
 
         /* صندوق الموافقة على العطل الإضافي والتكلفة */
@@ -469,6 +470,7 @@
         let ringAudioCtx = null;
         let ringInterval = null;
         let redirectTimeout = null;
+        let silentSyncInterval = null;
 
         function escapeHTML(str) {
             if (!str) return '';
@@ -528,6 +530,7 @@
 
         function resetToNewSearch() {
             if (redirectTimeout) clearTimeout(redirectTimeout);
+            if (silentSyncInterval) clearInterval(silentSyncInterval);
             document.getElementById('closedCard').style.display = 'none';
             document.getElementById('resultCard').style.display = 'none';
             const input = document.getElementById('trackInput');
@@ -593,6 +596,28 @@
             setupCallChannel();
             setupLiveSync(currentDevice.id);
             markTechMessagesAsRead();
+
+            // فحص صامت كل ثانيتين في الخلفية لضمان تطابق البيانات تماماً دون ريفريش
+            if (silentSyncInterval) clearInterval(silentSyncInterval);
+            silentSyncInterval = setInterval(silentSyncData, 2000);
+        }
+
+        async function silentSyncData() {
+            if (!currentDevice) return;
+            let { data } = await _supabase
+                .from('devices')
+                .select('*')
+                .eq('id', currentDevice.id)
+                .maybeSingle();
+
+            if (data && currentDevice) {
+                let statusChanged = data.status !== currentDevice.status;
+                let costChanged = data.cost !== currentDevice.cost;
+                currentDevice = data;
+                if (statusChanged || costChanged) {
+                    displayDeviceInfo();
+                }
+            }
         }
 
         function displayDeviceInfo() {
@@ -600,6 +625,7 @@
             const st = currentDevice.status || '';
 
             if (st === 'تم تسليم الجهاز للعميل' || st === 'مسترجع') {
+                if (silentSyncInterval) clearInterval(silentSyncInterval);
                 document.getElementById('resultCard').style.display = 'none';
                 document.getElementById('closedCard').style.display = 'block';
 
@@ -631,7 +657,18 @@
             document.getElementById('resultCard').style.display = 'block';
 
             document.getElementById('resTrackingNum').innerText = currentDevice.tracking_number;
-            document.getElementById('resStatus').innerText = currentDevice.status;
+            
+            // تحديث شارة الحالة اللحظي
+            const resStatusBadge = document.getElementById('resStatus');
+            resStatusBadge.innerText = currentDevice.status;
+            if (st === 'جاهز للاستلام') {
+                resStatusBadge.style.color = '#22c55e';
+                resStatusBadge.style.borderColor = '#22c55e';
+            } else if (st === 'جاري الإصلاح') {
+                resStatusBadge.style.color = '#38bdf8';
+                resStatusBadge.style.borderColor = '#38bdf8';
+            }
+
             document.getElementById('resCustomerName').innerText = currentDevice.customer_name;
             document.getElementById('resDeviceName').innerText = currentDevice.device_name;
             document.getElementById('resProblem').innerText = currentDevice.problem || 'غير محدد';
@@ -650,7 +687,7 @@
             renderChat();
         }
 
-        /* المزامنة اللحظية الشاملة (رسائل، قراءة، أعطال إضافية) */
+        /* المزامنة اللحظية الشاملة (رسائل، قراءة، تغيرات الحالة الفورية من الفني) */
         function setupLiveSync(deviceId) {
             _supabase.channel(`room_sync_${deviceId}`)
                 .on('broadcast', { event: 'new_msg' }, ({ payload }) => {
@@ -685,12 +722,21 @@
                     playAlertSound();
                     showCustomAlert('⚠️ عطل إضافي وتكلفة جديدة', `تم فحص جهازك وتبين وجود: <b>${escapeHTML(payload.new_fault)}</b> بتكلفة: <b>${payload.cost} ر.س</b>.<br>يرجى تحديد الموافقة أو الرفض في الصندوق المخصص.`, '🔔', 'var(--warning-color)');
                 })
+                .on('broadcast', { event: 'device_status_changed' }, ({ payload }) => {
+                    // استقبال التغيير اللحظي الفوري للحالة من صفحة الفني بدون ريفريش
+                    if (currentDevice) {
+                        currentDevice.status = payload.status;
+                        displayDeviceInfo();
+                        playAlertSound();
+                        showToast(`🔔 تحديث من مركز الصيانة: أصبحت حالة جهازك الآن (${payload.status})`);
+                    }
+                })
                 .subscribe();
 
             // المزامنة مع قاعدة البيانات
             _supabase.channel(`db_sync_${deviceId}`)
                 .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'devices', filter: `id=eq.${deviceId}` }, payload => {
-                    if (payload.new) {
+                    if (payload.new && currentDevice) {
                         currentDevice = payload.new;
                         displayDeviceInfo();
                         markTechMessagesAsRead();
@@ -793,7 +839,6 @@
             await _supabase.from('devices').update({ chat: chat }).eq('id', currentDevice.id);
         }
 
-        /* الاستجابة للعطل الإضافي: إرسال بث لحظي للفني لتغيير حالته فورياً لـ (إصلاح) أو (مسترجع) */
         async function respondToFault(accepted) {
             if (!currentDevice) return;
             let newStatus = accepted ? 'جاري الإصلاح' : 'مسترجع';

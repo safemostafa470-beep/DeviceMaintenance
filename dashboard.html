@@ -311,7 +311,7 @@
 
     <div class="top-nav">
         <div style="font-size: 0.9rem; font-weight: bold; color: var(--primary-color);">
-            🛠️️ فني الصيانة: <span id="currentTechDisplay" style="color: #22c55e;">-</span>
+            🛠️ فني الصيانة: <span id="currentTechDisplay" style="color: #22c55e;">-</span>
         </div>
         <div class="nav-buttons">
             <button class="nav-btn active" onclick="switchTab('add', this)">إضافة جهاز</button>
@@ -778,7 +778,19 @@
             reportTbody.innerHTML = repHtml;
         }
 
+        /* تعديل دالة تغيير الحالة لإرسال الإشعار اللحظي للعميل مباشرة وبدون تحديث الصفحة */
         async function changeStatus(deviceId, newStatus) {
+            let dev = devicesList.find(d => String(d.id) === String(deviceId));
+            if (dev) dev.status = newStatus;
+
+            // 1. إرسال إشعار لحظي للعميل مباشرة لتتغير الحالة أمامه في نفس اللحظة
+            _supabase.channel(`room_sync_${deviceId}`).send({
+                type: 'broadcast',
+                event: 'device_status_changed',
+                payload: { status: newStatus }
+            });
+
+            // 2. التحديث في قاعدة بيانات Supabase
             await _supabase.from('devices').update({ status: newStatus }).eq('id', deviceId);
             showToast('تم تغيير الحالة إلى: ' + newStatus);
             safeRenderTables();
