@@ -3,399 +3,444 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تتبع حالة الصيانة - نظام العملاء</title>
-    <!-- مكتبة Supabase -->
+    <title>استعلام وتتبع حالة الصيانة - خدمة العملاء</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
-            --bg-gradient: linear-gradient(135deg, #090d16 0%, #171b2c 50%, #1f1b3c 100%);
-            --card-bg: rgba(26, 34, 56, 0.85);
-            --primary-color: #00f2fe;
-            --secondary-color: #4facfe;
-            --accent-glow: rgba(0, 242, 254, 0.3);
-            --text-color: #ffffff;
-            --text-muted: #a0aec0;
-            --border-color: rgba(255, 255, 255, 0.15);
-            --success-color: #00b09b;
-            --warning-color: #f7971e;
-            --danger-color: #ff416c;
-            --btn-gradient: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.95);
+            --primary-color: #38bdf8;
+            --primary-hover: #0ea5e9;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.12);
+            --success-color: #22c55e;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --accent-gradient: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        
         body {
-            background: var(--bg-gradient);
-            background-attachment: fixed;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
             color: var(--text-color);
             min-height: 100vh;
+            padding: 15px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
         }
 
-        .announcement-bar {
+        .container {
             width: 100%;
-            background: linear-gradient(90deg, #ff416c, #ff4b2b, #f7971e, #00b09b, #00c6ff);
-            background-size: 300% 300%;
-            animation: rainbowFlow 8s ease infinite;
-            color: #ffffff;
-            padding: 12px 0;
-            font-size: 1.1rem;
-            font-weight: 800;
-            box-shadow: 0 4px 25px rgba(255, 75, 43, 0.4);
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: 1000;
-            overflow: hidden;
-            border-bottom: 2px solid rgba(255, 255, 255, 0.4);
+            max-width: 650px;
+            margin: auto;
         }
 
-        .announcement-bar marquee {
-            width: 100%;
-            color: #ffffff;
-            text-shadow: 0 2px 5px rgba(0,0,0,0.6);
-            letter-spacing: 0.5px;
-        }
-
-        @keyframes rainbowFlow {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        .container { 
-            width: 100%; 
-            max-width: 680px; 
-            margin: auto; 
-            padding: 80px 15px 20px 15px; 
-        }
-
-        .card {
+        .header-card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
-            padding: 25px 20px;
-            border-radius: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
-            backdrop-filter: blur(16px);
+            border-radius: 16px;
+            padding: 22px;
+            text-align: center;
+            margin-bottom: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            position: relative;
         }
+        .header-card h1 { font-size: 1.4rem; color: var(--primary-color); margin-bottom: 6px; }
+        .header-card p { font-size: 0.85rem; color: var(--text-muted); }
 
-        h2 { 
-            font-size: 1.4rem; 
-            background: linear-gradient(135deg, #00f2fe, #4facfe);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 20px; 
-            text-align: center; 
-            font-weight: 800; 
+        .tech-portal-link {
+            position: absolute;
+            left: 15px;
+            top: 15px;
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--primary-color);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            text-decoration: none;
+            font-weight: bold;
+            transition: 0.2s;
         }
-        
+        .tech-portal-link:hover { background: rgba(56, 189, 248, 0.25); }
+
         .search-box {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+            gap: 8px;
+            margin-top: 15px;
         }
         .search-box input {
             flex: 1;
-            padding: 14px 18px;
-            border-radius: 12px;
+            padding: 12px 14px;
+            border-radius: 10px;
             border: 1px solid var(--border-color);
             background: rgba(15, 23, 42, 0.8);
-            color: white;
-            font-size: 1rem;
+            color: #fff;
+            font-size: 0.95rem;
             outline: none;
-            transition: all 0.3s;
         }
-        .search-box input:focus { 
-            border-color: var(--primary-color); 
-            box-shadow: 0 0 0 4px var(--accent-glow);
-            background: rgba(15, 23, 42, 0.95);
-        }
-        
-        button.primary-btn {
-            background: var(--btn-gradient);
-            color: #090d16;
+        .search-box input:focus { border-color: var(--primary-color); }
+        .search-box button {
+            background: var(--accent-gradient);
+            color: #0f172a;
             border: none;
-            padding: 14px 24px;
-            border-radius: 12px;
-            font-weight: 800;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: 700;
             cursor: pointer;
-            font-size: 1rem;
-            transition: all 0.3s;
-            box-shadow: 0 6px 20px rgba(0, 242, 254, 0.4);
-        }
-        button.primary-btn:hover { 
-            opacity: 0.9; 
-            transform: translateY(-2px);
+            font-size: 0.95rem;
         }
 
-        .result-section { display: none; animation: fadeIn 0.4s ease; }
+        .closed-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 30px 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            text-align: center;
+            display: none;
+            position: relative;
+            overflow: hidden;
+            animation: fadeIn 0.3s ease;
+        }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .auto-redirect-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: var(--primary-color);
+            width: 100%;
+            transform-origin: left;
+            animation: shrinkBar 7s linear forwards;
+        }
+        @keyframes shrinkBar { from { width: 100%; } to { width: 0%; } }
+
+        .closed-icon { font-size: 3.2rem; margin-bottom: 10px; }
+        .closed-title { font-size: 1.3rem; font-weight: bold; margin-bottom: 8px; }
+        .closed-desc { font-size: 0.92rem; color: #cbd5e1; line-height: 1.6; margin-bottom: 18px; }
+
+        .special-thanks-box {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.12) 0%, rgba(34, 197, 94, 0.12) 100%);
+            border: 1px dashed var(--primary-color);
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin: 15px 0;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .special-thanks-title {
+            font-size: 0.8rem;
+            color: var(--primary-color);
+            font-weight: 700;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .special-thanks-text {
+            font-size: 0.95rem;
+            color: #f1f5f9;
+            line-height: 1.5;
+            font-weight: 600;
+        }
+
+        .btn-new-search {
+            background: rgba(56, 189, 248, 0.15);
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 9px 20px;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: 0.2s;
+        }
+        .btn-new-search:hover { background: var(--primary-color); color: #0f172a; }
+
+        .result-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
 
         .info-row {
             display: flex;
             justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid var(--border-color);
-            font-size: 0.95rem;
+            padding: 9px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            font-size: 0.9rem;
         }
-        .info-row span:first-child { color: var(--text-muted); }
-        .info-row span:last-child { font-weight: 700; color: #fff; }
+        .info-row:last-child { border-bottom: none; }
+        .info-label { color: var(--text-muted); }
+        .info-val { font-weight: bold; color: #fff; }
 
-        .extra-box {
-            background: rgba(247, 151, 30, 0.12);
-            border: 1px solid rgba(247, 151, 30, 0.4);
-            padding: 15px;
-            border-radius: 14px;
-            margin-top: 20px;
-            text-align: center;
-        }
-        .extra-box p { font-size: 0.95rem; color: #ffca28; margin-bottom: 12px; line-height: 1.5; font-weight: 600; }
-        
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
-        .approve-btn {
-            background: linear-gradient(135deg, #00b09b, #96c93d);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 10px;
-            font-weight: 700;
-            cursor: pointer;
-            font-size: 0.9rem;
-            flex: 1;
-            box-shadow: 0 4px 15px rgba(0, 176, 155, 0.3);
-        }
-        .reject-btn {
-            background: linear-gradient(135deg, #ff416c, #ff4b2b);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 10px;
-            font-weight: 700;
-            cursor: pointer;
-            font-size: 0.9rem;
-            flex: 1;
-            box-shadow: 0 4px 15px rgba(255, 65, 108, 0.3);
+        .status-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
         }
 
-        /* تصميم حاوية الشات مثل الماسنجر تماماً بدون تكبير زائد */
-        .chat-container {
-            margin-top: 20px;
-            background: rgba(15, 23, 42, 0.95);
-            border: 1px solid rgba(0, 242, 254, 0.3);
-            border-radius: 16px;
+        .approval-box {
+            background: rgba(245, 158, 11, 0.12);
+            border: 1px solid var(--warning-color);
+            border-radius: 12px;
             padding: 14px;
-            display: flex;
-            flex-direction: column;
-            height: 320px;
-            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+            margin: 15px 0;
+            text-align: center;
+            display: none;
         }
-        
-        /* شريط معلومات الفني وزر الاتصال العلوي (مثل الماسنجر) */
-        .chat-header-bar {
+        .approval-box p { font-size: 0.9rem; color: #fde68a; margin-bottom: 10px; }
+        .approval-actions { display: flex; gap: 10px; justify-content: center; }
+        .btn-approve { background: var(--success-color); color: #fff; border: none; padding: 8px 18px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-reject { background: var(--danger-color); color: #fff; border: none; padding: 8px 18px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+
+        .chat-section {
+            margin-top: 15px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 15px;
+        }
+        .chat-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 10px;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 8px;
         }
-        .chat-title-info {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-        .chat-title-info span:first-child {
-            font-size: 0.9rem;
-            color: var(--primary-color);
-            font-weight: 700;
-        }
-        .chat-title-info span:last-child {
-            font-size: 0.75rem;
-            color: var(--success-color);
-        }
-
-        /* زر الاتصال العلوي على شكل أيقونة ماسنجر */
-        .messenger-call-btn {
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: #ffffff;
-            border: none;
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-            transition: all 0.3s ease;
-            font-size: 1rem;
-        }
-        .messenger-call-btn:hover {
-            transform: scale(1.08);
-            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.6);
-        }
-
         .chat-msgs {
-            flex: 1;
+            height: 260px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            font-size: 0.88rem;
+            gap: 8px;
+            font-size: 0.85rem;
             margin-bottom: 10px;
-            padding: 6px;
+            padding: 10px;
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
             word-break: break-word;
         }
-        .chat-msg-item {
-            padding: 10px 14px;
-            border-radius: 12px;
-            max-width: 85%;
-            line-height: 1.5;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
-        }
-        .chat-msg-tech { 
-            background: rgba(0, 176, 155, 0.15); 
-            border: 1px solid rgba(0, 176, 155, 0.4); 
-            align-self: flex-start; 
-            color: #a7f3d0; 
-            text-align: right;
-        }
-        .chat-msg-client { 
-            background: rgba(0, 242, 254, 0.15); 
-            border: 1px solid rgba(0, 242, 254, 0.4); 
-            align-self: flex-end; 
-            color: #bae6fd; 
-            text-align: right;
-        }
+        .chat-msg-item { padding: 8px 12px; border-radius: 10px; max-width: 85%; }
+        .chat-msg-client { background: rgba(56, 189, 248, 0.2); align-self: flex-end; color: #bae6fd; text-align: right; }
+        .chat-msg-tech { background: rgba(34, 197, 94, 0.2); align-self: flex-start; color: #86efac; text-align: right; }
 
         .chat-input-row { display: flex; gap: 8px; }
-        .chat-input-row input { 
-            flex: 1; 
-            padding: 10px 14px; 
-            font-size: 0.9rem; 
-            border-radius: 10px; 
-            background: rgba(30, 41, 59, 0.9); 
-            border: 1px solid var(--border-color); 
-            color: #fff; 
-            outline: none; 
-        }
-        .chat-input-row button { padding: 10px 18px; font-size: 0.9rem; border-radius: 10px; }
-
-        .custom-modal-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(9, 13, 22, 0.85);
-            backdrop-filter: blur(8px);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-        }
-        .custom-modal-overlay.active { opacity: 1; visibility: visible; }
-        .custom-modal {
-            background: #171b2c;
+        .chat-input-row input {
+            flex: 1;
+            padding: 10px 12px;
+            font-size: 0.85rem;
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.8);
             border: 1px solid var(--border-color);
-            padding: 25px;
-            border-radius: 18px;
-            width: 90%;
-            max-width: 380px;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.7);
-            text-align: center;
-            transform: scale(0.9);
-            transition: transform 0.3s ease;
+            color: #fff;
+            outline: none;
         }
-        .custom-modal-overlay.active .custom-modal { transform: scale(1); }
-        .custom-modal h3 { color: var(--primary-color); margin-bottom: 12px; font-size: 1.2rem; }
-        .custom-modal p { color: var(--text-color); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px; }
-        .custom-modal-actions { display: flex; gap: 10px; justify-content: center; }
-        .modal-btn { padding: 10px 20px; border-radius: 10px; font-weight: 700; cursor: pointer; border: none; font-size: 0.9rem; flex: 1; }
-        .modal-btn-confirm { background: var(--btn-gradient); color: #090d16; }
+        .chat-input-row button {
+            background: var(--accent-gradient);
+            color: #0f172a;
+            border: none;
+            padding: 0 16px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
 
-        .footer-link { text-align: center; margin-top: 20px; }
-        .footer-link a { color: var(--text-muted); text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
-        .footer-link a:hover { color: var(--primary-color); }
+        .call-card-modal {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            padding: 14px 20px;
+            border-radius: 14px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.85);
+            z-index: 100000;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            width: 92%;
+            max-width: 400px;
+        }
+
+        .btn-call-act {
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: white;
+            transition: 0.2s;
+        }
+        .btn-call-green { background: var(--success-color); }
+        .btn-call-red { background: var(--danger-color); }
+
+        .call-timer-box {
+            display: inline-block;
+            background: #0284c7;
+            color: #fff;
+            padding: 3px 9px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-family: monospace;
+            font-size: 0.88rem;
+            margin-top: 4px;
+        }
+
+        .custom-modal-backdrop {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(6px);
+            z-index: 99999;
+            display: none;
+            align-items: center; justify-content: center;
+            padding: 20px;
+            animation: fadeIn 0.2s ease;
+        }
+        .custom-modal-box {
+            background: #1e293b;
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            width: 100%; max-width: 420px;
+            padding: 24px; text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+        }
+        .modal-icon { font-size: 2.8rem; margin-bottom: 12px; }
+        .modal-title { font-size: 1.15rem; font-weight: bold; margin-bottom: 10px; color: #fff; }
+        .modal-body { font-size: 0.9rem; color: #cbd5e1; line-height: 1.6; margin-bottom: 20px; }
+        .modal-btn {
+            background: var(--accent-gradient);
+            color: #0f172a; border: none; padding: 10px 24px;
+            border-radius: 10px; font-weight: bold; font-size: 0.9rem;
+            cursor: pointer; width: 100%;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--success-color);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: transform 0.3s ease;
+            z-index: 99999;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            text-align: center;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); }
     </style>
 </head>
 <body>
 
-    <div class="announcement-bar">
-        <marquee scrollamount="5" direction="right" id="announcementMarqueeText">
-            ✨ جاري تحميل أحدث العروض وإعلانات الصيانة...
-        </marquee>
-    </div>
+    <div id="toast" class="toast">تم الإرسال</div>
 
-    <div id="customModalOverlay" class="custom-modal-overlay">
-        <div class="custom-modal">
-            <h3 id="modalTitle">تنبيه النظام</h3>
-            <p id="modalMessage">محتوى الرسالة هنا...</p>
-            <div id="modalActions" class="custom-modal-actions">
-                <button class="modal-btn modal-btn-confirm" onclick="closeCustomModal()">حسناً</button>
-            </div>
+    <div id="customModal" class="custom-modal-backdrop">
+        <div class="custom-modal-box">
+            <div id="modalIcon" class="modal-icon">🔔</div>
+            <div id="modalTitle" class="modal-title">تنبيه</div>
+            <div id="modalBody" class="modal-body"></div>
+            <button type="button" class="modal-btn" onclick="closeCustomModal()">حسناً، فهمت</button>
         </div>
     </div>
+
+    <!-- نافذة المكالمة الموحدة للعميل -->
+    <div id="callModal" class="call-card-modal" style="border: 2px solid var(--success-color);">
+        <div>
+            <div style="font-size:0.92rem; font-weight:bold; color:#fff;" id="callModalTitle">📞 جاري الاتصال...</div>
+            <div style="font-size:0.75rem; color:var(--text-muted);" id="callModalStatus">يرن الآن...</div>
+            <div id="callTimerBox" class="call-timer-box" style="display:none;">00:00</div>
+        </div>
+        <div style="display:flex; gap:8px;">
+            <button id="btnCallAccept" class="btn-call-act btn-call-green" style="display:none;" onclick="acceptIncomingCall()">رد</button>
+            <button id="btnCallEnd" class="btn-call-act btn-call-red" onclick="terminateCall(true)">إنهاء ✕</button>
+        </div>
+    </div>
+
+    <audio id="remoteAudio" autoplay playsinline></audio>
 
     <div class="container">
-        <div class="card">
-            <h2>🔍 استعلام عن حالة جهاز الصيانة</h2>
-            <div class="search-box">
-                <input type="text" id="searchInput" placeholder="أدخل رقم التتبع أو رقم الهاتف..." onkeydown="if(event.key==='Enter') searchDevice()">
-                <button class="primary-btn" onclick="searchDevice()">بحث</button>
-            </div>
-
-            <div id="resultSection" class="result-section">
-                <div class="info-row"><span>رقم التتبع:</span> <span id="resTrack">-</span></div>
-                <div class="info-row"><span>اسم العميل:</span> <span id="resName">-</span></div>
-                <div class="info-row"><span>نوع الجهاز:</span> <span id="resDevice">-</span></div>
-                <div class="info-row"><span>المشكلة الأولية:</span> <span id="resProblem">-</span></div>
-                <div class="info-row"><span>التفاصيل الفنية:</span> <span id="resDetails">-</span></div>
-                <div class="info-row"><span>وقت الاستلام التقريبي:</span> <span id="resExpectedTime" style="color: var(--warning-color);">-</span></div>
-                <div class="info-row"><span>التكلفة النهائية:</span> <span id="resCost">-</span></div>
-                <div class="info-row"><span>حالة الجهاز:</span> <span id="resStatus" style="color: var(--primary-color);">-</span></div>
-
-                <div id="extraNoticeBox" class="extra-box" style="display: none;">
-                    <p id="extraNoticeText"></p>
-                    <div id="approveBtnContainer" class="action-buttons"></div>
-                </div>
-
-                <!-- شات المحادثة بتصميم الماسنجر (زر الاتصال في الأعلى) -->
-                <div class="chat-container">
-                    <div class="chat-header-bar">
-                        <div class="chat-title-info">
-                            <span>💬 المحادثة المباشرة مع الفني المسؤول</span>
-                            <span id="chatLiveIndicator">● متصل مباشر</span>
-                        </div>
-                        <!-- زر الاتصال العلوي (مثل الماسنجر) -->
-                        <button class="messenger-call-btn" onclick="startVoiceCall()" title="اتصال صوتي">
-                            📞
-                        </button>
-                    </div>
-
-                    <div class="chat-msgs" id="clientChatMsgs"></div>
-                    
-                    <div class="chat-input-row">
-                        <input type="text" id="clientChatInput" placeholder="اكتب رسالتك للفني..." onkeydown="if(event.key==='Enter') sendClientMsg()">
-                        <button class="primary-btn" onclick="sendClientMsg()">إرسال</button>
-                    </div>
-                </div>
-            </div>
+        <div class="header-card">
+            <a href="login.html" class="tech-portal-link">🛠️ بوابة الفنيين</a>
+            <h1>تتبع حالة صيانة جهازك</h1>
+            <p>أدخل كود التتبع المستلم أو رقم هاتفك لمعرفة تفاصيل وحالة الجهاز مباشرة</p>
             
-            <div id="noResultMsg" style="text-align: center; color: var(--danger-color); font-size: 0.95rem; display: none; margin-top: 15px; font-weight: bold; line-height: 1.5;"></div>
+            <div class="search-box">
+                <input type="text" id="trackInput" placeholder="أدخل رقم التتبع (مثل TRK-...) أو رقم الهاتف" onkeydown="if(event.key==='Enter') searchDevice()">
+                <button type="button" onclick="searchDevice()">بحث</button>
+            </div>
         </div>
 
-        <div class="footer-link">
-            <a href="login.html">🔒 بوابة دخول أصحاب المحلات (الفني)</a>
+        <div id="closedCard" class="closed-card">
+            <div class="closed-icon">✨</div>
+            <div class="closed-title" style="color:var(--success-color);">شكراً لثقتكم بنا</div>
+            <p id="closedDesc" class="closed-desc"></p>
+            
+            <div id="specialThanksContainer" class="special-thanks-box" style="display: none;">
+                <div class="special-thanks-title">
+                    <span>💌 رسالة خاصة من إدارة المركز:</span>
+                </div>
+                <div id="specialThanksText" class="special-thanks-text"></div>
+            </div>
+
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;" id="redirectCountText">
+                سيتم إعادتك لصفحة الاستعلام خلال ثوانٍ...
+            </div>
+            <button type="button" class="btn-new-search" onclick="resetToNewSearch()">🔍 استعلام عن جهاز آخر فوراً</button>
+            <div class="auto-redirect-bar" id="redirectBar"></div>
+        </div>
+
+        <div id="resultCard" class="result-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <span class="status-badge" id="resStatus">-</span>
+                <span style="font-size:0.85rem; color:var(--primary-color); font-weight:bold;" id="resTrackingNum">-</span>
+            </div>
+
+            <div class="info-row"><span class="info-label">اسم العميل:</span><span class="info-val" id="resCustomerName">-</span></div>
+            <div class="info-row"><span class="info-label">الجهاز والموديل:</span><span class="info-val" id="resDeviceName">-</span></div>
+            <div class="info-row"><span class="info-label">العطل المسجل:</span><span class="info-val" id="resProblem">-</span></div>
+            <div class="info-row"><span class="info-label">التكلفة المحددة:</span><span class="info-val" style="color:#22c55e;" id="resCost">- ر.س</span></div>
+            <div class="info-row"><span class="info-label">وقت التسليم المتوقع:</span><span class="info-val" id="resExpectedTime">-</span></div>
+
+            <div id="approvalBox" class="approval-box">
+                <p id="approvalMsg">تم فحص جهازك وتحديد تكلفة إضافية، يرجى تأكيد الموافقة لبدء الإصلاح.</p>
+                <div class="approval-actions">
+                    <button class="btn-approve" onclick="respondToFault(true)">موافق على التكلفة والإصلاح</button>
+                    <button class="btn-reject" onclick="respondToFault(false)">رفض الصيانة</button>
+                </div>
+            </div>
+
+            <div class="chat-section">
+                <div class="chat-header">
+                    <span style="font-weight:bold; font-size:0.9rem; color:var(--primary-color);">💬 محادثة مباشرة مع الفني</span>
+                    <button id="btnCallTech" onclick="startCallToTech()" style="background:var(--success-color); color:#fff; border:none; padding:6px 12px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:0.8rem; display:inline-flex; align-items:center; gap:5px;">
+                        📞 اتصال بالفني
+                    </button>
+                </div>
+                <div class="chat-msgs" id="chatMsgsContainer"></div>
+                <div class="chat-input-row">
+                    <input type="text" id="chatInput" placeholder="اكتب استفسارك للفني هنا..." onkeydown="if(event.key==='Enter') sendClientMsg()">
+                    <button type="button" onclick="sendClientMsg()">إرسال</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -404,286 +449,649 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2eGt4bWt0a3hhd3B0YnJxdHV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0NDY2MTcsImV4cCI6MjEwNjAyMjYxN30.NkqXPEpMf6VFE3nFQ1V7T5HyjfoxIrT_apKh7S6a_14';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        let activeDevice = null;
-        let realtimeChannel = null;
-        let backgroundPollingTimer = null;
+        let currentDevice = null;
+        let activeCallChannel = null;
+        let incomingOfferData = null;
+        let peerConnection = null;
+        let localStream = null;
+        let iceCandidatesQueue = [];
 
-        let ringtoneInterval = null;
+        let callTimerInterval = null;
+        let callSeconds = 0;
 
-        function playRingingSound() {
-            try {
-                if (ringtoneInterval) return;
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                ringtoneInterval = setInterval(() => {
-                    const osc = audioCtx.createOscillator();
-                    const gain = audioCtx.createGain();
-                    osc.frequency.setValueAtTime(440, audioCtx.currentTime);
-                    osc.frequency.setValueAtTime(480, audioCtx.currentTime + 0.2);
-                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-                    osc.connect(gain);
-                    gain.connect(audioCtx.destination);
-                    osc.start();
-                    osc.stop(audioCtx.currentTime + 0.4);
-                }, 1000);
-            } catch(e) {
-                console.error(e);
-            }
+        const rtcConfig = { 
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'turn:openrelay.metered.ca:80', username: 'openrelay', credential: 'openrelay' },
+                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelay', credential: 'openrelay' },
+                { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelay', credential: 'openrelay' }
+            ],
+            iceCandidatePoolSize: 10
+        };
+
+        let dialAudioCtx = null;
+        let dialInterval = null;
+        let ringAudioCtx = null;
+        let ringInterval = null;
+        let redirectTimeout = null;
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>'"]/g, tag => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+            }[tag] || tag));
         }
 
-        function stopRingingSound() {
-            if (ringtoneInterval) {
-                clearInterval(ringtoneInterval);
-                ringtoneInterval = null;
+        function parseChat(chatData) {
+            if (!chatData) return [];
+            if (Array.isArray(chatData)) return chatData;
+            if (typeof chatData === 'string') {
+                try {
+                    let p = JSON.parse(chatData);
+                    if (Array.isArray(p)) return p;
+                } catch(e) {}
             }
+            return [];
         }
 
-        function startVoiceCall() {
-            if(!activeDevice) {
-                showCustomAlert('تنبيه', 'الرجاء البحث عن الجهاز أولاً قبل بدء الاتصال.');
-                return;
-            }
-            playRingingSound();
-            showCustomAlert('الاتصال الصوتي', '📞 جاري طلب الاتصال بالفني... (تم تشغيل نغمة الرنين للاختبار)');
-            
-            setTimeout(() => {
-                stopRingingSound();
-            }, 4000);
-        }
-
-        async function loadAnnouncementFromServer() {
-            try {
-                let { data, error } = await _supabase.from('technicians').select('announcement').limit(1);
-                if(data && data.length > 0 && data[0].announcement) {
-                    document.getElementById('announcementMarqueeText').innerText = data[0].announcement;
-                } else {
-                    document.getElementById('announcementMarqueeText').innerText = "✨ أهلاً بك في نظام تتبع الصيانة الذكي";
-                }
-            } catch(e) {
-                document.getElementById('announcementMarqueeText').innerText = "✨ أهلاً بك في نظام تتبع الصيانة الذكي";
-            }
-        }
-
-        window.addEventListener('DOMContentLoaded', () => {
-            loadAnnouncementFromServer();
-            if ("Notification" in window && Notification.permission !== "granted") {
-                Notification.requestPermission();
-            }
-        });
-
-        function playNotificationSound() {
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioCtx.createOscillator();
-                const gainNode = audioCtx.createGain();
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime);
-                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime + 0.1);
-                gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
-                oscillator.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-                oscillator.start();
-                oscillator.stop(audioCtx.currentTime + 0.5);
-            } catch(e) {}
-        }
-
-        function showBrowserNotification(title, body) {
-            if ("Notification" in window && Notification.permission === "granted") {
-                new Notification(title, { body: body, icon: "https://cdn-icons-png.flaticon.com/512/2965/2965879.png" });
-            }
-        }
-
-        function showCustomAlert(title, message) {
+        function showCustomAlert(title, message, icon = '🔔', borderColor = 'var(--primary-color)') {
+            const modal = document.getElementById('customModal');
             document.getElementById('modalTitle').innerText = title;
-            document.getElementById('modalMessage').innerHTML = message;
-            document.getElementById('customModalOverlay').classList.add('active');
+            document.getElementById('modalTitle').style.color = borderColor;
+            document.getElementById('modalBody').innerHTML = message;
+            document.getElementById('modalIcon').innerText = icon;
+            document.querySelector('.custom-modal-box').style.borderColor = borderColor;
+            modal.style.display = 'flex';
         }
 
         function closeCustomModal() {
-            document.getElementById('customModalOverlay').classList.remove('active');
+            document.getElementById('customModal').style.display = 'none';
+        }
+
+        function showToast(msg) {
+            let t = document.getElementById('toast');
+            if (!t) return;
+            t.innerText = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3500);
+        }
+
+        function resetToNewSearch() {
+            if (redirectTimeout) clearTimeout(redirectTimeout);
+            document.getElementById('closedCard').style.display = 'none';
+            document.getElementById('resultCard').style.display = 'none';
+            const input = document.getElementById('trackInput');
+            input.value = '';
+            input.focus();
+            currentDevice = null;
+            if (activeCallChannel) {
+                _supabase.removeChannel(activeCallChannel);
+                activeCallChannel = null;
+            }
         }
 
         async function searchDevice() {
-            let query = document.getElementById('searchInput').value.trim();
-            if(!query) {
-                showCustomAlert('تنبيه هام', 'الرجاء إدخال رقم التتبع أو رقم الهاتف للبحث');
+            let val = document.getElementById('trackInput').value.trim();
+            if (!val) {
+                showCustomAlert('حقل مطلوب', 'الرجاء إدخال رقم التتبع أو رقم الهاتف للبحث.', '⚠️', 'var(--warning-color)');
                 return;
             }
-
-            let resultSection = document.getElementById('resultSection');
-            let noResultMsg = document.getElementById('noResultMsg');
 
             let { data, error } = await _supabase
                 .from('devices')
                 .select('*')
-                .or(`tracking_number.ilike.%${query}%,phone.eq.${query}`);
+                .or(`tracking_number.eq.${val},phone.eq.${val}`)
+                .order('id', { ascending: false })
+                .limit(1)
+                .maybeSingle();
 
-            if (error || !data || data.length === 0) {
-                resultSection.style.display = 'none';
-                noResultMsg.innerText = 'لم يتم العثور على أي جهاز بهذا الرقم أو الهاتف. تأكد من البيانات المدخلة.';
-                noResultMsg.style.display = 'block';
-                activeDevice = null;
-                stopAllSubscriptions();
+            if (error || !data) {
+                showCustomAlert('غير موجود', 'لم يتم العثور على أي جهاز مسجل بهذه البيانات.', '🔍', 'var(--danger-color)');
+                document.getElementById('resultCard').style.display = 'none';
+                document.getElementById('closedCard').style.display = 'none';
                 return;
             }
 
-            let d = data[0];
-            let statusVal = d.status || '';
-            if(statusVal === 'تم تسليم الجهاز للعميل' || statusVal === 'مسترجع') {
-                resultSection.style.display = 'none';
-                noResultMsg.innerHTML = '⚠️ عذراً، رقم التتبع هذا منتهي الصلاحية.<br>لقد تم تسليم الجهاز للعميل أو استرجاعه.';
-                noResultMsg.style.display = 'block';
-                activeDevice = null;
-                stopAllSubscriptions();
+            const st = data.status || '';
+
+            if (st === 'تم تسليم الجهاز للعميل' || st === 'مسترجع') {
+                document.getElementById('resultCard').style.display = 'none';
+                document.getElementById('closedCard').style.display = 'none';
+                currentDevice = null;
+
+                if (st === 'تم تسليم الجهاز للعميل') {
+                    let customMsg = data.details ? `<br><br><div class="special-thanks-box"><div class="special-thanks-title">💌 رسالة المركز:</div><div class="special-thanks-text">${escapeHTML(data.details)}</div></div>` : '';
+                    showCustomAlert(
+                        'تم تسليم الجهاز',
+                        `تم تسليم هذا الجهاز (<b>${escapeHTML(data.device_name)}</b>) للعميل بالفعل وإغلاق طلب الصيانة بنجاح. شكراً لثقتكم بنا.${customMsg}`,
+                        '🤝',
+                        'var(--success-color)'
+                    );
+                } else {
+                    showCustomAlert(
+                        'جهاز مسترجع',
+                        `تنبيه: هذا الجهاز (<b>${escapeHTML(data.device_name)}</b>) تم استرجاعه وإغلاق طلبه.`,
+                        '🔄',
+                        'var(--danger-color)'
+                    );
+                }
                 return;
             }
 
-            activeDevice = d;
-            updateUIWithDeviceData(d);
-            resultSection.style.display = 'block';
-            noResultMsg.style.display = 'none';
-            startRealtimeAndPolling(d.id);
+            currentDevice = data;
+            displayDeviceInfo();
+            setupCallChannel();
+            setupRealtimeLiveChat(currentDevice.id);
+            markTechMessagesAsRead();
         }
 
-        function startRealtimeAndPolling(deviceId) {
-            stopAllSubscriptions();
-            
-            realtimeChannel = _supabase
-                .channel(`public:devices:id=eq.${deviceId}`)
-                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'devices', filter: `id=eq.${deviceId}` }, (payload) => {
-                    handleUpdatedDeviceData(payload.new);
+        function displayDeviceInfo() {
+            if (!currentDevice) return;
+
+            const st = currentDevice.status || '';
+            const resultCard = document.getElementById('resultCard');
+            const closedCard = document.getElementById('closedCard');
+
+            if (st === 'تم تسليم الجهاز للعميل' || st === 'مسترجع') {
+                resultCard.style.display = 'none';
+                closedCard.style.display = 'block';
+
+                const thanksContainer = document.getElementById('specialThanksContainer');
+                const thanksText = document.getElementById('specialThanksText');
+
+                if (st === 'تم تسليم الجهاز للعميل') {
+                    closedCard.style.border = '2px solid var(--success-color)';
+                    document.getElementById('closedDesc').innerHTML = `تم تسليم جهازكم (<b>${escapeHTML(currentDevice.device_name)}</b>) بنجاح وإغلاق التذكرة.<br>سعدنا جداً بخدمتكم ونتمنى لكم تجربة ممتازة دائماً.`;
+
+                    if (currentDevice.details && currentDevice.details.trim() !== '') {
+                        thanksText.innerText = currentDevice.details;
+                        thanksContainer.style.display = 'block';
+                    } else {
+                        thanksContainer.style.display = 'none';
+                    }
+                } else {
+                    closedCard.style.border = '2px solid var(--danger-color)';
+                    document.getElementById('closedDesc').innerHTML = `تم استرجاع جهازكم (<b>${escapeHTML(currentDevice.device_name)}</b>) وإغلاق التذكرة في النظام.<br>نشكركم لزيارتنا ونتشرف بخدمتكم في أي وقت.`;
+                    thanksContainer.style.display = 'none';
+                }
+
+                if (redirectTimeout) clearTimeout(redirectTimeout);
+                redirectTimeout = setTimeout(() => {
+                    resetToNewSearch();
+                }, 7000);
+
+                return;
+            }
+
+            closedCard.style.display = 'none';
+            resultCard.style.display = 'block';
+
+            document.getElementById('resTrackingNum').innerText = currentDevice.tracking_number;
+            document.getElementById('resStatus').innerText = currentDevice.status;
+            document.getElementById('resCustomerName').innerText = currentDevice.customer_name;
+            document.getElementById('resDeviceName').innerText = currentDevice.device_name;
+            document.getElementById('resProblem').innerText = currentDevice.problem || 'غير محدد';
+            document.getElementById('resCost').innerText = (currentDevice.cost || '0') + ' ر.س';
+            document.getElementById('resExpectedTime').innerText = currentDevice.expected_time ? new Date(currentDevice.expected_time).toLocaleString('ar-SA') : 'سيتم تحديده لاحقاً';
+
+            const approvalBox = document.getElementById('approvalBox');
+            if (currentDevice.status && currentDevice.status.includes('بانتظار موافقة العميل')) {
+                approvalBox.style.display = 'block';
+                if (currentDevice.new_fault) {
+                    document.getElementById('approvalMsg').innerText = `تم فحص جهازك وتبيّن وجود: (${currentDevice.new_fault}) بتكلفة قدرها: (${currentDevice.cost} ر.س). هل توافق على الإصلاح؟`;
+                }
+            } else {
+                approvalBox.style.display = 'none';
+            }
+
+            renderChat();
+        }
+
+        /* نظام اللايف شات المباشر وتحديث القراءة اللحظي عبر الـ WebSocket */
+        function setupRealtimeLiveChat(deviceId) {
+            _supabase.channel(`chat_live_${deviceId}`)
+                .on('broadcast', { event: 'new_msg' }, ({ payload }) => {
+                    let chatArr = parseChat(currentDevice.chat);
+                    if (!chatArr.some(m => m.id === payload.id)) {
+                        chatArr.push(payload);
+                        currentDevice.chat = chatArr;
+                        renderChat();
+                        markTechMessagesAsRead();
+                    }
+                })
+                .on('broadcast', { event: 'msg_read_receipt' }, ({ payload }) => {
+                    let chatArr = parseChat(currentDevice.chat);
+                    let changed = false;
+                    chatArr.forEach(m => {
+                        if (m.sender === 'client' && (!m.read || m.read === false)) {
+                            m.read = true;
+                            m.readTime = payload.readTime;
+                            changed = true;
+                        }
+                    });
+                    if (changed) {
+                        currentDevice.chat = chatArr;
+                        renderChat();
+                    }
                 })
                 .subscribe();
 
-            backgroundPollingTimer = setInterval(async () => {
-                if (!activeDevice || !activeDevice.id) return;
-                let { data, error } = await _supabase.from('devices').select('*').eq('id', activeDevice.id).single();
-                if (!error && data) {
-                    if (JSON.stringify(data.chat) !== JSON.stringify(activeDevice.chat) || data.status !== activeDevice.status) {
-                        handleUpdatedDeviceData(data);
+            // الاستماع لتحديثات الحالة المسجلة في قاعدة البيانات
+            _supabase.channel(`device_db_sync_${deviceId}`)
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'devices', filter: `id=eq.${deviceId}` }, payload => {
+                    if (payload.new) {
+                        currentDevice.status = payload.new.status;
+                        currentDevice.cost = payload.new.cost;
+                        currentDevice.new_fault = payload.new.new_fault;
+                        displayDeviceInfo();
                     }
-                }
-            }, 2000);
+                }).subscribe();
         }
 
-        function handleUpdatedDeviceData(updatedDevice) {
-            let statusVal = updatedDevice.status || '';
-            if(statusVal === 'تم تسليم الجهاز للعميل' || statusVal === 'مسترجع') {
-                document.getElementById('resultSection').style.display = 'none';
-                document.getElementById('noResultMsg').innerHTML = '⚠️ عذراً، لقد تم تسليم الجهاز أو إغلاقه.';
-                document.getElementById('noResultMsg').style.display = 'block';
-                activeDevice = null;
-                stopAllSubscriptions();
+        async function markTechMessagesAsRead() {
+            if (!currentDevice) return;
+            let chatArr = parseChat(currentDevice.chat);
+            let hasChanges = false;
+            let currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            chatArr.forEach(m => {
+                if (m.sender === 'tech' && (!m.read || m.read === false)) {
+                    m.read = true;
+                    m.readTime = currentTime;
+                    hasChanges = true;
+                }
+            });
+
+            if (hasChanges) {
+                currentDevice.chat = chatArr;
+                // إرسال إشعار قراءة فوري للفني عبر الـ Broadcast
+                _supabase.channel(`chat_live_${currentDevice.id}`).send({
+                    type: 'broadcast',
+                    event: 'msg_read_receipt',
+                    payload: { readTime: currentTime }
+                });
+                await _supabase.from('devices').update({ chat: chatArr }).eq('id', currentDevice.id);
+            }
+        }
+
+        function renderChat() {
+            const container = document.getElementById('chatMsgsContainer');
+            if (!container || !currentDevice) return;
+            let chat = parseChat(currentDevice.chat);
+
+            if (chat.length === 0) {
+                container.innerHTML = '<div style="color:var(--text-muted); text-align:center; margin:auto; font-size:0.85rem;">يمكنك التحدث مباشرة مع الفني هنا.</div>';
                 return;
             }
 
-            if (activeDevice) {
-                if (activeDevice.status !== updatedDevice.status) {
-                    playNotificationSound();
-                    showBrowserNotification("تحديث حالة الصيانة 🛠️", `تغيرت حالة جهازك إلى: ${updatedDevice.status}`);
+            let html = '';
+            chat.forEach(m => {
+                let isClient = m.sender === 'client';
+                let cls = isClient ? 'chat-msg-client' : 'chat-msg-tech';
+                let lbl = isClient ? '👤 أنت:' : `🛠 الفني (${escapeHTML(currentDevice.technician || '')}):`;
+
+                let readInfo = '';
+                if (isClient) {
+                    if (m.read === true || m.read === 'true') {
+                        let rt = m.readTime ? ` (${escapeHTML(m.readTime)})` : '';
+                        readInfo = `<span style="color:#38bdf8; font-size:0.75rem; font-weight:bold;">✓✓ مقروءة${rt}</span>`;
+                    } else {
+                        readInfo = `<span style="color:#94a3b8; font-size:0.65rem;">✓ أُرسلت</span>`;
+                    }
                 }
-            }
 
-            activeDevice = updatedDevice;
-            updateUIWithDeviceData(updatedDevice);
-        }
-
-        function stopAllSubscriptions() {
-            if(realtimeChannel) { _supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
-            if(backgroundPollingTimer) { clearInterval(backgroundPollingTimer); backgroundPollingTimer = null; }
-        }
-
-        function updateUIWithDeviceData(d) {
-            document.getElementById('resTrack').innerText = d.tracking_number;
-            document.getElementById('resName').innerText = d.customer_name;
-            document.getElementById('resDevice').innerText = d.device_name;
-            document.getElementById('resProblem').innerText = d.problem || 'غير مسجل';
-            document.getElementById('resDetails').innerText = d.details || 'لا توجد ملاحظات';
-            document.getElementById('resExpectedTime').innerText = d.expected_time ? d.expected_time.replace('T', ' ') : 'لم يُحدد بعد';
-            document.getElementById('resCost').innerText = (d.cost || '0') + ' ر.س';
-            document.getElementById('resStatus').innerText = d.status;
-
-            let extraBox = document.getElementById('extraNoticeBox');
-            let extraText = document.getElementById('extraNoticeText');
-            let approveContainer = document.getElementById('approveBtnContainer');
-
-            if(d.status && d.status.includes('بانتظار')) {
-                extraBox.style.display = 'block';
-                extraText.innerText = d.new_fault ? `عطل جديد مكتشف: "${d.new_fault}". التكلفة: ${d.cost} ر.س. هل توافق؟` : 'يوجد تكلفة إضافية مطلوبة، يرجى الموافقة أو الرفض:';
-                approveContainer.innerHTML = '<button class="approve-btn" onclick="approveExtraCost()">الموافقة</button><button class="reject-btn" onclick="rejectExtraCost()">رفض</button>';
-            } else {
-                extraBox.style.display = 'none';
-            }
-
-            renderClientChat(d.chat || []);
-        }
-
-        async function approveExtraCost() {
-            if(!activeDevice) return;
-            let { data, error } = await _supabase.from('devices').update({ status: 'جاري الإصلاح' }).eq('id', activeDevice.id).select().single();
-            if(!error && data) {
-                activeDevice = data;
-                updateUIWithDeviceData(data);
-                showCustomAlert('تم بنجاح', 'تم إرسال الموافقة للفني بنجاح');
-            }
-        }
-
-        async function rejectExtraCost() {
-            if(!activeDevice) return;
-            let { data, error } = await _supabase.from('devices').update({ status: 'تم رفض التكلفة' }).eq('id', activeDevice.id).select().single();
-            if(!error && data) {
-                activeDevice = data;
-                updateUIWithDeviceData(data);
-                showCustomAlert('تم بنجاح', 'تم إرسال الرفض للفني');
-            }
-        }
-
-        function renderClientChat(chatArr) {
-            let container = document.getElementById('clientChatMsgs');
-            let isScrolledToBottom = container.scrollHeight - container.clientHeight <= container.scrollTop + 50;
-            
-            container.innerHTML = '';
-            if(chatArr && chatArr.length > 0) {
-                chatArr.forEach(m => {
-                    let msgClass = m.sender === 'client' ? 'chat-msg-client' : 'chat-msg-tech';
-                    let senderLabel = m.sender === 'client' ? '👤 أنت (العميل):' : '🛠️ الفني المسؤول:';
-                    container.innerHTML += `
-                        <div class="chat-msg-item ${msgClass}">
-                            <div style="font-size:0.75rem; font-weight:bold; margin-bottom:4px;">${senderLabel}</div>
-                            <div>${m.text}</div>
-                            <div style="font-size:0.6rem; margin-top:6px; opacity:0.7;">${m.time}</div>
+                html += `
+                    <div class="chat-msg-item ${cls}">
+                        <div style="font-size:0.65rem; font-weight:bold; margin-bottom:2px;">${lbl}</div>
+                        <div>${escapeHTML(m.text)}</div>
+                        <div style="font-size:0.55rem; opacity:0.8; margin-top:3px; display:flex; justify-content:space-between; align-items:center;">
+                            <span>${escapeHTML(m.time)}</span>
+                            ${readInfo}
                         </div>
-                    `;
-                });
-                if (isScrolledToBottom || chatArr.length <= 3) {
-                    container.scrollTop = container.scrollHeight;
-                }
-            } else {
-                container.innerHTML = '<div style="color:var(--text-muted); text-align:center; margin:auto;">لا توجد رسائل سابقة. ابدأ المحادثة الآن.</div>';
-            }
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+            container.scrollTop = container.scrollHeight;
         }
 
         async function sendClientMsg() {
-            if(!activeDevice) return;
-            let input = document.getElementById('clientChatInput');
-            let text = input.value.trim();
-            if(!text) return;
+            let input = document.getElementById('chatInput');
+            let text = input ? input.value.trim() : '';
+            if (!text || !currentDevice) return;
 
-            let chatArr = activeDevice.chat ? [...activeDevice.chat] : [];
-            chatArr.push({
+            let newMsg = {
+                id: 'msg_' + Date.now(),
                 sender: 'client',
                 text: text,
-                time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                readByTech: false
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                read: false,
+                readTime: null
+            };
+
+            let chat = parseChat(currentDevice.chat);
+            chat.push(newMsg);
+            input.value = '';
+            currentDevice.chat = chat;
+            renderChat();
+
+            // إرسال فوري لايف عبر الـ Broadcast في أجزاء من الثانية
+            _supabase.channel(`chat_live_${currentDevice.id}`).send({
+                type: 'broadcast',
+                event: 'new_msg',
+                payload: newMsg
             });
 
-            let { data, error } = await _supabase.from('devices').update({ chat: chatArr }).eq('id', activeDevice.id).select().single();
-            if(!error && data) {
-                input.value = '';
-                activeDevice = data;
-                updateUIWithDeviceData(data);
+            await _supabase.from('devices').update({ chat: chat }).eq('id', currentDevice.id);
+        }
+
+        async function respondToFault(accepted) {
+            if (!currentDevice) return;
+            let newStatus = accepted ? 'جاري الإصلاح' : 'مسترجع';
+            let responseText = accepted 
+                ? '✅ قام العميل بالموافقة على التكلفة وبدء الإصلاح.' 
+                : '❌ رفض العميل التكلفة الإضافية وطلب استرجاع الجهاز.';
+
+            let newMsg = {
+                id: 'msg_' + Date.now(),
+                sender: 'client',
+                text: responseText,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                read: false,
+                readTime: null
+            };
+
+            let chatArr = parseChat(currentDevice.chat);
+            chatArr.push(newMsg);
+
+            _supabase.channel(`chat_live_${currentDevice.id}`).send({
+                type: 'broadcast',
+                event: 'new_msg',
+                payload: newMsg
+            });
+
+            await _supabase.from('devices').update({
+                status: newStatus,
+                chat: chatArr
+            }).eq('id', currentDevice.id);
+
+            currentDevice.status = newStatus;
+            currentDevice.chat = chatArr;
+            displayDeviceInfo();
+            showToast('تم إرسال قرارك للفني بنجاح');
+        }
+
+        /* ----------------------------------------------------
+           نظام الصوت والمكالمات الموحد للعميل
+        ----------------------------------------------------- */
+
+        function startCallTimer() {
+            stopCallTimer();
+            callSeconds = 0;
+            const el = document.getElementById('callTimerBox');
+            if (el) {
+                el.innerText = '00:00';
+                el.style.display = 'inline-block';
             }
+            callTimerInterval = setInterval(() => {
+                callSeconds++;
+                let mins = Math.floor(callSeconds / 60);
+                let secs = callSeconds % 60;
+                let fmt = (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
+                if (el) el.innerText = fmt;
+            }, 1000);
+        }
+
+        function stopCallTimer() {
+            if (callTimerInterval) {
+                clearInterval(callTimerInterval);
+                callTimerInterval = null;
+            }
+            callSeconds = 0;
+            const el = document.getElementById('callTimerBox');
+            if (el) { el.style.display = 'none'; el.innerText = '00:00'; }
+        }
+
+        function attachRemoteAudio(stream) {
+            const rAudio = document.getElementById('remoteAudio');
+            if (!rAudio) return;
+            rAudio.srcObject = stream;
+            rAudio.muted = false;
+            rAudio.volume = 1.0;
+            
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtx) {
+                    const ctx = new AudioCtx();
+                    if (ctx.state === 'suspended') ctx.resume();
+                    const src = ctx.createMediaStreamSource(stream);
+                    src.connect(ctx.destination);
+                }
+            } catch(e){}
+
+            rAudio.play().catch(e => console.log('Audio autoplay prevented:', e));
+        }
+
+        function setupCallChannel() {
+            if (!currentDevice || activeCallChannel) return;
+            activeCallChannel = _supabase.channel(`call_room_${currentDevice.id}`, { config: { broadcast: { self: false } } })
+                .on('broadcast', { event: 'call_signal' }, ({ payload }) => {
+                    handleCallSignal(payload);
+                })
+                .subscribe();
+        }
+
+        async function handleCallSignal(data) {
+            if (data.type === 'call_offer') {
+                incomingOfferData = data;
+                document.getElementById('callModalTitle').innerText = `📞 اتصال وارد من: ${data.callerName}`;
+                document.getElementById('callModalStatus').innerText = 'يرن الآن...';
+                document.getElementById('btnCallAccept').style.display = 'inline-block';
+                document.getElementById('callModal').style.display = 'flex';
+                document.getElementById('remoteAudio').play().catch(()=>{});
+                startRingtone();
+            } else if (data.type === 'call_accepted') {
+                stopDialTone();
+                stopRingtone();
+                document.getElementById('callModalStatus').innerText = 'متصل الآن 🎙';
+                startCallTimer();
+
+                if (peerConnection && data.sdp) {
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
+                    while (iceCandidatesQueue.length > 0) {
+                        let c = iceCandidatesQueue.shift();
+                        await peerConnection.addIceCandidate(c).catch(()=>{});
+                    }
+                }
+            } else if (data.type === 'call_rejected' || data.type === 'call_ended') {
+                terminateCall(false);
+            } else if (data.type === 'ice_candidate' && data.candidate) {
+                const cand = new RTCIceCandidate(data.candidate);
+                if (peerConnection && peerConnection.remoteDescription) {
+                    await peerConnection.addIceCandidate(cand).catch(()=>{});
+                } else {
+                    iceCandidatesQueue.push(cand);
+                }
+            }
+        }
+
+        async function startCallToTech() {
+            if (!currentDevice) return;
+
+            document.getElementById('remoteAudio').play().catch(()=>{});
+
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                    video: false
+                });
+            } catch (err) {
+                showCustomAlert('إذن الميكروفون', 'يرجى السماح بالوصول إلى الميكروفون من إعدادات المتصفح لإجراء المكالمة.', '🎙️', 'var(--danger-color)');
+                return;
+            }
+
+            document.getElementById('callModalTitle').innerText = `📞 جاري الاتصال بالفني...`;
+            document.getElementById('callModalStatus').innerText = 'في انتظار الرد...';
+            document.getElementById('btnCallAccept').style.display = 'none';
+            document.getElementById('callModal').style.display = 'flex';
+            startDialTone();
+
+            iceCandidatesQueue = [];
+            peerConnection = new RTCPeerConnection(rtcConfig);
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            peerConnection.addTransceiver('audio', { direction: 'sendrecv' });
+
+            peerConnection.onicecandidate = event => {
+                if (event.candidate && activeCallChannel) {
+                    activeCallChannel.send({
+                        type: 'broadcast',
+                        event: 'call_signal',
+                        payload: { type: 'ice_candidate', candidate: event.candidate.toJSON() }
+                    });
+                }
+            };
+
+            peerConnection.ontrack = event => {
+                attachRemoteAudio(event.streams[0]);
+            };
+
+            const offer = await peerConnection.createOffer({ offerToReceiveAudio: true });
+            await peerConnection.setLocalDescription(offer);
+
+            activeCallChannel.send({
+                type: 'broadcast',
+                event: 'call_signal',
+                payload: {
+                    type: 'call_offer',
+                    callerName: `العميل (${currentDevice.customer_name})`,
+                    sdp: offer
+                }
+            });
+        }
+
+        async function acceptIncomingCall() {
+            if (!incomingOfferData) return;
+            stopRingtone();
+            document.getElementById('remoteAudio').play().catch(()=>{});
+
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                    video: false
+                });
+            } catch (err) {
+                showCustomAlert('إذن الميكروفون', 'يرجى تفعيل صلاحية الميكروفون للرد على المكالمة.', '🎙️', 'var(--danger-color)');
+                return;
+            }
+
+            iceCandidatesQueue = [];
+            peerConnection = new RTCPeerConnection(rtcConfig);
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            peerConnection.addTransceiver('audio', { direction: 'sendrecv' });
+
+            peerConnection.onicecandidate = event => {
+                if (event.candidate && activeCallChannel) {
+                    activeCallChannel.send({
+                        type: 'broadcast',
+                        event: 'call_signal',
+                        payload: { type: 'ice_candidate', candidate: event.candidate.toJSON() }
+                    });
+                }
+            };
+
+            peerConnection.ontrack = event => {
+                attachRemoteAudio(event.streams[0]);
+            };
+
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(incomingOfferData.sdp));
+            while (iceCandidatesQueue.length > 0) {
+                let c = iceCandidatesQueue.shift();
+                await peerConnection.addIceCandidate(c).catch(()=>{});
+            }
+
+            const answer = await peerConnection.createAnswer({ offerToReceiveAudio: true });
+            await peerConnection.setLocalDescription(answer);
+
+            activeCallChannel.send({
+                type: 'broadcast',
+                event: 'call_signal',
+                payload: { type: 'call_accepted', sdp: answer }
+            });
+
+            document.getElementById('callModalTitle').innerText = `🎙 متصل في مكالمة صوتية`;
+            document.getElementById('callModalStatus').innerText = 'مكالمة جارية';
+            document.getElementById('btnCallAccept').style.display = 'none';
+            startCallTimer();
+        }
+
+        function terminateCall(notify = true) {
+            stopDialTone();
+            stopRingtone();
+            stopCallTimer();
+
+            if (notify && activeCallChannel) {
+                activeCallChannel.send({
+                    type: 'broadcast',
+                    event: 'call_signal',
+                    payload: { type: 'call_ended' }
+                });
+            }
+
+            if (peerConnection) { peerConnection.close(); peerConnection = null; }
+            if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+            document.getElementById('callModal').style.display = 'none';
+            incomingOfferData = null;
+        }
+
+        function startDialTone() {
+            try {
+                if (dialInterval) return;
+                dialAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                dialInterval = setInterval(() => {
+                    if (!dialAudioCtx) return;
+                    let osc = dialAudioCtx.createOscillator();
+                    let g = dialAudioCtx.createGain();
+                    osc.frequency.setValueAtTime(440, dialAudioCtx.currentTime);
+                    osc.frequency.setValueAtTime(480, dialAudioCtx.currentTime + 0.2);
+                    g.gain.setValueAtTime(0.1, dialAudioCtx.currentTime);
+                    g.gain.exponentialRampToValueAtTime(0.01, dialAudioCtx.currentTime + 0.4);
+                    osc.connect(g); osc.connect(dialAudioCtx.destination);
+                    osc.start(); osc.stop(dialAudioCtx.currentTime + 0.4);
+                }, 1300);
+            } catch(e) {}
+        }
+
+        function stopDialTone() {
+            if (dialInterval) { clearInterval(dialInterval); dialInterval = null; }
+            if (dialAudioCtx) { dialAudioCtx.close().catch(()=>{}); dialAudioCtx = null; }
+        }
+
+        function startRingtone() {
+            try {
+                if (ringInterval) return;
+                ringAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                ringInterval = setInterval(() => {
+                    if (!ringAudioCtx) return;
+                    let osc1 = ringAudioCtx.createOscillator();
+                    let osc2 = ringAudioCtx.createOscillator();
+                    let gain = ringAudioCtx.createGain();
+                    osc1.frequency.setValueAtTime(440, ringAudioCtx.currentTime);
+                    osc2.frequency.setValueAtTime(480, ringAudioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.15, ringAudioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ringAudioCtx.currentTime + 0.8);
+                    osc1.connect(gain); osc2.connect(gain);
+                    gain.connect(ringAudioCtx.destination);
+                    osc1.start(); osc1.stop(ringAudioCtx.currentTime + 0.8);
+                    osc2.start(); osc2.stop(ringAudioCtx.currentTime + 0.8);
+                }, 1800);
+            } catch(e) {}
+        }
+
+        function stopRingtone() {
+            if (ringInterval) { clearInterval(ringInterval); ringInterval = null; }
+            if (ringAudioCtx) { ringAudioCtx.close().catch(()=>{}); ringAudioCtx = null; }
         }
     </script>
 </body>
