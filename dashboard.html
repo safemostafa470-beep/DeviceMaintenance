@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة تحكم الفني - إدارة الصيانة</title>
 
+    <!-- حماية فورية: فحص وجود جلسة مسجلة قبل رسم أي عنصر -->
     <script>
         (function() {
             const isLogged = localStorage.getItem('isLoggedIn');
@@ -16,7 +17,6 @@
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- مكتبة توليد كود الـ QR لسند الاستلام المباشر -->
     <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
     <style>
         :root {
@@ -77,6 +77,26 @@
         }
         .logout-btn:hover { background: var(--danger-color); color: #fff; }
 
+        .currency-selector-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--border-color);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+        }
+        .currency-selector-badge select {
+            background: transparent;
+            border: none;
+            color: var(--primary-color);
+            font-weight: bold;
+            font-size: 0.85rem;
+            outline: none;
+            cursor: pointer;
+        }
+
         .section-content { display: none; }
         .section-content.active { display: block; }
 
@@ -109,6 +129,38 @@
         }
         .form-group textarea { height: 65px; resize: vertical; }
 
+        /* حاوية رقم الهاتف مع كود الدولة */
+        .phone-input-wrap {
+            display: flex;
+            direction: ltr;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            background: rgba(15, 23, 42, 0.8);
+        }
+        .phone-input-wrap select {
+            width: 95px;
+            border: none;
+            background: rgba(30, 41, 59, 0.9);
+            color: var(--primary-color);
+            font-weight: bold;
+            font-size: 0.82rem;
+            padding: 8px 6px;
+            outline: none;
+            border-right: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+        .phone-input-wrap input {
+            border: none;
+            background: transparent;
+            padding: 9px 10px;
+            flex: 1;
+            color: #fff;
+            direction: ltr;
+            text-align: left;
+            font-size: 0.88rem;
+        }
+
         button.primary-btn {
             background: var(--accent-gradient);
             color: #0f172a;
@@ -120,7 +172,6 @@
             font-size: 0.85rem;
         }
 
-        /* كروت إحصائيات الأرباح والمصروفات */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -150,7 +201,7 @@
         }
 
         .table-responsive { width: 100%; overflow-x: auto; border-radius: 10px; border: 1px solid var(--border-color); }
-        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; min-width: 820px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; min-width: 860px; }
         th, td { padding: 9px 10px; text-align: center; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
         th { background: rgba(56, 189, 248, 0.12); color: var(--primary-color); }
 
@@ -319,7 +370,6 @@
             font-weight: 700; font-size: 0.9rem; cursor: pointer; width: 100%;
         }
 
-        /* نافذة سند الاستلام للطباعة */
         @media print {
             body * { visibility: hidden; }
             #receiptPrintArea, #receiptPrintArea * { visibility: visible; }
@@ -357,12 +407,29 @@
         </div>
     </div>
 
-    <!-- منطقة طباعة سند الاستلام الحراري والمباشر -->
+    <!-- منطقة طباعة سند الاستلام الحراري -->
     <div id="receiptPrintArea" style="display:none;"></div>
 
     <div class="top-nav">
-        <div style="font-size: 0.9rem; font-weight: bold; color: var(--primary-color);">
-            🛠️ فني الصيانة: <span id="currentTechDisplay" style="color: #22c55e;">-</span>
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+            <div style="font-size: 0.9rem; font-weight: bold; color: var(--primary-color);">
+                🛠️ فني الصيانة: <span id="currentTechDisplay" style="color: #22c55e;">-</span>
+            </div>
+            <!-- محدد العملة العامة للنظام -->
+            <div class="currency-selector-badge">
+                <span>العملة:</span>
+                <select id="globalCurrencySelect" onchange="changeGlobalCurrency(this.value)">
+                    <option value="ج.م">ج.م (مصر)</option>
+                    <option value="ر.س">ر.س (السعودية)</option>
+                    <option value="د.إ">د.إ (الإمارات)</option>
+                    <option value="د.ك">د.ك (الكويت)</option>
+                    <option value="ر.ق">ر.ق (قطر)</option>
+                    <option value="ر.ع">ر.ع (عمان)</option>
+                    <option value="د.أ">د.أ (الأردن)</option>
+                    <option value="د.ع">د.ع (العراق)</option>
+                    <option value="$">$ (دولار)</option>
+                </select>
+            </div>
         </div>
         <div class="nav-buttons">
             <button class="nav-btn active" onclick="switchTab('add', this)">إضافة جهاز</button>
@@ -380,12 +447,34 @@
             <h2>تسجيل استلام جهاز جديد</h2>
             <div class="form-grid">
                 <div class="form-group"><label>اسم العميل *</label><input type="text" id="clientName"></div>
-                <div class="form-group"><label>رقم الهاتف *</label><input type="text" id="clientPhone"></div>
+                
+                <!-- حقل الهاتف مع كود الدولة على اليسار -->
+                <div class="form-group">
+                    <label>رقم الهاتف *</label>
+                    <div class="phone-input-wrap">
+                        <select id="countryCodeSelect">
+                            <option value="+20">🇪🇬 +20</option>
+                            <option value="+966" selected>🇸🇦 +966</option>
+                            <option value="+971">🇦🇪 +971</option>
+                            <option value="+965">🇰🇼 +965</option>
+                            <option value="+974">🇶🇦 +974</option>
+                            <option value="+968">🇴🇲 +968</option>
+                            <option value="+962">🇯🇴 +962</option>
+                            <option value="+964">🇮🇶 +964</option>
+                            <option value="+212">🇲🇦 +212</option>
+                            <option value="+213">🇩🇿 +213</option>
+                            <option value="+216">🇹🇳 +216</option>
+                            <option value="+1">🇺🇸 +1</option>
+                        </select>
+                        <input type="tel" id="clientPhone" placeholder="501234567">
+                    </div>
+                </div>
+
                 <div class="form-group"><label>نوع الجهاز وموديله *</label><input type="text" id="deviceType"></div>
                 <div class="form-group"><label>رقم السيريال / IMEI (اختياري)</label><input type="text" id="deviceImei" placeholder="لتفادي تبديل الأجهزة"></div>
                 <div class="form-group"><label>العطل المذكور</label><input type="text" id="deviceProblem"></div>
-                <div class="form-group"><label>التكلفة للعميل (ر.س) *</label><input type="number" id="deviceCost" value="0"></div>
-                <div class="form-group"><label>سعر القطعة / التكلفة عليك (ر.س) (سري)</label><input type="number" id="devicePartCost" value="0" placeholder="لحساب صافي الربح"></div>
+                <div class="form-group"><label>التكلفة للعميل (<span class="currency-label">ر.س</span>) *</label><input type="number" id="deviceCost" value="0"></div>
+                <div class="form-group"><label>سعر القطعة عليك (<span class="currency-label">ر.س</span>) (سري)</label><input type="number" id="devicePartCost" value="0" placeholder="لحساب صافي الربح"></div>
                 <div class="form-group">
                     <label>فترة الضمان بعد الإصلاح</label>
                     <select id="deviceWarranty">
@@ -490,15 +579,15 @@
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-card-title">إجمالي إيرادات الصيانة</div>
-                    <div class="stat-card-val" style="color:#38bdf8;" id="totalRevenue">0 ر.س</div>
+                    <div class="stat-card-val" style="color:#38bdf8;" id="totalRevenue">0</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-card-title">إجمالي تكاليف قطع الغيار</div>
-                    <div class="stat-card-val" style="color:#ef4444;" id="totalPartsCost">0 ر.س</div>
+                    <div class="stat-card-val" style="color:#ef4444;" id="totalPartsCost">0</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-card-title">صافي أرباح المحل (المصنعية)</div>
-                    <div class="stat-card-val" style="color:#22c55e;" id="totalNetProfit">0 ر.س</div>
+                    <div class="stat-card-val" style="color:#22c55e;" id="totalNetProfit">0</div>
                 </div>
             </div>
 
@@ -519,6 +608,7 @@
         let devicesList = [];
         let activeChatDeviceId = null;
         let currentTech = localStorage.getItem('currentUser') || '';
+        let currentCurrency = localStorage.getItem('appCurrency') || 'ر.س';
 
         // محرك الصوت المباشر للفني
         let callChannels = {};
@@ -557,6 +647,14 @@
                 } catch(e) {}
             }
             return [];
+        }
+
+        function changeGlobalCurrency(cur) {
+            currentCurrency = cur;
+            localStorage.setItem('appCurrency', cur);
+            document.querySelectorAll('.currency-label').forEach(el => el.innerText = cur);
+            safeRenderTables();
+            calculateFinancialStats();
         }
 
         function showCustomAlert(title, desc, icon = '⚠️', color = 'var(--primary-color)', callback = null) {
@@ -684,6 +782,11 @@
 
         window.onload = async function() {
             document.getElementById('currentTechDisplay').innerText = currentTech;
+            
+            // ضبط العملة المحفوظة
+            document.getElementById('globalCurrencySelect').value = currentCurrency;
+            document.querySelectorAll('.currency-label').forEach(el => el.innerText = currentCurrency);
+
             await verifyTechnicianAccount();
             listenToTechnicianAccountUpdates();
             await loadData(true);
@@ -706,7 +809,8 @@
 
         async function addNewDevice() {
             let name = document.getElementById('clientName').value.trim();
-            let phone = document.getElementById('clientPhone').value.trim();
+            let rawPhone = document.getElementById('clientPhone').value.trim();
+            let code = document.getElementById('countryCodeSelect').value;
             let device = document.getElementById('deviceType').value.trim();
             let imei = document.getElementById('deviceImei').value.trim();
             let problem = document.getElementById('deviceProblem').value.trim();
@@ -716,21 +820,26 @@
             let expectedTime = document.getElementById('expectedTime').value;
             let notes = document.getElementById('deviceNotes').value.trim();
 
-            if (!name || !phone || !device) {
+            if (!name || !rawPhone || !device) {
                 showCustomAlert('حقول مطلوبة', 'يرجى إدخال اسم العميل ورقم الهاتف ونوع الجهاز للمتابعة.', '⚠️', 'var(--warning-color)');
                 return;
             }
+
+            // تنظيف ودمج رقم الهاتف بكود الدولة
+            let cleanPhone = rawPhone.replace(/^0+/, ''); // إزالة الصفر الأول إن وجد
+            let fullPhone = code + cleanPhone;
 
             let trackCode = 'TRK-' + Math.floor(100000000 + Math.random() * 900000000);
             let newDev = {
                 tracking_number: trackCode,
                 customer_name: name,
-                phone: phone,
+                phone: fullPhone,
                 device_name: device,
                 imei: imei || null,
                 problem: problem,
                 cost: cost || '0',
                 part_cost: partCost || '0',
+                currency: currentCurrency,
                 warranty: warranty || 'بدون ضمان',
                 expected_time: expectedTime || null,
                 details: notes,
@@ -746,7 +855,7 @@
             }
 
             showToast('تم تسجيل الجهاز بنجاح! كود التتبع: ' + trackCode);
-            printReceipt(newDev); // فتح سند الاستلام للطباعة مباشرة
+            printReceipt(newDev);
 
             document.getElementById('clientName').value = '';
             document.getElementById('clientPhone').value = '';
@@ -799,9 +908,9 @@
             });
 
             let netProfit = totalRev - totalParts;
-            document.getElementById('totalRevenue').innerText = totalRev.toLocaleString('ar-SA') + ' ر.س';
-            document.getElementById('totalPartsCost').innerText = totalParts.toLocaleString('ar-SA') + ' ر.س';
-            document.getElementById('totalNetProfit').innerText = netProfit.toLocaleString('ar-SA') + ' ر.س';
+            document.getElementById('totalRevenue').innerText = totalRev.toLocaleString('ar-SA') + ' ' + currentCurrency;
+            document.getElementById('totalPartsCost').innerText = totalParts.toLocaleString('ar-SA') + ' ' + currentCurrency;
+            document.getElementById('totalNetProfit').innerText = netProfit.toLocaleString('ar-SA') + ' ' + currentCurrency;
         }
 
         function safeRenderTables() {
@@ -828,6 +937,7 @@
                 let safeName = escapeHTML(d.customer_name);
                 let safePhone = escapeHTML(d.phone);
                 let safeDevice = escapeHTML(d.device_name);
+                let cur = d.currency || currentCurrency;
 
                 let cost = parseFloat(d.cost || 0);
                 let partCost = parseFloat(d.part_cost || 0);
@@ -836,13 +946,13 @@
                 let isDelivered = st === 'تم تسليم الجهاز للعميل';
                 let isReturned = st === 'مسترجع';
 
-                let repRow = `<tr><td><b>${safeTrack}</b></td><td>${safeName}</td><td>${safePhone}</td><td>${safeDevice}</td><td>${st}</td><td style="color:#38bdf8;">${cost} ر.س</td><td style="color:#ef4444;">${partCost} ر.س</td><td style="color:#22c55e; font-weight:bold;">${netProfit} ر.س</td></tr>`;
+                let repRow = `<tr><td><b>${safeTrack}</b></td><td>${safeName}</td><td>${safePhone}</td><td>${safeDevice}</td><td>${st}</td><td style="color:#38bdf8;">${cost} ${cur}</td><td style="color:#ef4444;">${partCost} ${cur}</td><td style="color:#22c55e; font-weight:bold;">${netProfit} ${cur}</td></tr>`;
                 repHtml += repRow;
 
                 if (isReturned) {
                     retHtml += `<tr><td><b>${safeTrack}</b></td><td>${safeName}</td><td>${safePhone}</td><td>${safeDevice}</td><td>${st}</td></tr>`;
                 } else if (isDelivered) {
-                    delHtml += `<tr><td><b>${safeTrack}</b></td><td>${safeName}</td><td>${safePhone}</td><td>${safeDevice}</td><td>${st}</td><td>${cost} ر.س</td><td>${partCost} ر.س</td><td style="color:#22c55e; font-weight:bold;">${netProfit} ر.س</td></tr>`;
+                    delHtml += `<tr><td><b>${safeTrack}</b></td><td>${safeName}</td><td>${safePhone}</td><td>${safeDevice}</td><td>${st}</td><td>${cost} ${cur}</td><td>${partCost} ${cur}</td><td style="color:#22c55e; font-weight:bold;">${netProfit} ${cur}</td></tr>`;
                 } else {
                     let fullText = `${safeTrack} ${safeName} ${safePhone} ${safeDevice}`.toLowerCase();
                     if (!searchVal || fullText.includes(searchVal)) {
@@ -853,7 +963,7 @@
                             <tr>
                                 <td><b>${safeTrack}</b></td>
                                 <td>${safeName}</td>
-                                <td>${safePhone}</td>
+                                <td style="direction:ltr; text-align:center;">${safePhone}</td>
                                 <td>${safeDevice}</td>
                                 <td>
                                     <select class="status-select" data-dev-id="${d.id}" onchange="changeStatus('${d.id}', this.value)">
@@ -887,7 +997,7 @@
                                             📲 واتس
                                         </button>
                                         <button type="button" class="action-btn btn-print" onclick="printReceiptById('${d.id}')" title="طباعة سند الاستلام الحراري">
-                                            🖨️ سند
+                                            🖨️️ سند
                                         </button>
                                     </div>
                                 </td>
@@ -926,8 +1036,9 @@
             let dev = devicesList.find(d => String(d.id) === String(deviceId));
             if (!dev) return;
 
+            let cur = dev.currency || currentCurrency;
             let chatArr = parseChat(dev.chat);
-            let noticeText = `⚠️ تنبيه من الفني: تم فحص الجهاز وتبين وجود عطل جديد (${faultVal})، والتكلفة: ${costVal} ر.س. يرجى تأكيد الموافقة.`;
+            let noticeText = `⚠️ تنبيه من الفني: تم فحص الجهاز وتبين وجود عطل جديد (${faultVal})، والتكلفة: ${costVal} ${cur}. يرجى تأكيد الموافقة.`;
             
             let newMsg = {
                 id: 'msg_' + Date.now(),
@@ -947,7 +1058,8 @@
                 payload: {
                     status: 'بانتظار موافقة العميل على التكلفة',
                     cost: costVal,
-                    new_fault: faultVal
+                    new_fault: faultVal,
+                    currency: cur
                 }
             });
 
@@ -976,7 +1088,7 @@
             await _supabase.from('devices').update({ cost: newCost }).eq('id', deviceId);
             let dev = devicesList.find(d => String(d.id) === String(deviceId));
             if (dev) dev.cost = newCost;
-            showToast('تم حفظ سعر العميل: ' + newCost + ' ر.س');
+            showToast('تم حفظ سعر العميل: ' + newCost);
             calculateFinancialStats();
         }
 
@@ -984,33 +1096,27 @@
             await _supabase.from('devices').update({ part_cost: newPartCost }).eq('id', deviceId);
             let dev = devicesList.find(d => String(d.id) === String(deviceId));
             if (dev) dev.part_cost = newPartCost;
-            showToast('تم حفظ تكلفة القطعة: ' + newPartCost + ' ر.س');
+            showToast('تم حفظ تكلفة القطعة: ' + newPartCost);
             calculateFinancialStats();
         }
 
-        /* مشاركة رابط التتبع عبر WhatsApp بضغطة زر */
         function sendWhatsAppLink(deviceId) {
             let dev = devicesList.find(d => String(d.id) === String(deviceId));
             if (!dev) return;
 
             let phone = dev.phone.replace(/[^0-9]/g, '');
-            if (!phone.startsWith('966') && !phone.startsWith('20') && phone.length === 10 && phone.startsWith('0')) {
-                phone = phone.substring(1); // إزالة الصفر في البداية عند الحاجة
-            }
-
             const currentUrl = window.location.origin + window.location.pathname.replace('dashboard.html', 'index.html');
             const message = encodeURIComponent(
                 `مرحباً أستاذ ${dev.customer_name} 🌸\n` +
                 `تم استلام جهازك (${dev.device_name}) في مركز الصيانة بنجاح.\n\n` +
                 `رقم تتبع طلبك: *${dev.tracking_number}*\n` +
-                `يمكنك متابعة حالة الفحص والإصلاح والتحدث مباشرة مع الفني عبر الرابط:\n` +
+                `يمكنك متابعة حالة الفحص والإصلاح والتحدث مباشرة مع الفني عبر الرابط التالي:\n` +
                 `${currentUrl}\n\nشكراً لثقتكم بنا.`
             );
 
             window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${message}`, '_blank');
         }
 
-        /* طباعة سند الاستلام الحراري والمباشر المزود بـ QR Code */
         function printReceiptById(deviceId) {
             let dev = devicesList.find(d => String(d.id) === String(deviceId));
             if (dev) printReceipt(dev);
@@ -1019,6 +1125,7 @@
         function printReceipt(dev) {
             const printArea = document.getElementById('receiptPrintArea');
             const trackUrl = window.location.origin + window.location.pathname.replace('dashboard.html', 'index.html');
+            const cur = dev.currency || currentCurrency;
 
             printArea.innerHTML = `
                 <div style="width: 280px; margin: auto; font-family: Tahoma, sans-serif; text-align: center; font-size: 11px; line-height: 1.4; color: #000;">
@@ -1028,11 +1135,11 @@
                     <div style="text-align: right;">
                         <p><b>التاريخ:</b> ${new Date().toLocaleDateString('ar-SA')} - ${new Date().toLocaleTimeString('ar-SA')}</p>
                         <p><b>العميل:</b> ${escapeHTML(dev.customer_name)}</p>
-                        <p><b>الهاتف:</b> ${escapeHTML(dev.phone)}</p>
+                        <p><b>الهاتف:</b> <span style="direction:ltr; display:inline-block;">${escapeHTML(dev.phone)}</span></p>
                         <p><b>الجهاز:</b> ${escapeHTML(dev.device_name)}</p>
                         ${dev.imei ? `<p><b>السيريال/IMEI:</b> ${escapeHTML(dev.imei)}</p>` : ''}
                         <p><b>العطل:</b> ${escapeHTML(dev.problem || 'فحص شامل')}</p>
-                        <p><b>التكلفة المبدئية:</b> ${dev.cost || 0} ر.س</p>
+                        <p><b>التكلفة المبدئية:</b> ${dev.cost || 0} ${cur}</p>
                         <p><b>الضمان:</b> ${escapeHTML(dev.warranty || 'بدون ضمان')}</p>
                     </div>
                     <hr style="border: 0.5px dashed #000; margin: 6px 0;">
@@ -1050,8 +1157,7 @@
 
             printArea.style.display = 'block';
 
-            // توليد الـ QR Code
-            QRCode.toCanvas(document.getElementById('receiptQrCanvas'), trackUrl, { width: 110, margin: 1 }, function (error) {
+            QRCode.toCanvas(document.getElementById('receiptQrCanvas'), trackUrl, { width: 110, margin: 1 }, function () {
                 setTimeout(() => {
                     window.print();
                     printArea.style.display = 'none';
@@ -1496,12 +1602,13 @@
         }
 
         function exportToCSV() {
-            let csvContent = "\uFEFFرقم التتبع,اسم العميل,رقم الهاتف,نوع الجهاز,الحالة,سعر العميل,تكلفة القطعة,صافي الربح\n";
+            let csvContent = "\uFEFFرقم التتبع,اسم العميل,رقم الهاتف,نوع الجهاز,الحالة,سعر العميل,تكلفة القطعة,العملة,صافي الربح\n";
             devicesList.forEach(d => {
                 let cost = parseFloat(d.cost || 0);
                 let partCost = parseFloat(d.part_cost || 0);
                 let netProfit = cost - partCost;
-                csvContent += `"${d.tracking_number}","${d.customer_name}","${d.phone}","${d.device_name}","${d.status || ''}","${cost}","${partCost}","${netProfit}"\n`;
+                let cur = d.currency || currentCurrency;
+                csvContent += `"${d.tracking_number}","${d.customer_name}","${d.phone}","${d.device_name}","${d.status || ''}","${cost}","${partCost}","${cur}","${netProfit}"\n`;
             });
             let blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             let url = URL.createObjectURL(blob);

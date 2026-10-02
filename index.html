@@ -436,7 +436,7 @@
             <div class="info-row" id="rowImei" style="display:none;"><span class="info-label">رقم الـ IMEI / السيريال:</span><span class="info-val" id="resImei">-</span></div>
             <div class="info-row" id="rowWarranty" style="display:none;"><span class="info-label">فترة الضمان:</span><span class="info-val" style="color:#38bdf8;" id="resWarranty">-</span></div>
             <div class="info-row"><span class="info-label">العطل المسجل:</span><span class="info-val" id="resProblem">-</span></div>
-            <div class="info-row"><span class="info-label">التكلفة المحددة:</span><span class="info-val" style="color:#22c55e;" id="resCost">- ر.س</span></div>
+            <div class="info-row"><span class="info-label">التكلفة المحددة:</span><span class="info-val" style="color:#22c55e;" id="resCost">-</span></div>
             <div class="info-row"><span class="info-label">وقت التسليم المتوقع:</span><span class="info-val" id="resExpectedTime">-</span></div>
 
             <!-- صندوق الموافقة على العطل الإضافي والتكلفة -->
@@ -571,10 +571,13 @@
                 return;
             }
 
+            // تنظيف القيمة للبحث برقم الهاتف أو التتبع
+            let cleanVal = val.replace(/[^0-9a-zA-Z-]/g, '');
+
             let { data, error } = await _supabase
                 .from('devices')
                 .select('*')
-                .or(`tracking_number.eq.${val},phone.eq.${val}`)
+                .or(`tracking_number.eq.${val},phone.eq.${val},phone.ilike.%${cleanVal}%`)
                 .order('id', { ascending: false })
                 .limit(1)
                 .maybeSingle();
@@ -643,6 +646,7 @@
         function displayDeviceInfo() {
             if (!currentDevice) return;
             const st = currentDevice.status || '';
+            const cur = currentDevice.currency || 'ر.س';
 
             if (st === 'تم تسليم الجهاز للعميل' || st === 'مسترجع') {
                 if (silentSyncInterval) clearInterval(silentSyncInterval);
@@ -691,7 +695,6 @@
             document.getElementById('resCustomerName').innerText = currentDevice.customer_name;
             document.getElementById('resDeviceName').innerText = currentDevice.device_name;
 
-            // عرض حقل السيريال / IMEI إذا وجد
             if (currentDevice.imei && currentDevice.imei.trim() !== '') {
                 document.getElementById('resImei').innerText = currentDevice.imei;
                 document.getElementById('rowImei').style.display = 'flex';
@@ -699,7 +702,6 @@
                 document.getElementById('rowImei').style.display = 'none';
             }
 
-            // عرض فترة الضمان إذا وجدت
             if (currentDevice.warranty && currentDevice.warranty.trim() !== '') {
                 document.getElementById('resWarranty').innerText = currentDevice.warranty;
                 document.getElementById('rowWarranty').style.display = 'flex';
@@ -708,13 +710,13 @@
             }
 
             document.getElementById('resProblem').innerText = currentDevice.problem || 'غير محدد';
-            document.getElementById('resCost').innerText = (currentDevice.cost || '0') + ' ر.س';
+            document.getElementById('resCost').innerText = (currentDevice.cost || '0') + ' ' + cur;
             document.getElementById('resExpectedTime').innerText = currentDevice.expected_time ? new Date(currentDevice.expected_time).toLocaleString('ar-SA') : 'سيتم تحديده لاحقاً';
 
             const approvalBox = document.getElementById('approvalBox');
             if (st.includes('بانتظار موافقة العميل')) {
                 approvalBox.style.display = 'block';
-                document.getElementById('approvalMsg').innerHTML = `🔔 <b>تنبيه من الفني:</b> تم فحص جهازك وتبيّن وجود عطل جديد: (<b>${escapeHTML(currentDevice.new_fault || 'عطل إضافي')}</b>) والتكلفة الإجمالية: (<b>${currentDevice.cost} ر.س</b>). يرجى تأكيد قرارك لبدء الإصلاح.`;
+                document.getElementById('approvalMsg').innerHTML = `🔔 <b>تنبيه من الفني:</b> تم فحص جهازك وتبيّن وجود عطل جديد: (<b>${escapeHTML(currentDevice.new_fault || 'عطل إضافي')}</b>) والتكلفة الإجمالية: (<b>${currentDevice.cost} ${cur}</b>). يرجى تأكيد قرارك لبدء الإصلاح.`;
             } else {
                 approvalBox.style.display = 'none';
             }
@@ -769,9 +771,11 @@
                     currentDevice.status = payload.status;
                     currentDevice.cost = payload.cost;
                     currentDevice.new_fault = payload.new_fault;
+                    if (payload.currency) currentDevice.currency = payload.currency;
                     displayDeviceInfo();
                     playAlertSound();
-                    showCustomAlert('⚠️ عطل إضافي وتكلفة جديدة', `تم فحص جهازك وتبين وجود: <b>${escapeHTML(payload.new_fault)}</b> بتكلفة: <b>${payload.cost} ر.س</b>.<br>يرجى تحديد الموافقة أو الرفض في الصندوق المخصص.`, '🔔', 'var(--warning-color)');
+                    let cur = payload.currency || currentDevice.currency || 'ر.س';
+                    showCustomAlert('⚠️ عطل إضافي وتكلفة جديدة', `تم فحص جهازك وتبين وجود: <b>${escapeHTML(payload.new_fault)}</b> بتكلفة: <b>${payload.cost} ${cur}</b>.<br>يرجى تحديد الموافقة أو الرفض في الصندوق المخصص.`, '🔔', 'var(--warning-color)');
                 })
                 .on('broadcast', { event: 'device_status_changed' }, ({ payload }) => {
                     if (currentDevice) {
