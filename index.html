@@ -793,6 +793,7 @@
             await _supabase.from('devices').update({ chat: chat }).eq('id', currentDevice.id);
         }
 
+        /* الاستجابة للعطل الإضافي: إرسال بث لحظي للفني لتغيير حالته فورياً لـ (إصلاح) أو (مسترجع) */
         async function respondToFault(accepted) {
             if (!currentDevice) return;
             let newStatus = accepted ? 'جاري الإصلاح' : 'مسترجع';
@@ -812,12 +813,21 @@
             let chatArr = parseChat(currentDevice.chat);
             chatArr.push(newMsg);
 
+            // 1. إرسال إشعار تحديث الحالة اللحظي ليتحول الـ select عند الفني إلى (إصلاح) فوراً
+            _supabase.channel(`room_sync_${currentDevice.id}`).send({
+                type: 'broadcast',
+                event: 'status_updated',
+                payload: { status: newStatus }
+            });
+
+            // 2. إرسال الرسالة في الشات
             _supabase.channel(`room_sync_${currentDevice.id}`).send({
                 type: 'broadcast',
                 event: 'new_msg',
                 payload: newMsg
             });
 
+            // 3. تحديث قاعدة البيانات
             await _supabase.from('devices').update({
                 status: newStatus,
                 chat: chatArr
@@ -868,7 +878,6 @@
             scriptProcessor.onaudioprocess = (e) => {
                 if (!activeCallChannel) return;
                 const inputData = e.inputBuffer.getChannelData(0);
-                // ضغط العينات وتحويلها لمصفوفة سريعة
                 const pcm16 = new Int16Array(inputData.length);
                 for (let i = 0; i < inputData.length; i++) {
                     let s = Math.max(-1, Math.min(1, inputData[i]));
@@ -941,7 +950,6 @@
             } else if (data.type === 'call_rejected' || data.type === 'call_ended') {
                 terminateCall(false);
             } else if (data.type === 'audio_stream' && data.data) {
-                // فك العينات وتشغيلها فوراً من السماعة
                 const binary = atob(data.data);
                 const bytes = new Uint8Array(binary.length);
                 for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);

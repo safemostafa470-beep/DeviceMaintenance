@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة تحكم الفني - إدارة الصيانة</title>
 
+    <!-- حماية فورية: فحص وجود جلسة مسجلة قبل رسم أي عنصر -->
     <script>
         (function() {
             const isLogged = localStorage.getItem('isLoggedIn');
@@ -310,7 +311,7 @@
 
     <div class="top-nav">
         <div style="font-size: 0.9rem; font-weight: bold; color: var(--primary-color);">
-            🛠️ فني الصيانة: <span id="currentTechDisplay" style="color: #22c55e;">-</span>
+            🛠️️ فني الصيانة: <span id="currentTechDisplay" style="color: #22c55e;">-</span>
         </div>
         <div class="nav-buttons">
             <button class="nav-btn active" onclick="switchTab('add', this)">إضافة جهاز</button>
@@ -546,7 +547,7 @@
                 .subscribe();
         }
 
-        /* الاستماع اللحظي للرسائل الفورية عبر قنوات الـ WebSocket */
+        /* الاستماع المباشر واللحظي لرد العميل (موافقة أو رفض) وتحديث الحالة فوراً */
         function setupRealtimeDeviceChat(deviceId) {
             _supabase.channel(`room_sync_${deviceId}`)
                 .on('broadcast', { event: 'new_msg' }, ({ payload }) => {
@@ -581,6 +582,21 @@
                                 renderActiveChat();
                             }
                         }
+                    }
+                })
+                .on('broadcast', { event: 'status_updated' }, ({ payload }) => {
+                    let dev = devicesList.find(d => String(d.id) === String(deviceId));
+                    if (dev) {
+                        dev.status = payload.status;
+                        
+                        // تحديث القائمة المنسدلة في نفس اللحظة
+                        const selectEl = document.querySelector(`select[data-dev-id="${deviceId}"]`);
+                        if (selectEl) {
+                            selectEl.value = payload.status;
+                        }
+                        
+                        showToast(`🔔 رد العميل: تم تحويل الحالة تلقائياً إلى (${payload.status})`);
+                        safeRenderTables();
                     }
                 })
                 .subscribe();
@@ -678,7 +694,6 @@
             }
         }
 
-        /* حماية الكيبورد: عدم إعادة بناء الجدول طالما أن المستخدم يكتب */
         function safeRenderTables() {
             const activeEl = document.activeElement;
             const isUserTyping = activeEl && ['INPUT', 'SELECT', 'TEXTAREA'].includes(activeEl.tagName) && activeEl.closest('.table-responsive');
@@ -727,7 +742,7 @@
                                 <td>${safePhone}</td>
                                 <td>${safeDevice}</td>
                                 <td>
-                                    <select class="status-select" onchange="changeStatus('${d.id}', this.value)">
+                                    <select class="status-select" data-dev-id="${d.id}" onchange="changeStatus('${d.id}', this.value)">
                                         <option value="جاري الفحص الفني" ${st==='جاري الفحص الفني'?'selected':''}>🔍 فحص</option>
                                         <option value="جاري الإصلاح" ${st==='جاري الإصلاح'?'selected':''}>⚙️ إصلاح</option>
                                         <option value="بانتظار موافقة العميل على التكلفة" ${st.includes('بانتظار')?'selected':''}>⏳ انتظار الموافقة</option>
