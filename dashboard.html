@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة تحكم الفني - إدارة الصيانة</title>
 
-    <!-- حماية فورية: فحص وجود جلسة مسجلة قبل رسم أي عنصر -->
     <script>
         (function() {
             const isLogged = localStorage.getItem('isLoggedIn');
@@ -157,7 +156,6 @@
             cursor: pointer;
         }
 
-        /* صندوق الشات */
         .chat-container-card {
             background: rgba(15, 23, 42, 0.98);
             border: 2px solid var(--primary-color);
@@ -311,6 +309,7 @@
         </div>
     </div>
 
+    <!-- مشغل الصوت البعيد مهيأ للتشغيل المباشر -->
     <audio id="remoteAudio" autoplay playsinline></audio>
 
     <div class="top-nav">
@@ -352,7 +351,7 @@
         <div class="card">
             <h2>الأجهزة تحت الفحص والإصلاح</h2>
             <div class="search-filter-bar">
-                <input type="text" id="searchCurrent" placeholder="بحث باسم العميل، الهاتف، أو رقم التتبع..." oninput="renderTables()">
+                <input type="text" id="searchCurrent" placeholder="بحث باسم العميل، الهاتف، أو رقم التتبع..." oninput="safeRenderTables()">
             </div>
             <div class="table-responsive">
                 <table>
@@ -453,18 +452,11 @@
         let callTimerInterval = null;
         let callSeconds = 0;
 
-        // خوادم TURN مجانية موثوقة عالمياً لتخطي جدران حماية شبكات الموبايل
         const rtcConfig = { 
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun.services.mozilla.com' },
-                { urls: 'turn:openrelay.metered.ca:80', username: 'openrelay', credential: 'openrelay' },
-                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelay', credential: 'openrelay' },
-                { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelay', credential: 'openrelay' }
-            ],
-            iceCandidatePoolSize: 10
+                { urls: 'stun:global.stun.twilio.com:3478' }
+            ]
         };
 
         let dialAudioCtx = null;
@@ -547,27 +539,9 @@
             } catch (err) {}
         }
 
-        function listenToTechnicianAccountUpdates() {
-            if (!currentTech) return;
-            _supabase
-                .channel(`tech-guard-${currentTech}`)
-                .on(
-                    'postgres_changes',
-                    { event: 'UPDATE', schema: 'public', table: 'technicians', filter: `username=eq.${currentTech}` },
-                    payload => {
-                        let updated = payload.new;
-                        if (updated.is_active === false || updated.status === 'موقوف' || updated.status === 'وقف') {
-                            forceLogoutWithReason('عذراً، تم إيقاف حسابك من قبل الإدارة الآن.');
-                        }
-                    }
-                )
-                .subscribe();
-        }
-
-        /* الاستماع اللحظي للرسائل وتحديثات الأجهزة بدون Polling */
+        /* الاستماع اللحظي لقاعدة البيانات وتحديث الجدول بدون التأثير على الكيبورد */
         function setupRealtimeDatabase() {
-            _supabase
-                .channel('public:devices_dashboard')
+            _supabase.channel('public:devices_dashboard')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'devices' }, payload => {
                     let updatedRow = payload.new;
                     if (updatedRow && updatedRow.technician === currentTech) {
@@ -577,25 +551,26 @@
                         } else {
                             devicesList.unshift(updatedRow);
                         }
-                        renderTables();
+                        
+                        safeRenderTables(); // تحديث آمن لا يخفي الكيبورد
 
                         if (activeChatDeviceId && String(activeChatDeviceId) === String(updatedRow.id)) {
                             renderActiveChat();
                             markClientMessagesAsRead(activeChatDeviceId);
                         }
                     }
-                })
-                .subscribe();
+                }).subscribe();
         }
 
         window.onload = async function() {
             document.getElementById('currentTechDisplay').innerText = currentTech;
             await verifyTechnicianAccount();
-            listenToTechnicianAccountUpdates();
-
             await loadData(true);
             setupRealtimeDatabase(); // تفعيل التحديث اللحظي الفوري
             setInterval(verifyTechnicianAccount, 15000);
+            
+            // جلب البيانات احتياطياً كل 5 ثواني وتحديث آمن
+            setInterval(() => loadData(false), 5000);
         };
 
         function switchTab(tabId, btn) {
@@ -622,7 +597,7 @@
             let notes = document.getElementById('deviceNotes').value.trim();
 
             if (!name || !phone || !device) {
-                showCustomAlert('حقول مطلوبة', 'يرجى إدخال اسم العميل ورقم الهاتف ونوع الجهاز للمتابعة.');
+                showCustomAlert('حقول مطلوبة', 'يرجى إدخال اسم العميل ورقم الهاتف ونوع الجهاز للمتابعة.', '⚠️', 'var(--warning-color)');
                 return;
             }
 
@@ -685,12 +660,22 @@
             }
 
             devicesList = data;
-            renderTables();
+            safeRenderTables();
             listenToCallsForDevices(data);
 
             if (activeChatDeviceId !== null) {
                 renderActiveChat();
                 markClientMessagesAsRead(activeChatDeviceId);
+            }
+        }
+
+        /* دالة التحديث الآمن: لا تحدث الجدول إذا كان الفني يكتب في حقل داخل الجدول لمنع اختفاء الكيبورد */
+        function safeRenderTables() {
+            const activeEl = document.activeElement;
+            const isUserTyping = activeEl && ['INPUT', 'SELECT', 'TEXTAREA'].includes(activeEl.tagName) && activeEl.closest('.table-responsive');
+            
+            if (!isUserTyping) {
+                renderTables();
             }
         }
 
@@ -735,7 +720,7 @@
                                 <td>
                                     <select class="status-select" onchange="changeStatus('${d.id}', this.value)">
                                         <option value="جاري الفحص الفني" ${st==='جاري الفحص الفني'?'selected':''}>🔍 فحص</option>
-                                        <option value="جاري الإصلاح" ${st==='جاري الإصلاح'?'selected':''}>⚙ إصلاح</option>
+                                        <option value="جاري الإصلاح" ${st==='جاري الإصلاح'?'selected':''}>⚙️ الإصلاح</option>
                                         <option value="بانتظار موافقة العميل على التكلفة" ${st.includes('بانتظار')?'selected':''}>⏳ انتظار الموافقة</option>
                                         <option value="صيانة غير متوفرة" ${st.includes('غير متوفرة')?'selected':''}>❌ غير متوفرة</option>
                                         <option value="جاهز للاستلام" ${st==='جاهز للاستلام'?'selected':''}>✅ جاهز</option>
@@ -772,7 +757,7 @@
         async function changeStatus(deviceId, newStatus) {
             await _supabase.from('devices').update({ status: newStatus }).eq('id', deviceId);
             showToast('تم تغيير الحالة إلى: ' + newStatus);
-            loadData();
+            safeRenderTables();
         }
 
         async function sendExtraFaultAndCost(deviceId) {
@@ -802,7 +787,6 @@
             }).eq('id', deviceId);
 
             showToast(`✅ تم إرسال الطلب والتكلفة للعميل`);
-            loadData();
         }
 
         async function updateCostOnly(deviceId, newCost) {
@@ -828,7 +812,7 @@
             document.getElementById('chatSectionContainer').style.display = 'none';
         }
 
-        /* قراءة رسائل العميل وتحديثها لحظياً في Supabase مع حفظ وقت القراءة الدقيق */
+        /* قراءة رسائل العميل وتحديثها في Supabase */
         async function markClientMessagesAsRead(deviceId) {
             let dev = devicesList.find(d => String(d.id) === String(deviceId));
             if (!dev) return;
@@ -916,27 +900,10 @@
             dev.chat = chat;
             renderActiveChat();
 
-            // حفظ مباشر في Supabase
             await _supabase.from('devices').update({ chat: chat }).eq('id', activeChatDeviceId);
         }
 
-        function playBeep() {
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-                osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
-                gain.gain.setValueAtTime(0.15, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start();
-                osc.stop(ctx.currentTime + 0.4);
-            } catch(e) {}
-        }
-
-        /* إدارة عداد المكالمة الموحد */
+        /* إدارة العداد الموحد */
         function startCallTimer() {
             stopCallTimer();
             callSeconds = 0;
@@ -964,7 +931,7 @@
             if (el) { el.style.display = 'none'; el.innerText = '00:00'; }
         }
 
-        /* تشغيل مسار الصوت الخارجي لضمان الخروج عبر السماعات */
+        /* ربط مسار الصوت وحل صمت الأندرويد تماماً */
         function attachRemoteAudio(stream) {
             const rAudio = document.getElementById('remoteAudio');
             if (!rAudio) return;
@@ -972,18 +939,10 @@
             rAudio.muted = false;
             rAudio.volume = 1.0;
             
-            // إلغاء تعليق سياق الصوت للموبايل
-            try {
-                const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                if (AudioCtx) {
-                    const ctx = new AudioCtx();
-                    if (ctx.state === 'suspended') ctx.resume();
-                    const src = ctx.createMediaStreamSource(stream);
-                    src.connect(ctx.destination);
-                }
-            } catch(e){}
-
-            rAudio.play().catch(e => console.log('Audio autoplay retry:', e));
+            let playPromise = rAudio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(e => console.log('Audio autoplay prevented, forcing user interaction:', e));
+            }
         }
 
         function listenToCallsForDevices(devices) {
@@ -1007,6 +966,9 @@
                 document.getElementById('callModalStatus').innerText = 'يرن الآن...';
                 document.getElementById('btnCallAccept').style.display = 'inline-block';
                 document.getElementById('callModal').style.display = 'flex';
+                
+                // تفعيل مشغل الصوت مؤقتاً كخدعة لمتصفح الموبايل
+                document.getElementById('remoteAudio').play().catch(()=>{}); 
                 startRingtone();
             } else if (data.type === 'call_accepted') {
                 stopDialTone();
@@ -1040,13 +1002,16 @@
 
             activeCallDeviceId = activeChatDeviceId;
 
+            // تنشيط مسار الصوت مسبقاً (Audio Priming)
+            document.getElementById('remoteAudio').play().catch(()=>{});
+
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({
-                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                    audio: { echoCancellation: true, noiseSuppression: true },
                     video: false
                 });
             } catch (err) {
-                showCustomAlert('إذن الميكروفون', 'يرجى تفعيل صلاحية الميكروفون لإجراء المكالمة.');
+                showCustomAlert('إذن الميكروفون مطلوب', 'يرجى تفعيل صلاحية الميكروفون من أيقونة القفل أعلى المتصفح لإجراء المكالمة.', '🎙️', 'var(--danger-color)');
                 return;
             }
 
@@ -1059,6 +1024,8 @@
             iceCandidatesQueue = [];
             peerConnection = new RTCPeerConnection(rtcConfig);
             localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            
+            // إجبار المتصفح على استقبال وإرسال الصوت
             peerConnection.addTransceiver('audio', { direction: 'sendrecv' });
 
             peerConnection.onicecandidate = event => {
@@ -1093,13 +1060,16 @@
             if (!activeCallDeviceId || !incomingOfferData) return;
             stopRingtone();
 
+            // تنشيط الصوت مسبقاً
+            document.getElementById('remoteAudio').play().catch(()=>{});
+
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({
-                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                    audio: { echoCancellation: true, noiseSuppression: true },
                     video: false
                 });
             } catch (err) {
-                showCustomAlert('إذن الميكروفون', 'يرجى السماح بصلاحية الميكروفون للرد.');
+                showCustomAlert('إذن الميكروفون', 'يرجى السماح بصلاحية الميكروفون من أيقونة القفل أعلى المتصفح للرد على المكالمة.', '🎙', 'var(--danger-color)');
                 return;
             }
 

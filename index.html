@@ -206,7 +206,7 @@
             display: none;
         }
         .approval-box p { font-size: 0.9rem; color: #fde68a; margin-bottom: 10px; }
-        .approval-actions { display: flex; gap: 10px; justify-content: center; }
+        .approval-actions { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
         .btn-approve { background: var(--success-color); color: #fff; border: none; padding: 8px 18px; border-radius: 8px; font-weight: bold; cursor: pointer; }
         .btn-reject { background: var(--danger-color); color: #fff; border: none; padding: 8px 18px; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
@@ -267,7 +267,7 @@
             left: 50%;
             transform: translateX(-50%);
             background: #1e293b;
-            padding: 14px 20px;
+            padding: 12px 18px;
             border-radius: 14px;
             box-shadow: 0 15px 35px rgba(0,0,0,0.85);
             z-index: 100000;
@@ -276,7 +276,7 @@
             justify-content: space-between;
             gap: 15px;
             width: 92%;
-            max-width: 400px;
+            max-width: 390px;
         }
 
         .btn-call-act {
@@ -287,7 +287,6 @@
             cursor: pointer;
             font-size: 0.85rem;
             color: white;
-            transition: 0.2s;
         }
         .btn-call-green { background: var(--success-color); }
         .btn-call-red { background: var(--danger-color); }
@@ -300,48 +299,9 @@
             border-radius: 6px;
             font-weight: bold;
             font-family: monospace;
-            font-size: 0.88rem;
+            font-size: 0.9rem;
             margin-top: 4px;
         }
-
-        .custom-modal-backdrop {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(15, 23, 42, 0.75);
-            backdrop-filter: blur(6px);
-            z-index: 99999;
-            display: none;
-            align-items: center; justify-content: center;
-            padding: 20px;
-            animation: fadeIn 0.2s ease;
-        }
-        .custom-modal-box {
-            background: #1e293b;
-            border: 1px solid var(--border-color);
-            border-radius: 18px;
-            width: 100%; max-width: 420px;
-            padding: 24px; text-align: center;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-            transform: scale(0.95);
-            animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
-        @keyframes popIn { to { transform: scale(1); } }
-        .modal-icon { font-size: 2.8rem; margin-bottom: 12px; }
-        .modal-title { font-size: 1.15rem; font-weight: bold; margin-bottom: 10px; color: #fff; }
-        .modal-body { font-size: 0.9rem; color: #cbd5e1; line-height: 1.6; margin-bottom: 20px; }
-        .modal-btn {
-            background: var(--accent-gradient);
-            color: #0f172a;
-            border: none;
-            padding: 10px 24px;
-            border-radius: 10px;
-            font-weight: bold;
-            font-size: 0.9rem;
-            cursor: pointer;
-            width: 100%;
-            transition: opacity 0.2s;
-        }
-        .modal-btn:hover { opacity: 0.9; }
 
         .toast {
             position: fixed;
@@ -360,18 +320,45 @@
             text-align: center;
         }
         .toast.show { transform: translateX(-50%) translateY(0); }
+
+        .custom-alert-backdrop {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 999999;
+            display: none;
+            align-items: center; justify-content: center;
+            padding: 20px;
+        }
+        .custom-alert-card {
+            background: #1e293b;
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            width: 100%; max-width: 420px;
+            padding: 25px 20px; text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+        }
+        .alert-card-title { font-size: 1.2rem; font-weight: 800; color: #fff; margin-bottom: 8px; }
+        .alert-card-desc { font-size: 0.92rem; color: #cbd5e1; line-height: 1.6; margin-bottom: 22px; }
+        .alert-card-btn {
+            background: var(--accent-gradient);
+            color: #0f172a; border: none;
+            padding: 11px 22px; border-radius: 10px;
+            font-weight: 700; font-size: 0.9rem; cursor: pointer; width: 100%;
+        }
     </style>
 </head>
 <body>
 
     <div id="toast" class="toast">تم الإرسال</div>
 
-    <div id="customModal" class="custom-modal-backdrop">
-        <div class="custom-modal-box">
-            <div id="modalIcon" class="modal-icon">🔔</div>
-            <div id="modalTitle" class="modal-title">تنبيه</div>
-            <div id="modalBody" class="modal-body"></div>
-            <button type="button" class="modal-btn" onclick="closeCustomModal()">حسناً، فهمت</button>
+    <div id="customAlertModal" class="custom-alert-backdrop">
+        <div id="customAlertCard" class="custom-alert-card">
+            <div id="customAlertIcon" style="font-size:3rem; margin-bottom:12px;">⚠️</div>
+            <div id="customAlertTitle" class="alert-card-title">تنبيه</div>
+            <div id="customAlertDesc" class="alert-card-desc"></div>
+            <button type="button" class="alert-card-btn" onclick="closeCustomAlert()">حسناً، فهمت</button>
         </div>
     </div>
 
@@ -388,25 +375,24 @@
         </div>
     </div>
 
+    <!-- مشغل الصوت مهيأ لتجاوز كتم الموبايل -->
     <audio id="remoteAudio" autoplay playsinline></audio>
 
     <div class="container">
-        <!-- الواجهة العلوية للبحث -->
         <div class="header-card">
             <a href="login.html" class="tech-portal-link">🛠️ بوابة الفنيين</a>
             <h1>تتبع حالة صيانة جهازك</h1>
             <p>أدخل كود التتبع المستلم أو رقم هاتفك لمعرفة تفاصيل وحالة الجهاز مباشرة</p>
             
             <div class="search-box">
-                <input type="text" id="trackInput" placeholder="أدخل رقم التتبع (مثل TRK-...) أو رقم الهاتف" onkeydown="if(event.key==='Enter') searchDevice()">
+                <input type="text" id="trackInput" placeholder="أدخل رقم التتبع أو رقم الهاتف" onkeydown="if(event.key==='Enter') searchDevice()">
                 <button type="button" onclick="searchDevice()">بحث</button>
             </div>
         </div>
 
-        <!-- بطاقة رسالة الشكر وإنهاء الخدمة -->
         <div id="closedCard" class="closed-card">
-            <div id="closedIcon" class="closed-icon">✨</div>
-            <div id="closedTitle" class="closed-title">شكراً لثقتكم بنا</div>
+            <div class="closed-icon">✨</div>
+            <div class="closed-title" style="color:var(--success-color);">شكراً لثقتكم بنا</div>
             <p id="closedDesc" class="closed-desc"></p>
             
             <div id="specialThanksContainer" class="special-thanks-box" style="display: none;">
@@ -423,7 +409,6 @@
             <div class="auto-redirect-bar" id="redirectBar"></div>
         </div>
 
-        <!-- بطاقة متابعة الجهاز النشط -->
         <div id="resultCard" class="result-card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
                 <span class="status-badge" id="resStatus">-</span>
@@ -467,24 +452,22 @@
 
         let currentDevice = null;
         let activeCallChannel = null;
-        let localStream = null;
+        let incomingOfferData = null;
         let peerConnection = null;
+        let localStream = null;
         let iceCandidatesQueue = [];
 
         let callTimerInterval = null;
         let callSeconds = 0;
 
+        // خوادم مساعدة لضمان نجاح الاتصال
         const rtcConfig = { 
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun.services.mozilla.com' },
                 { urls: 'turn:openrelay.metered.ca:80', username: 'openrelay', credential: 'openrelay' },
-                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelay', credential: 'openrelay' },
-                { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelay', credential: 'openrelay' }
-            ],
-            iceCandidatePoolSize: 10
+                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelay', credential: 'openrelay' }
+            ]
         };
 
         let dialAudioCtx = null;
@@ -492,6 +475,7 @@
         let ringAudioCtx = null;
         let ringInterval = null;
         let redirectTimeout = null;
+        let alertCallback = null;
 
         function escapeHTML(str) {
             if (!str) return '';
@@ -512,24 +496,32 @@
             return [];
         }
 
-        function showCustomAlert(title, message, icon = '🔔', borderColor = 'var(--primary-color)') {
-            const modal = document.getElementById('customModal');
-            document.getElementById('modalTitle').innerText = title;
-            document.getElementById('modalBody').innerHTML = message;
-            document.getElementById('modalIcon').innerText = icon;
+        function showCustomAlert(title, message, icon = '🔔', borderColor = 'var(--primary-color)', callback = null) {
+            const modal = document.getElementById('customAlertModal');
+            document.getElementById('customAlertTitle').innerText = title;
+            document.getElementById('customAlertTitle').style.color = borderColor;
+            document.getElementById('customAlertDesc').innerHTML = message;
+            document.getElementById('customAlertIcon').innerText = icon;
+            document.getElementById('customAlertCard').style.borderColor = borderColor;
+            alertCallback = callback;
             modal.style.display = 'flex';
         }
 
-        function closeCustomModal() {
-            document.getElementById('customModal').style.display = 'none';
+        function closeCustomAlert() {
+            document.getElementById('customAlertModal').style.display = 'none';
+            if (typeof alertCallback === 'function') {
+                const cb = alertCallback;
+                alertCallback = null;
+                cb();
+            }
         }
 
         function showToast(msg) {
             let t = document.getElementById('toast');
             if (!t) return;
             t.innerText = msg;
-            t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 3500);
+            t.style.transform = 'translateX(-50%) translateY(0)';
+            setTimeout(() => t.style.transform = 'translateX(-50%) translateY(100px)', 3500);
         }
 
         function resetToNewSearch() {
@@ -540,25 +532,23 @@
             input.value = '';
             input.focus();
             currentDevice = null;
+            if (activeCallChannel) {
+                _supabase.removeChannel(activeCallChannel);
+                activeCallChannel = null;
+            }
         }
 
-        /* الاستماع اللحظي الفوري لتحديثات الشات بدون أي Polling أو تأخير */
+        /* الاستماع اللحظي لقاعدة البيانات وتحديث الرسائل فورا للعميل */
         function setupRealtimeDevice(deviceId) {
-            _supabase
-                .channel(`device_realtime_${deviceId}`)
-                .on(
-                    'postgres_changes',
-                    { event: 'UPDATE', schema: 'public', table: 'devices', filter: `id=eq.${deviceId}` },
-                    payload => {
-                        let updated = payload.new;
-                        if (updated) {
-                            currentDevice = updated;
-                            displayDeviceInfo();
-                            markTechMessagesAsRead();
-                        }
+            _supabase.channel(`device_realtime_${deviceId}`)
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'devices', filter: `id=eq.${deviceId}` }, payload => {
+                    let updatedRow = payload.new;
+                    if (updatedRow) {
+                        currentDevice = updatedRow;
+                        displayDeviceInfo();
+                        markTechMessagesAsRead();
                     }
-                )
-                .subscribe();
+                }).subscribe();
         }
 
         async function searchDevice() {
@@ -612,7 +602,9 @@
             currentDevice = data;
             displayDeviceInfo();
             setupCallChannel();
-            setupRealtimeDevice(currentDevice.id); // تفعيل الاستماع اللحظي للرسائل
+
+            // الاستماع اللحظي لقراءة الرسائل
+            setupRealtimeDevice(currentDevice.id);
             markTechMessagesAsRead();
         }
 
@@ -627,24 +619,12 @@
                 resultCard.style.display = 'none';
                 closedCard.style.display = 'block';
 
-                const iconEl = document.getElementById('closedIcon');
-                const titleEl = document.getElementById('closedTitle');
-                const descEl = document.getElementById('closedDesc');
-                const barEl = document.getElementById('redirectBar');
                 const thanksContainer = document.getElementById('specialThanksContainer');
                 const thanksText = document.getElementById('specialThanksText');
 
-                barEl.style.animation = 'none';
-                void barEl.offsetWidth;
-                barEl.style.animation = 'shrinkBar 7s linear forwards';
-
                 if (st === 'تم تسليم الجهاز للعميل') {
                     closedCard.style.border = '2px solid var(--success-color)';
-                    iconEl.innerText = '🤝✨';
-                    titleEl.innerText = 'شكراً لثقتكم بنا - تم تسليم الجهاز';
-                    titleEl.style.color = 'var(--success-color)';
-                    
-                    descEl.innerHTML = `تم تسليم جهازكم (<b>${escapeHTML(currentDevice.device_name)}</b>) بنجاح وإغلاق التذكرة.<br>سعدنا جداً بخدمتكم ونتمنى لكم تجربة ممتازة دائماً.`;
+                    document.getElementById('closedDesc').innerHTML = `تم تسليم جهازكم (<b>${escapeHTML(currentDevice.device_name)}</b>) بنجاح وإغلاق التذكرة.<br>سعدنا جداً بخدمتكم ونتمنى لكم تجربة ممتازة دائماً.`;
 
                     if (currentDevice.details && currentDevice.details.trim() !== '') {
                         thanksText.innerText = currentDevice.details;
@@ -654,10 +634,7 @@
                     }
                 } else {
                     closedCard.style.border = '2px solid var(--danger-color)';
-                    iconEl.innerText = '🔄';
-                    titleEl.innerText = 'تم استرجاع الجهاز';
-                    titleEl.style.color = 'var(--danger-color)';
-                    descEl.innerHTML = `تم استرجاع جهازكم (<b>${escapeHTML(currentDevice.device_name)}</b>) وإغلاق التذكرة في النظام.<br>نشكركم لزيارتنا ونتشرف بخدمتكم في أي وقت.`;
+                    document.getElementById('closedDesc').innerHTML = `تم استرجاع جهازكم (<b>${escapeHTML(currentDevice.device_name)}</b>) وإغلاق التذكرة في النظام.<br>نشكركم لزيارتنا ونتشرف بخدمتكم في أي وقت.`;
                     thanksContainer.style.display = 'none';
                 }
 
@@ -693,7 +670,7 @@
             renderChat();
         }
 
-        /* قراءة رسائل الفني وتحديثها في Supabase بدقة لتعمل علامتي الصح الزرقاء */
+        /* قراءة رسائل الفني وتحديث قاعدة البيانات لعرض علامتي الصح ✓✓ للفني */
         async function markTechMessagesAsRead() {
             if (!currentDevice) return;
             let chatArr = parseChat(currentDevice.chat);
@@ -774,7 +751,7 @@
             currentDevice.chat = chat;
             renderChat();
 
-            // حفظ فوري في Supabase
+            // حفظ فوري في قاعدة البيانات
             await _supabase.from('devices').update({ chat: chat }).eq('id', currentDevice.id);
         }
 
@@ -806,7 +783,10 @@
             showToast('تم إرسال قرارك للفني بنجاح');
         }
 
-        /* إدارة عداد المكالمة الموحد */
+        /* ----------------------------------------------------
+           نظام الصوت والمكالمات الموحد للعميل
+        ----------------------------------------------------- */
+
         function startCallTimer() {
             stopCallTimer();
             callSeconds = 0;
@@ -834,14 +814,14 @@
             if (el) { el.style.display = 'none'; el.innerText = '00:00'; }
         }
 
-        /* تشغيل مسار الصوت الخارجي لضمان الخروج عبر السماعات */
         function attachRemoteAudio(stream) {
             const rAudio = document.getElementById('remoteAudio');
             if (!rAudio) return;
             rAudio.srcObject = stream;
             rAudio.muted = false;
             rAudio.volume = 1.0;
-
+            
+            // إلغاء تعليق سياق الصوت للموبايل بشكل فوري
             try {
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
                 if (AudioCtx) {
@@ -852,7 +832,10 @@
                 }
             } catch(e){}
 
-            rAudio.play().catch(e => console.log('Audio autoplay retry:', e));
+            let playPromise = rAudio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(e => console.log('Audio autoplay prevented:', e));
+            }
         }
 
         function setupCallChannel() {
@@ -866,12 +849,15 @@
 
         async function handleCallSignal(data) {
             if (data.type === 'call_offer') {
+                incomingOfferData = data;
                 document.getElementById('callModalTitle').innerText = `📞 اتصال وارد من: ${data.callerName}`;
                 document.getElementById('callModalStatus').innerText = 'يرن الآن...';
                 document.getElementById('btnCallAccept').style.display = 'inline-block';
                 document.getElementById('callModal').style.display = 'flex';
+                
+                // تهيئة مشغل الصوت الوهمي لتجهيز المتصفح
+                document.getElementById('remoteAudio').play().catch(()=>{});
                 startRingtone();
-                incomingOfferData = data;
             } else if (data.type === 'call_accepted') {
                 stopDialTone();
                 stopRingtone();
@@ -900,13 +886,15 @@
         async function startCallToTech() {
             if (!currentDevice) return;
 
+            document.getElementById('remoteAudio').play().catch(()=>{});
+
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({
-                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                    audio: { echoCancellation: true, noiseSuppression: true },
                     video: false
                 });
             } catch (err) {
-                showCustomAlert('إذن الميكروفون مطلوب', 'يرجى تفعيل صلاحية الميكروفون لإجراء المكالمة.');
+                showCustomAlert('إذن الميكروفون', 'يرجى السماح بصلاحية الميكروفون من أيقونة القفل أعلى المتصفح لإجراء المكالمة.', '🎙️', 'var(--danger-color)');
                 return;
             }
 
@@ -952,14 +940,15 @@
         async function acceptIncomingCall() {
             if (!incomingOfferData) return;
             stopRingtone();
+            document.getElementById('remoteAudio').play().catch(()=>{});
 
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({
-                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                    audio: { echoCancellation: true, noiseSuppression: true },
                     video: false
                 });
             } catch (err) {
-                showCustomAlert('إذن الميكروفون مطلوب', 'يرجى السماح بصلاحية الميكروفون للرد.');
+                showCustomAlert('إذن الميكروفون', 'يرجى تفعيل صلاحية الميكروفون للرد على المكالمة.', '🎙️', 'var(--danger-color)');
                 return;
             }
 
