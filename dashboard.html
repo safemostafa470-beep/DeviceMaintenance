@@ -423,8 +423,8 @@
 
     <!-- شريط التنقل العلوي -->
     <div class="top-nav">
-        <div style="font-size: 0.85rem; font-weight: bold; color: var(--primary-color);">
-            🛠️ <span id="currentShopName" style="color: #22c55e;">لوحة الفني</span>
+        <div style="font-size: 0.9rem; font-weight: bold; color: var(--primary-color);">
+            🛠️ الفني المسؤول: <span id="currentShopName" style="color: #22c55e;">جاري التحميل...</span>
         </div>
         
         <div class="nav-buttons">
@@ -778,7 +778,14 @@
 
         async function initPageDirectly() {
             const urlParams = new URLSearchParams(window.location.search);
-            let userQuery = urlParams.get('user') || urlParams.get('username') || localStorage.getItem('username') || 'technician';
+            let userQuery = urlParams.get('user') || urlParams.get('username') || localStorage.getItem('currentUser') || localStorage.getItem('username') || localStorage.getItem('currentTech');
+            
+            if (!userQuery) {
+                // إذا لم يتم تسجيل الدخول، إعادة توجيه لصفحة اللوجن
+                window.location.href = 'login.html';
+                return;
+            }
+
             currentTechUsername = userQuery.trim();
             document.getElementById('currentShopName').innerText = currentTechUsername;
 
@@ -898,7 +905,7 @@
                 details: notes,
                 status: 'جاري الفحص الفني',
                 chat: [],
-                technician: currentTechUsername
+                technician: currentTechUsername // ربط الجهاز باسم الفني بدقة تامة
             };
 
             let { error } = await _supabase.from('devices').insert([newDev]);
@@ -922,8 +929,19 @@
         }
 
         async function loadData(isInitial = false) {
-            let { data, error } = await _supabase.from('devices').select('*').eq('technician', currentTechUsername).order('id', { ascending: false });
-            if (error) return;
+            if (!currentTechUsername) return;
+
+            // فلترة الأجهزة الخاصة بالفني الحالي فقط حصراً
+            let { data, error } = await _supabase
+                .from('devices')
+                .select('*')
+                .eq('technician', currentTechUsername)
+                .order('id', { ascending: false });
+
+            if (error) {
+                console.error("خطأ في جلب بيانات الأجهزة:", error);
+                return;
+            }
 
             let newData = data || [];
             if (!isInitial && devicesList.length > 0) {
