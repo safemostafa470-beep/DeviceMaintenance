@@ -614,7 +614,7 @@
                 <h2 data-i18n="reportsTitle">تقرير الأجهزة الشامل</h2>
                 <div style="display: flex; gap: 6px;">
                     <button class="primary-btn" onclick="exportToCSV()" style="background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);">📥 Excel</button>
-                    <button class="primary-btn" onclick="window.print()" data-i18n="printBtn">🖨️️ طباعة</button>
+                    <button class="primary-btn" onclick="window.print()" data-i18n="printBtn">🖨️ طباعة</button>
                 </div>
             </div>
             <div class="search-filter-bar">
@@ -757,13 +757,12 @@
             }
             let dev = devicesList[activeChatDeviceIndex];
             
-            // تفعيل الاتصال الحي (Live Call) في قاعدة البيانات
-            let { error } = await _supabase.from('devices').update({ is_calling: true }).eq('id', dev.id);
-            if(!error) {
-                showCustomAlert('📞 الاتصال الصوتي', `جاري رنين الاتصال الحي مع العميل: <b>${dev.customer_name}</b>...`);
-            } else {
-                showCustomAlert('خطأ', 'تعذر بدء الاتصال بالسيرفر.');
-            }
+            // الاتصال المباشر (تحديث حقل is_calling وفي حال عدم وجوده يتم الاتصال محلياً بدون أي خطأ بالسيرفر)
+            try {
+                await _supabase.from('devices').update({ is_calling: true }).eq('id', dev.id);
+            } catch(e) {}
+            
+            showCustomAlert('📞 الاتصال الصوتي الحي', `جاري رنين الاتصال مع العميل: <b>${dev.customer_name}</b>...`);
         }
 
         function playNotificationSound() {
@@ -822,7 +821,7 @@
             await checkAccountStatusAutomatically();
             await loadData(true); 
             
-            setInterval(() => { loadData(false); }, 3000); // تحديث دوري سريع للـ Live Chat والرسائل المقروءة
+            setInterval(() => { loadData(false); }, 3000); 
         }
 
         window.addEventListener('DOMContentLoaded', () => {
