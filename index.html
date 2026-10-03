@@ -627,7 +627,6 @@
             startRealtimeAndPolling(d.id);
         }
 
-        // تفعيل اللايف تشات والمراقبة الحية (تحديث كل ثانيتين لضمان سرعة الاستجابة Live)
         function startRealtimeAndPolling(deviceId) {
             stopAllSubscriptions();
             
@@ -651,13 +650,11 @@
 
         function handleUpdatedDeviceData(updatedDevice) {
             if (activeDevice) {
-                // تنبيه رنين الاتصال الحي من الفني
                 if (updatedDevice.is_calling && !activeDevice.is_calling) {
                     playRingingSound();
                     showCustomAlert('📞 مكالمة واردة', `يتصل بك الفني المسؤول الآن.<br><button class="approve-btn" onclick="stopRingingSound(); closeCustomModal();">رد على المكالمة</button>`);
                 }
 
-                // تنبيه رسالة جديدة من الفني
                 if (updatedDevice.chat && activeDevice.chat) {
                     if (updatedDevice.chat.length > activeDevice.chat.length) {
                         let lastMsg = updatedDevice.chat[updatedDevice.chat.length - 1];
@@ -747,7 +744,6 @@
                     let msgClass = m.sender === 'client' ? 'chat-msg-client' : 'chat-msg-tech';
                     let senderLabel = m.sender === 'client' ? '👤 أنت (العميل):' : '🛠️ الفني المسؤول:';
                     
-                    // علامات الصح الدقيقة لقرائة الرسائل (✓✓ مقروءة / ✓ أُرسلت)
                     let readStatusHTML = '';
                     if (m.sender === 'client') {
                         if (m.readByTech) {
