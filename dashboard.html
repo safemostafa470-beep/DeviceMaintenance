@@ -112,17 +112,6 @@
             cursor: pointer;
         }
 
-        .call-nav-btn {
-            background: rgba(34, 197, 94, 0.15);
-            border: 1px solid var(--success-color);
-            color: #4ade80;
-        }
-        .call-nav-btn:hover {
-            background: var(--success-color);
-            color: white;
-            border-color: transparent;
-        }
-
         .logout-btn {
             background: rgba(239, 68, 68, 0.15);
             border: 1px solid var(--danger-color);
@@ -283,6 +272,30 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.6);
         }
 
+        .chat-header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+
+        .chat-call-btn {
+            background: linear-gradient(135deg, #22c55e, #15803d);
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .chat-call-btn:hover { opacity: 0.9; }
+
         .chat-msgs {
             height: 280px;
             overflow-y: auto;
@@ -428,7 +441,6 @@
         </div>
         
         <div class="nav-buttons">
-            <!-- أيقونة اختيار البلد والعملة -->
             <select id="countrySelect" class="settings-select" onchange="changeCountry(this.value)">
                 <option value="SA">🇸🇦 السعودية (ر.س)</option>
                 <option value="EG">🇪🇬 مصر (ج.م)</option>
@@ -436,7 +448,6 @@
                 <option value="KW">🇰🇼 الكويت (د.ك)</option>
             </select>
 
-            <!-- أيقونة تغيير اللغة -->
             <select id="langSelect" class="settings-select" onchange="changeLanguage(this.value)">
                 <option value="ar">العربية</option>
                 <option value="en">English</option>
@@ -447,7 +458,6 @@
             <button class="nav-btn" onclick="switchTab('delivered')" data-i18n="tabDelivered">المسلمة</button>
             <button class="nav-btn" onclick="switchTab('returned')" data-i18n="tabReturned">المسترجعة</button>
             <button class="nav-btn" onclick="switchTab('reports')" data-i18n="tabReports">التقارير</button>
-            <button class="nav-btn call-nav-btn" onclick="openOnlineCallFeature()">📞 <span data-i18n="callBtn">اتصال</span></button>
         </div>
 
         <button class="logout-btn" onclick="logout()" data-i18n="logoutBtn">خروج</button>
@@ -522,12 +532,21 @@
                 </table>
             </div>
 
-            <!-- حاوية الشات -->
+            <!-- حاوية الشات وزر الاتصال بجانب زر الإغلاق -->
             <div id="chatSectionContainer" style="display:none;" class="chat-container-card">
-                <div style="font-size: 0.9rem; color: var(--primary-color); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; font-weight: 600;">
-                    <span id="activeChatTitle">💬 محادثة العميل: -</span>
-                    <button onclick="closeChatBox()" style="background:none; border:none; color:var(--danger-color); font-size:1rem; cursor:pointer; font-weight:bold;">✕ إغلاق الشات</button>
+                <div class="chat-header-actions">
+                    <span id="activeChatTitle" style="font-size: 0.9rem; color: var(--primary-color); font-weight: 600;">💬 محادثة العميل: -</span>
+                    
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <!-- زر الاتصال الحي المباشر -->
+                        <button class="chat-call-btn" onclick="startLiveCall()">
+                            📞 <span data-i18n="callBtn">اتصال</span>
+                        </button>
+                        <!-- زر إغلاق الشات -->
+                        <button onclick="closeChatBox()" style="background:none; border:none; color:var(--danger-color); font-size:1rem; cursor:pointer; font-weight:bold;">✕ إغلاق الشات</button>
+                    </div>
                 </div>
+
                 <div class="chat-msgs" id="activeChatMsgsContainer"></div>
                 <div class="chat-input-row">
                     <input type="text" id="activeChatInput" placeholder="اكتب ردك للعميل هنا..." onkeydown="if(event.key==='Enter') sendTechMsgActive()">
@@ -630,7 +649,6 @@
         let devicesList = [];
         let activeChatDeviceIndex = null;
         let currentTechUsername = '';
-        let currentShopName = 'لوحة تحكم الفني';
 
         let currentLang = localStorage.getItem('app_lang') || 'ar';
         let currentCurrency = localStorage.getItem('app_currency') || 'ر.س';
@@ -732,12 +750,19 @@
             renderTables();
         }
 
-        function openOnlineCallFeature() {
-            if (activeChatDeviceIndex !== null && devicesList[activeChatDeviceIndex]) {
-                let dev = devicesList[activeChatDeviceIndex];
-                showCustomAlert('الاتصال عبر الإنترنت', `جاري بدء الاتصال الصوتي/المرئي مع العميل: <b>${dev.customer_name}</b>...`);
+        async function startLiveCall() {
+            if (activeChatDeviceIndex === null || !devicesList[activeChatDeviceIndex]) {
+                showCustomAlert('تنبيه', 'الرجاء فتح محادثة الجهاز أولاً لطلب الاتصال بالعميل.');
+                return;
+            }
+            let dev = devicesList[activeChatDeviceIndex];
+            
+            // تحديث حالة الاتصال في قاعدة البيانات لتنبيه العميل لحظياً (Live)
+            let { error } = await _supabase.from('devices').update({ is_calling: true }).eq('id', dev.id);
+            if(!error) {
+                showCustomAlert('📞 الاتصال الصوتي', `جاري رنين الاتصال على هاتف العميل: <b>${dev.customer_name}</b>...`);
             } else {
-                showCustomAlert('تنبيه الاتصال', 'الرجاء فتح شات الجهاز المطلوب التواصل مع عميله أولاً من جدول الأجهزة الحالية.');
+                showCustomAlert('خطأ', 'تعذر بدء الاتصال بالسيرفر.');
             }
         }
 
@@ -781,7 +806,6 @@
             let userQuery = urlParams.get('user') || urlParams.get('username') || localStorage.getItem('currentUser') || localStorage.getItem('username') || localStorage.getItem('currentTech');
             
             if (!userQuery) {
-                // إذا لم يتم تسجيل الدخول، إعادة توجيه لصفحة اللوجن
                 window.location.href = 'login.html';
                 return;
             }
@@ -798,7 +822,7 @@
             await checkAccountStatusAutomatically();
             await loadData(true); 
             
-            setInterval(() => { loadData(false); }, 10000);
+            setInterval(() => { loadData(false); }, 3000); // تحديث دوري سريع للـ Live Chat
         }
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -905,7 +929,7 @@
                 details: notes,
                 status: 'جاري الفحص الفني',
                 chat: [],
-                technician: currentTechUsername // ربط الجهاز باسم الفني بدقة تامة
+                technician: currentTechUsername
             };
 
             let { error } = await _supabase.from('devices').insert([newDev]);
@@ -931,17 +955,13 @@
         async function loadData(isInitial = false) {
             if (!currentTechUsername) return;
 
-            // فلترة الأجهزة الخاصة بالفني الحالي فقط حصراً
             let { data, error } = await _supabase
                 .from('devices')
                 .select('*')
                 .eq('technician', currentTechUsername)
                 .order('id', { ascending: false });
 
-            if (error) {
-                console.error("خطأ في جلب بيانات الأجهزة:", error);
-                return;
-            }
+            if (error) return;
 
             let newData = data || [];
             if (!isInitial && devicesList.length > 0) {
@@ -1182,7 +1202,17 @@
                 chatArr.forEach(m => {
                     let msgClass = m.sender === 'tech' ? 'chat-msg-tech' : 'chat-msg-client';
                     let senderLabel = m.sender === 'tech' ? '🛠️ أنت (الفني):' : '👤 العميل:';
-                    let readStatusHTML = m.sender === 'tech' ? (m.read ? `<span style="color: #38bdf8; font-size: 0.7rem;"> ✓✓ مقروءة</span>` : '<span style="color: #94a3b8; font-size: 0.65rem;"> ✓ أُرسلت</span>') : '';
+                    
+                    // علامات الصح الدقيقة (✓✓ مقروءة / ✓ أُرسلت)
+                    let readStatusHTML = '';
+                    if (m.sender === 'tech') {
+                        if (m.read) {
+                            let readTimeText = m.readTime ? ` (${m.readTime})` : '';
+                            readStatusHTML = `<span style="color: #38bdf8; font-size: 0.7rem;"> ✓✓ مقروءة${readTimeText}</span>`;
+                        } else {
+                            readStatusHTML = '<span style="color: #94a3b8; font-size: 0.65rem;"> ✓ أُرسلت</span>';
+                        }
+                    }
                     
                     container.innerHTML += `
                         <div class="chat-msg-item ${msgClass}">
@@ -1207,12 +1237,20 @@
             if(!text) return;
             let dev = devicesList[activeChatDeviceIndex];
             let chatArr = dev.chat ? [...dev.chat] : [];
-            chatArr.push({ sender: 'tech', text: text, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), read: false, readByTech: true });
+            
+            chatArr.push({ 
+                sender: 'tech', 
+                text: text, 
+                time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), 
+                read: false, 
+                readTime: null,
+                readByTech: true 
+            });
 
-            let { error } = await _supabase.from('devices').update({ chat: chatArr }).eq('id', dev.id);
-            if(!error) {
+            let { error, data } = await _supabase.from('devices').update({ chat: chatArr }).eq('id', dev.id).select().single();
+            if(!error && data) {
                 input.value = '';
-                devicesList[activeChatDeviceIndex].chat = chatArr;
+                devicesList[activeChatDeviceIndex] = data;
                 renderActiveChatMessages();
             }
         }

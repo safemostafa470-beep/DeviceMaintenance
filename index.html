@@ -351,7 +351,6 @@
 </head>
 <body>
 
-    <!-- شريط إعدادات البلد واللغة -->
     <div class="top-settings-bar">
         <select id="countrySelect" class="settings-select" onchange="changeCountry(this.value)">
             <option value="SA">🇸🇦 السعودية (ر.س)</option>
@@ -404,7 +403,6 @@
                     <div id="approveBtnContainer" class="action-buttons"></div>
                 </div>
 
-                <!-- شات المحادثة بتصميم الماسنجر -->
                 <div class="chat-container">
                     <div class="chat-header-bar">
                         <div class="chat-title-info">
@@ -517,15 +515,15 @@
                 ringtoneInterval = setInterval(() => {
                     const osc = audioCtx.createOscillator();
                     const gain = audioCtx.createGain();
-                    osc.frequency.setValueAtTime(440, audioCtx.currentTime);
-                    osc.frequency.setValueAtTime(480, audioCtx.currentTime + 0.2);
-                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                    osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+                    osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.2);
+                    gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
                     gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
                     osc.connect(gain);
                     gain.connect(audioCtx.destination);
                     osc.start();
                     osc.stop(audioCtx.currentTime + 0.4);
-                }, 1000);
+                }, 800);
             } catch(e) {}
         }
 
@@ -538,25 +536,22 @@
 
         function startVoiceCall() {
             if(!activeDevice) {
-                showCustomAlert('تنبيه', 'الرجاء البحث عن الجهاز أولاً قبل بدء الاتصال.');
+                showCustomAlert('تنبيه', 'الرجاء البحث عن الجهاز أولاً.');
                 return;
             }
             playRingingSound();
-            showCustomAlert('الاتصال الصوتي', '📞 جاري طلب الاتصال بالفني...');
-            setTimeout(() => { stopRingingSound(); }, 4000);
+            showCustomAlert('📞 اتصال صوتي مباشر', 'جاري الاتصال بالفني... يرجى الانتظار.');
         }
 
         async function loadAnnouncementFromServer() {
             try {
-                let { data, error } = await _supabase.from('technicians').select('announcement').limit(1);
+                let { data } = await _supabase.from('technicians').select('announcement').limit(1);
                 if(data && data.length > 0 && data[0].announcement) {
                     document.getElementById('announcementMarqueeText').innerText = data[0].announcement;
                 } else {
                     document.getElementById('announcementMarqueeText').innerText = "✨ أهلاً بك في نظام تتبع الصيانة الذكي";
                 }
-            } catch(e) {
-                document.getElementById('announcementMarqueeText').innerText = "✨ أهلاً بك في نظام تتبع الصيانة الذكي";
-            }
+            } catch(e) {}
         }
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -564,10 +559,6 @@
             document.getElementById('langSelect').value = currentLang;
             document.getElementById('countrySelect').value = currentCountry;
             changeLanguage(currentLang);
-
-            if ("Notification" in window && Notification.permission !== "granted") {
-                Notification.requestPermission();
-            }
         });
 
         function playNotificationSound() {
@@ -587,12 +578,6 @@
             } catch(e) {}
         }
 
-        function showBrowserNotification(title, body) {
-            if ("Notification" in window && Notification.permission === "granted") {
-                new Notification(title, { body: body, icon: "https://cdn-icons-png.flaticon.com/512/2965/2965879.png" });
-            }
-        }
-
         function showCustomAlert(title, message) {
             document.getElementById('modalTitle').innerText = title;
             document.getElementById('modalMessage').innerHTML = message;
@@ -601,6 +586,7 @@
 
         function closeCustomModal() {
             document.getElementById('customModalOverlay').classList.remove('active');
+            stopRingingSound();
         }
 
         async function searchDevice() {
@@ -610,29 +596,25 @@
                 return;
             }
 
-            let resultSection = document.getElementById('resultSection');
-            let noResultMsg = document.getElementById('noResultMsg');
-
             let { data, error } = await _supabase
                 .from('devices')
                 .select('*')
                 .or(`tracking_number.ilike.%${query}%,phone.eq.${query}`);
 
             if (error || !data || data.length === 0) {
-                resultSection.style.display = 'none';
-                noResultMsg.innerText = 'لم يتم العثور على أي جهاز بهذا الرقم أو الهاتف. تأكد من البيانات المدخلة.';
-                noResultMsg.style.display = 'block';
+                document.getElementById('resultSection').style.display = 'none';
+                document.getElementById('noResultMsg').innerText = 'لم يتم العثور على أي جهاز بهذا الرقم أو الهاتف.';
+                document.getElementById('noResultMsg').style.display = 'block';
                 activeDevice = null;
                 stopAllSubscriptions();
                 return;
             }
 
             let d = data[0];
-            let statusVal = d.status || '';
-            if(statusVal === 'تم تسليم الجهاز للعميل' || statusVal === 'مسترجع') {
-                resultSection.style.display = 'none';
-                noResultMsg.innerHTML = '⚠️ عذراً، رقم التتبع هذا منتهي الصلاحية.<br>لقد تم تسليم الجهاز للعميل أو استرجاعه.';
-                noResultMsg.style.display = 'block';
+            if(d.status === 'تم تسليم الجهاز للعميل' || d.status === 'مسترجع') {
+                document.getElementById('resultSection').style.display = 'none';
+                document.getElementById('noResultMsg').innerHTML = '⚠️ عذراً، رقم التتبع هذا منتهي الصلاحية.';
+                document.getElementById('noResultMsg').style.display = 'block';
                 activeDevice = null;
                 stopAllSubscriptions();
                 return;
@@ -640,11 +622,12 @@
 
             activeDevice = d;
             updateUIWithDeviceData(d);
-            resultSection.style.display = 'block';
-            noResultMsg.style.display = 'none';
+            document.getElementById('resultSection').style.display = 'block';
+            document.getElementById('noResultMsg').style.display = 'none';
             startRealtimeAndPolling(d.id);
         }
 
+        // تفعيل اللايف تشات والمراقبة الحية (تحديث كل ثانيتين لضمان سرعة الاستجابة Live)
         function startRealtimeAndPolling(deviceId) {
             stopAllSubscriptions();
             
@@ -657,35 +640,54 @@
 
             backgroundPollingTimer = setInterval(async () => {
                 if (!activeDevice || !activeDevice.id) return;
-                let { data, error } = await _supabase.from('devices').select('*').eq('id', activeDevice.id).single();
-                if (!error && data) {
-                    if (JSON.stringify(data.chat) !== JSON.stringify(activeDevice.chat) || data.status !== activeDevice.status) {
+                let { data } = await _supabase.from('devices').select('*').eq('id', activeDevice.id).single();
+                if (data) {
+                    if (JSON.stringify(data.chat) !== JSON.stringify(activeDevice.chat) || data.status !== activeDevice.status || data.is_calling !== activeDevice.is_calling) {
                         handleUpdatedDeviceData(data);
                     }
                 }
-            }, 2000);
+            }, 1500);
         }
 
         function handleUpdatedDeviceData(updatedDevice) {
-            let statusVal = updatedDevice.status || '';
-            if(statusVal === 'تم تسليم الجهاز للعميل' || statusVal === 'مسترجع') {
-                document.getElementById('resultSection').style.display = 'none';
-                document.getElementById('noResultMsg').innerHTML = '⚠️ عذراً، لقد تم تسليم الجهاز أو إغلاقه.';
-                document.getElementById('noResultMsg').style.display = 'block';
-                activeDevice = null;
-                stopAllSubscriptions();
-                return;
-            }
-
             if (activeDevice) {
-                if (activeDevice.status !== updatedDevice.status) {
-                    playNotificationSound();
-                    showBrowserNotification("تحديث حالة الصيانة 🛠️", `تغيرت حالة جهازك إلى: ${updatedDevice.status}`);
+                // تنبيه رنين الاتصال الحي من الفني
+                if (updatedDevice.is_calling && !activeDevice.is_calling) {
+                    playRingingSound();
+                    showCustomAlert('📞 مكالمة واردة', `يتصل بك الفني المسؤول الآن.<br><button class="approve-btn" onclick="stopRingingSound(); closeCustomModal();">رد على المكالمة</button>`);
+                }
+
+                // تنبيه رسالة جديدة من الفني
+                if (updatedDevice.chat && activeDevice.chat) {
+                    if (updatedDevice.chat.length > activeDevice.chat.length) {
+                        let lastMsg = updatedDevice.chat[updatedDevice.chat.length - 1];
+                        if (lastMsg && lastMsg.sender === 'tech') {
+                            playNotificationSound();
+                        }
+                    }
                 }
             }
 
             activeDevice = updatedDevice;
             updateUIWithDeviceData(updatedDevice);
+            markTechMessagesAsRead(updatedDevice);
+        }
+
+        async function markTechMessagesAsRead(deviceObj) {
+            if (!deviceObj.chat || deviceObj.chat.length === 0) return;
+            let updated = false;
+            let currentTime = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            let newChat = deviceObj.chat.map(m => {
+                if (m.sender === 'tech' && !m.read) {
+                    updated = true;
+                    return { ...m, read: true, readTime: currentTime };
+                }
+                return m;
+            });
+
+            if (updated) {
+                await _supabase.from('devices').update({ chat: newChat }).eq('id', deviceObj.id);
+            }
         }
 
         function stopAllSubscriptions() {
@@ -704,15 +706,10 @@
             document.getElementById('resStatus').innerText = d.status;
 
             let extraBox = document.getElementById('extraNoticeBox');
-            let extraText = document.getElementById('extraNoticeText');
-            let approveContainer = document.getElementById('approveBtnContainer');
-
             if(d.status && d.status.includes('بانتظار')) {
                 extraBox.style.display = 'block';
-                let btnApproveText = translations[currentLang].approveBtn;
-                let btnRejectText = translations[currentLang].rejectBtn;
-                extraText.innerText = d.new_fault ? `عطل جديد مكتشف: "${d.new_fault}". التكلفة: ${d.cost} ${currentCurrency}. هل توافق؟` : 'يوجد تكلفة إضافية مطلوبة، يرجى الموافقة أو الرفض:';
-                approveContainer.innerHTML = `<button class="approve-btn" onclick="approveExtraCost()">${btnApproveText}</button><button class="reject-btn" onclick="rejectExtraCost()">${btnRejectText}</button>`;
+                document.getElementById('extraNoticeText').innerText = d.new_fault ? `عطل جديد مكتشف: "${d.new_fault}". التكلفة: ${d.cost} ${currentCurrency}. هل توافق؟` : 'يوجد تكلفة إضافية مطلوبة:';
+                document.getElementById('approveBtnContainer').innerHTML = `<button class="approve-btn" onclick="approveExtraCost()">الموافقة</button><button class="reject-btn" onclick="rejectExtraCost()">رفض</button>`;
             } else {
                 extraBox.style.display = 'none';
             }
@@ -726,7 +723,7 @@
             if(!error && data) {
                 activeDevice = data;
                 updateUIWithDeviceData(data);
-                showCustomAlert('تم بنجاح', 'تم إرسال الموافقة للفني بنجاح');
+                showCustomAlert('تم بنجاح', 'تم إرسال الموافقة للفني');
             }
         }
 
@@ -749,11 +746,25 @@
                 chatArr.forEach(m => {
                     let msgClass = m.sender === 'client' ? 'chat-msg-client' : 'chat-msg-tech';
                     let senderLabel = m.sender === 'client' ? '👤 أنت (العميل):' : '🛠️ الفني المسؤول:';
+                    
+                    // علامات الصح الدقيقة لقرائة الرسائل (✓✓ مقروءة / ✓ أُرسلت)
+                    let readStatusHTML = '';
+                    if (m.sender === 'client') {
+                        if (m.readByTech) {
+                            let readTimeText = m.readTime ? ` (${m.readTime})` : '';
+                            readStatusHTML = `<span style="color: #00f2fe; font-size: 0.7rem;"> ✓✓ مقروءة${readTimeText}</span>`;
+                        } else {
+                            readStatusHTML = '<span style="color: #a0aec0; font-size: 0.65rem;"> ✓ أُرسلت</span>';
+                        }
+                    }
+
                     container.innerHTML += `
                         <div class="chat-msg-item ${msgClass}">
                             <div style="font-size:0.75rem; font-weight:bold; margin-bottom:4px;">${senderLabel}</div>
                             <div>${m.text}</div>
-                            <div style="font-size:0.6rem; margin-top:6px; opacity:0.7;">${m.time}</div>
+                            <div style="font-size:0.6rem; display: flex; justify-content: space-between; align-items: center; margin-top:6px; opacity:0.8;">
+                                <span>${m.time}</span> ${readStatusHTML}
+                            </div>
                         </div>
                     `;
                 });
@@ -776,7 +787,8 @@
                 sender: 'client',
                 text: text,
                 time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                readByTech: false
+                readByTech: false,
+                readTime: null
             });
 
             let { data, error } = await _supabase.from('devices').update({ chat: chatArr }).eq('id', activeDevice.id).select().single();
