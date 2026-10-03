@@ -437,7 +437,7 @@
     <!-- شريط التنقل العلوي -->
     <div class="top-nav">
         <div style="font-size: 0.9rem; font-weight: bold; color: var(--primary-color);">
-            🛠️ الفني المسؤول: <span id="currentShopName" style="color: #22c55e;">جاري التحميل...</span>
+            🛠️️ الفني المسؤول: <span id="currentShopName" style="color: #22c55e;">جاري التحميل...</span>
         </div>
         
         <div class="nav-buttons">
@@ -757,12 +757,22 @@
             }
             let dev = devicesList[activeChatDeviceIndex];
             
-            // الاتصال المباشر (تحديث حقل is_calling وفي حال عدم وجوده يتم الاتصال محلياً بدون أي خطأ بالسيرفر)
+            // تحديث حالة الاتصال في قاعدة البيانات بدون أي أخطاء (يعتمد على حقل chat أو status الحواري)
             try {
-                await _supabase.from('devices').update({ is_calling: true }).eq('id', dev.id);
-            } catch(e) {}
-            
-            showCustomAlert('📞 الاتصال الصوتي الحي', `جاري رنين الاتصال مع العميل: <b>${dev.customer_name}</b>...`);
+                let chatArr = dev.chat ? [...dev.chat] : [];
+                chatArr.push({
+                    sender: 'tech',
+                    text: '📞 [بدء مكالمة صوتية حية من الفني]',
+                    time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                    read: false,
+                    readByTech: true,
+                    isCallNotification: true
+                });
+                await _supabase.from('devices').update({ chat: chatArr }).eq('id', dev.id);
+                showCustomAlert('📞 الاتصال الصوتي الحي', `جاري رنين المكالمة الحية مع العميل: <b>${dev.customer_name}</b>...`);
+            } catch(e) {
+                showCustomAlert('📞 الاتصال', `جاري الاتصال بالعميل: ${dev.customer_name}`);
+            }
         }
 
         function playNotificationSound() {
@@ -1156,100 +1166,4 @@
             if(newDet !== null) {
                 await _supabase.from('devices').update({ details: newDet }).eq('id', dev.id);
                 await loadData(true);
-            }
-        }
-
-        async function openChatBox(index) {
-            activeChatDeviceIndex = index;
-            let dev = devicesList[index];
-            document.getElementById('activeChatTitle').innerText = `💬 محادثة العميل: ${dev.customer_name} (${dev.tracking_number})`;
-            document.getElementById('chatSectionContainer').style.display = 'block';
-            renderActiveChatMessages();
-
-            let chatArr = dev.chat || [];
-            let hasUnread = false;
-            let updatedChat = chatArr.map(m => {
-                if(m.sender === 'client' && !m.readByTech) {
-                    hasUnread = true;
-                    return { ...m, readByTech: true };
-                }
-                return m;
-            });
-            if(hasUnread) {
-                await _supabase.from('devices').update({ chat: updatedChat }).eq('id', dev.id);
-                devicesList[index].chat = updatedChat;
-                renderTables();
-            }
-        }
-
-        function closeChatBox() {
-            activeChatDeviceIndex = null;
-            document.getElementById('chatSectionContainer').style.display = 'none';
-            renderTables();
-        }
-
-        function renderActiveChatMessages() {
-            if (activeChatDeviceIndex === null) return;
-            let dev = devicesList[activeChatDeviceIndex];
-            let container = document.getElementById('activeChatMsgsContainer');
-            if (!container) return;
-            let chatArr = dev.chat || [];
-            let isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 60;
-            
-            container.innerHTML = '';
-            if(chatArr.length > 0) {
-                chatArr.forEach(m => {
-                    let msgClass = m.sender === 'tech' ? 'chat-msg-tech' : 'chat-msg-client';
-                    let senderLabel = m.sender === 'tech' ? '🛠️ أنت (الفني):' : '👤 العميل:';
-                    
-                    let readStatusHTML = '';
-                    if (m.sender === 'tech') {
-                        if (m.read) {
-                            let readTimeText = m.readTime ? ` (${m.readTime})` : '';
-                            readStatusHTML = `<span style="color: #38bdf8; font-size: 0.7rem;"> ✓✓ مقروءة${readTimeText}</span>`;
-                        } else {
-                            readStatusHTML = '<span style="color: #94a3b8; font-size: 0.65rem;"> ✓ أُرسلت</span>';
-                        }
-                    }
-                    
-                    container.innerHTML += `
-                        <div class="chat-msg-item ${msgClass}">
-                            <div style="font-size: 0.65rem; font-weight: bold; margin-bottom: 3px; opacity: 0.8;">${senderLabel}</div>
-                            <div>${m.text}</div>
-                            <div style="font-size: 0.55rem; display: flex; justify-content: space-between; align-items: center; margin-top: 3px; opacity: 0.7;">
-                                <span>${m.time}</span> ${readStatusHTML}
-                            </div>
-                        </div>
-                    `;
-                });
-                if (isAtBottom || chatArr[chatArr.length - 1].sender === 'tech') container.scrollTop = container.scrollHeight;
-            } else {
-                container.innerHTML = `<div style="color: var(--text-muted); text-align: center; margin: auto;">لا توجد رسائل سابقة.</div>`;
-            }
-        }
-
-        async function sendTechMsgActive() {
-            if (activeChatDeviceIndex === null) return;
-            let input = document.getElementById('activeChatInput');
-            let text = input.value.trim();
-            if(!text) return;
-            let dev = devicesList[activeChatDeviceIndex];
-            let chatArr = dev.chat ? [...dev.chat] : [];
-            chatArr.push({ 
-                sender: 'tech', 
-                text: text, 
-                time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), 
-                read: false, 
-                readByTech: true 
-            });
-
-            let { error, data } = await _supabase.from('devices').update({ chat: chatArr }).eq('id', dev.id).select().single();
-            if(!error && data) {
-                input.value = '';
-                devicesList[activeChatDeviceIndex] = data;
-                renderActiveChatMessages();
-            }
-        }
-    </script>
-</body>
-</html>
+        

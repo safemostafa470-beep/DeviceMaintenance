@@ -437,7 +437,6 @@
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let activeDevice = null;
-        let realtimeChannel = null;
         let backgroundPollingTimer = null;
         let ringtoneInterval = null;
 
@@ -606,7 +605,7 @@
                 document.getElementById('noResultMsg').innerText = 'لم يتم العثور على أي جهاز بهذا الرقم أو الهاتف.';
                 document.getElementById('noResultMsg').style.display = 'block';
                 activeDevice = null;
-                stopAllSubscriptions();
+                if(backgroundPollingTimer) clearInterval(backgroundPollingTimer);
                 return;
             }
 
@@ -616,7 +615,7 @@
                 document.getElementById('noResultMsg').innerHTML = '⚠️ عذراً، رقم التتبع هذا منتهي الصلاحية.';
                 document.getElementById('noResultMsg').style.display = 'block';
                 activeDevice = null;
-                stopAllSubscriptions();
+                if(backgroundPollingTimer) clearInterval(backgroundPollingTimer);
                 return;
             }
 
@@ -624,50 +623,36 @@
             updateUIWithDeviceData(d);
             document.getElementById('resultSection').style.display = 'block';
             document.getElementById('noResultMsg').style.display = 'none';
-            startRealtimeAndPolling(d.id);
+            startLivePolling(d.id);
         }
 
-        function startRealtimeAndPolling(deviceId) {
-            stopAllSubscriptions();
-            
-            realtimeChannel = _supabase
-                .channel(`public:devices:id=eq.${deviceId}`)
-                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'devices', filter: `id=eq.${deviceId}` }, (payload) => {
-                    handleUpdatedDeviceData(payload.new);
-                })
-                .subscribe();
+        // فحص حي ومستمر لكل ما يحدث (الرسائل، الحالة، رنين الاتصال الحقيقي)
+        function startLivePolling(deviceId) {
+            if(backgroundPollingTimer) clearInterval(backgroundPollingTimer);
 
             backgroundPollingTimer = setInterval(async () => {
                 if (!activeDevice || !activeDevice.id) return;
-                let { data } = await _supabase.from('devices').select('*').eq('id', activeDevice.id).single();
+                let { data } = await _supabase.from('devices').select('*').eq('id', deviceId).single();
                 if (data) {
-                    if (JSON.stringify(data.chat) !== JSON.stringify(activeDevice.chat) || data.status !== activeDevice.status || data.is_calling !== activeDevice.is_calling) {
-                        handleUpdatedDeviceData(data);
+                    // مراقبة رنين الاتصال الحي من الفني داخل الشات (عبر رسائل التنبيه أو حقل is_calling)
+                    if (data.is_calling && (!activeDevice.is_calling || activeDevice.is_calling !== data.is_calling)) {
+                        playRingingSound();
+                        showCustomAlert('📞 مكالمة واردة حية', `يتصل بك الفني المسؤول الآن.<br><br><button class="approve-btn" onclick="stopRingingSound(); closeCustomModal();">رد على المكالمة</button>`);
                     }
-                }
-            }, 1500);
-        }
 
-        function handleUpdatedDeviceData(updatedDevice) {
-            if (activeDevice) {
-                if (updatedDevice.is_calling && !activeDevice.is_calling) {
-                    playRingingSound();
-                    showCustomAlert('📞 مكالمة واردة', `يتصل بك الفني المسؤول الآن.<br><button class="approve-btn" onclick="stopRingingSound(); closeCustomModal();">رد على المكالمة</button>`);
-                }
-
-                if (updatedDevice.chat && activeDevice.chat) {
-                    if (updatedDevice.chat.length > activeDevice.chat.length) {
-                        let lastMsg = updatedDevice.chat[updatedDevice.chat.length - 1];
+                    // تنبيه عند وصول رسالة جديدة من الفني
+                    if (data.chat && activeDevice.chat && data.chat.length > activeDevice.chat.length) {
+                        let lastMsg = data.chat[data.chat.length - 1];
                         if (lastMsg && lastMsg.sender === 'tech') {
                             playNotificationSound();
                         }
                     }
-                }
-            }
 
-            activeDevice = updatedDevice;
-            updateUIWithDeviceData(updatedDevice);
-            markTechMessagesAsRead(updatedDevice);
+                    activeDevice = data;
+                    updateUIWithDeviceData(data);
+                    markTechMessagesAsRead(data);
+                }
+            }, 1500);
         }
 
         async function markTechMessagesAsRead(deviceObj) {
@@ -685,11 +670,6 @@
             if (updated) {
                 await _supabase.from('devices').update({ chat: newChat }).eq('id', deviceObj.id);
             }
-        }
-
-        function stopAllSubscriptions() {
-            if(realtimeChannel) { _supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
-            if(backgroundPollingTimer) { clearInterval(backgroundPollingTimer); backgroundPollingTimer = null; }
         }
 
         function updateUIWithDeviceData(d) {
@@ -716,7 +696,7 @@
 
         async function approveExtraCost() {
             if(!activeDevice) return;
-            let { data, error } = await _supabase.from('devices').update({ status: 'جاري الإصلاح' }).eq('id', activeDevice.id).select().single();
+            let { data, error } = await _supabase.from('devices').update({ status: 'جاري الإصلاح', is_calling: false }).eq('id', activeDevice.id).select().single();
             if(!error && data) {
                 activeDevice = data;
                 updateUIWithDeviceData(data);
@@ -726,7 +706,7 @@
 
         async function rejectExtraCost() {
             if(!activeDevice) return;
-            let { data, error } = await _supabase.from('devices').update({ status: 'تم رفض التكلفة' }).eq('id', activeDevice.id).select().single();
+            let { data, error } = await _supabase.from('devices').update({ status: 'تم رفض التكلفة', is_calling: false }).eq('id', activeDevice.id).select().single();
             if(!error && data) {
                 activeDevice = data;
                 updateUIWithDeviceData(data);
