@@ -3,494 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title data-i18n="techDashboardTitle">لوحة تحكم الفني الاحترافية - إدارة الصيانة</title>
+    <title>لوحة تحكم الفني الاحترافية - إدارة الصيانة</title>
     
     <!-- مكتبة Supabase لقاعدة البيانات -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <!-- مكتبة PeerJS للمكالمات الصوتية الحقيقية -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 
     <style>
         :root {
-            --bg-color: #0f172a;
-            --card-bg: rgba(30, 41, 59, 0.95);
-            --primary-color: #38bdf8;
-            --primary-hover: #0ea5e9;
-            --text-color: #f8fafc;
-            --text-muted: #94a3b8;
-            --border-color: rgba(255, 255, 255, 0.12);
-            --success-color: #22c55e;
-            --warning-color: #f59e0b;
-            --danger-color: #ef4444;
+            --bg-color: #0f172a; --card-bg: rgba(30, 41, 59, 0.95); --primary-color: #38bdf8;
+            --text-color: #f8fafc; --text-muted: #94a3b8; --border-color: rgba(255, 255, 255, 0.12);
+            --success-color: #22c55e; --danger-color: #ef4444;
             --accent-gradient: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
         }
-
-        * { 
-            box-sizing: border-box; 
-            margin: 0; 
-            padding: 0; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-        }
-
-        body { 
-            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); 
-            color: var(--text-color); 
-            min-height: 100vh; 
-            padding: 10px; 
-        }
-
-        .marquee-container { 
-            width: 100%; 
-            background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(2, 132, 199, 0.15) 100%); 
-            border: 1px solid rgba(56, 189, 248, 0.3); 
-            border-radius: 12px; 
-            overflow: hidden; 
-            padding: 10px 0; 
-            margin-bottom: 15px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3); 
-            backdrop-filter: blur(5px); 
-        }
-
-        .marquee-text { 
-            font-size: 0.95rem; 
-            font-weight: 700; 
-            color: #38bdf8; 
-            white-space: nowrap; 
-            animation: marquee 20s linear infinite; 
-            text-shadow: 0 2px 4px rgba(0,0,0,0.4); 
-        }
-
-        @keyframes marquee { 
-            0% { transform: translateX(100%); } 
-            100% { transform: translateX(-100%); } 
-        }
-
-        .top-nav { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            background: var(--card-bg); 
-            padding: 12px 15px; 
-            border-radius: 14px; 
-            border: 1px solid var(--border-color); 
-            margin-bottom: 15px; 
-            flex-wrap: wrap; 
-            gap: 10px; 
-            box-shadow: 0 8px 20px rgba(0,0,0,0.3); 
-        }
-
-        .nav-buttons { 
-            display: flex; 
-            gap: 6px; 
-            flex-wrap: wrap; 
-            align-items: center; 
-        }
-
-        .nav-btn { 
-            background: rgba(56, 189, 248, 0.08); 
-            border: 1px solid var(--border-color); 
-            color: var(--text-color); 
-            padding: 7px 12px; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-size: 0.8rem; 
-            font-weight: 600; 
-            transition: all 0.2s ease; 
-        }
-
-        .nav-btn.active, .nav-btn:hover { 
-            background: var(--accent-gradient); 
-            color: #0f172a; 
-            border-color: transparent; 
-        }
-
-        .settings-select { 
-            background: rgba(15, 23, 42, 0.9); 
-            color: var(--text-color); 
-            border: 1px solid var(--border-color); 
-            padding: 6px 10px; 
-            border-radius: 8px; 
-            font-size: 0.8rem; 
-            outline: none; 
-            cursor: pointer; 
-        }
-
-        .logout-btn { 
-            background: rgba(239, 68, 68, 0.15); 
-            border: 1px solid var(--danger-color); 
-            color: var(--danger-color); 
-            padding: 7px 12px; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-weight: 600; 
-            font-size: 0.8rem; 
-        }
-
-        .logout-btn:hover { 
-            background: var(--danger-color); 
-            color: white; 
-        }
-
-        .section-content { display: none; }
-        .section-content.active { display: block; }
-
-        .card { 
-            background: var(--card-bg); 
-            border: 1px solid var(--border-color); 
-            padding: 15px; 
-            border-radius: 14px; 
-            margin-bottom: 15px; 
-            box-shadow: 0 8px 25px rgba(0,0,0,0.4); 
-        }
-
-        h2 { 
-            font-size: 1.1rem; 
-            color: var(--primary-color); 
-            margin-bottom: 12px; 
-            font-weight: 700; 
-        }
-
-        .form-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
-            gap: 12px; 
-            margin-bottom: 12px; 
-        }
-
-        .form-group label { 
-            display: block; 
-            margin-bottom: 5px; 
-            font-size: 0.8rem; 
-            color: var(--text-muted); 
-            font-weight: 500; 
-        }
-
-        .form-group input, .form-group select, .form-group textarea { 
-            width: 100%; 
-            padding: 9px 10px; 
-            border-radius: 8px; 
-            border: 1px solid var(--border-color); 
-            background: rgba(15, 23, 42, 0.8); 
-            color: white; 
-            font-size: 0.85rem; 
-            outline: none; 
-        }
-
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { 
-            border-color: var(--primary-color); 
-        }
-
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); color: var(--text-color); min-height: 100vh; padding: 10px; }
+        .marquee-container { width: 100%; background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(2, 132, 199, 0.15) 100%); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; overflow: hidden; padding: 10px 0; margin-bottom: 15px; }
+        .marquee-text { font-size: 0.95rem; font-weight: 700; color: #38bdf8; white-space: nowrap; animation: marquee 20s linear infinite; }
+        @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+        .top-nav { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); padding: 12px 15px; border-radius: 14px; border: 1px solid var(--border-color); margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
+        .nav-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
+        .nav-btn { background: rgba(56, 189, 248, 0.08); border: 1px solid var(--border-color); color: var(--text-color); padding: 7px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
+        .nav-btn.active { background: var(--accent-gradient); color: #0f172a; border-color: transparent; }
+        .settings-select { background: rgba(15, 23, 42, 0.9); color: var(--text-color); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 8px; font-size: 0.8rem; outline: none; cursor: pointer; }
+        .logout-btn { background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger-color); color: var(--danger-color); padding: 7px 12px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.8rem; }
+        .section-content { display: none; } .section-content.active { display: block; }
+        .card { background: var(--card-bg); border: 1px solid var(--border-color); padding: 15px; border-radius: 14px; margin-bottom: 15px; }
+        h2 { font-size: 1.1rem; color: var(--primary-color); margin-bottom: 12px; font-weight: 700; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 12px; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(15, 23, 42, 0.8); color: white; font-size: 0.85rem; outline: none; }
+        .form-group input:focus, .form-group textarea:focus { border-color: var(--primary-color); }
         .form-group textarea { resize: vertical; height: 70px; }
-
-        button.primary-btn { 
-            background: var(--accent-gradient); 
-            color: #0f172a; 
-            border: none; 
-            padding: 9px 18px; 
-            border-radius: 8px; 
-            font-weight: 700; 
-            cursor: pointer; 
-            font-size: 0.85rem; 
-        }
-
-        .search-filter-bar { margin-bottom: 12px; }
-        .search-filter-bar input { 
-            width: 100%; 
-            padding: 8px 12px; 
-            border-radius: 8px; 
-            border: 1px solid var(--border-color); 
-            background: rgba(15, 23, 42, 0.8); 
-            color: white; 
-            font-size: 0.85rem; 
-            outline: none; 
-        }
-
-        .table-responsive { 
-            width: 100%; 
-            overflow-x: auto; 
-            border-radius: 10px; 
-            border: 1px solid var(--border-color); 
-        }
-
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            font-size: 0.8rem; 
-            min-width: 650px; 
-        }
-
-        th, td { 
-            padding: 10px 12px; 
-            text-align: center; 
-            border-bottom: 1px solid var(--border-color); 
-            white-space: nowrap; 
-        }
-
-        th { 
-            background: rgba(56, 189, 248, 0.12); 
-            color: var(--primary-color); 
-            font-weight: 600; 
-        }
-
-        tr:hover { background: rgba(255, 255, 255, 0.02); }
-
-        .action-btn { 
-            background: rgba(56, 189, 248, 0.1); 
-            border: 1px solid var(--border-color); 
-            color: var(--text-color); 
-            padding: 5px 8px; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            font-size: 0.75rem; 
-            transition: 0.2s; 
-            display: inline-flex; 
-            align-items: center; 
-            gap: 3px; 
-        }
-
-        .action-btn:hover { background: var(--primary-color); color: #0f172a; }
-
-        .status-select { 
-            padding: 5px 8px; 
-            border-radius: 6px; 
-            background: #0f172a; 
-            color: #fff; 
-            border: 1px solid var(--border-color); 
-            font-size: 0.75rem; 
-            cursor: pointer; 
-        }
-
-        /* تنسيقات صندوق الشات */
-        .chat-container-card { 
-            background: rgba(15, 23, 42, 0.98); 
-            border: 2px solid var(--primary-color); 
-            border-radius: 14px; 
-            padding: 15px; 
-            margin-top: 15px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.6); 
-        }
-
-        .chat-header-actions { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 10px; 
-            border-bottom: 1px solid var(--border-color); 
-            padding-bottom: 8px; 
-        }
-
-        .chat-call-btn { 
-            background: linear-gradient(135deg, #22c55e, #15803d); 
-            color: white; 
-            border: none; 
-            padding: 6px 14px; 
-            border-radius: 8px; 
-            font-size: 0.85rem; 
-            font-weight: bold; 
-            cursor: pointer; 
-            display: flex; 
-            align-items: center; 
-            gap: 6px; 
-            box-shadow: 0 4px 10px rgba(34, 197, 94, 0.3);
-        }
-
-        .chat-call-btn:hover { opacity: 0.9; }
-
-        .chat-msgs { 
-            height: 280px; 
-            overflow-y: auto; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 8px; 
-            font-size: 0.85rem; 
-            margin-bottom: 12px; 
-            padding: 8px; 
-            background: rgba(15, 23, 42, 0.6); 
-            border-radius: 8px; 
-            border: 1px solid var(--border-color); 
-            word-break: break-word; 
-        }
-
-        .chat-msg-item { 
-            padding: 8px 12px; 
-            border-radius: 10px; 
-            max-width: 85%; 
-            line-height: 1.4; 
-            display: flex; 
-            flex-direction: column; 
-        }
-
-        .chat-msg-tech { 
-            background: rgba(34, 197, 94, 0.18); 
-            border: 1px solid rgba(34, 197, 94, 0.4); 
-            align-self: flex-end; 
-            color: #86efac; 
-            text-align: right; 
-        }
-
-        .chat-msg-client { 
-            background: rgba(56, 189, 248, 0.18); 
-            border: 1px solid rgba(56, 189, 248, 0.4); 
-            align-self: flex-start; 
-            color: #bae6fd; 
-            text-align: right; 
-        }
-
-        .chat-input-row { 
-            display: flex; 
-            gap: 8px; 
-            align-items: center; 
-            width: 100%; 
-        }
-
-        .chat-input-row input { 
-            flex: 1; 
-            min-width: 0; 
-            padding: 10px 12px; 
-            font-size: 0.9rem; 
-            border-radius: 8px; 
-            background: rgba(30, 41, 59, 0.9); 
-            border: 1px solid var(--border-color); 
-            color: #fff; 
-            outline: none; 
-        }
-
-        .custom-modal-overlay { 
-            position: fixed; 
-            top: 0; left: 0; 
-            width: 100%; height: 100%; 
-            background: rgba(15, 23, 42, 0.85); 
-            backdrop-filter: blur(4px); 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            z-index: 9999; 
-            opacity: 0; 
-            visibility: hidden; 
-            transition: all 0.2s ease; 
-        }
-
+        button.primary-btn { background: var(--accent-gradient); color: #0f172a; border: none; padding: 9px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.85rem; }
+        .search-filter-bar { margin-bottom: 12px; } .search-filter-bar input { width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(15, 23, 42, 0.8); color: white; outline: none; }
+        .table-responsive { width: 100%; overflow-x: auto; border-radius: 10px; border: 1px solid var(--border-color); }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; min-width: 650px; }
+        th, td { padding: 10px 12px; text-align: center; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
+        th { background: rgba(56, 189, 248, 0.12); color: var(--primary-color); font-weight: 600; }
+        .action-btn { background: rgba(56, 189, 248, 0.1); border: 1px solid var(--border-color); color: var(--text-color); padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 3px; }
+        .status-select { padding: 5px 8px; border-radius: 6px; background: #0f172a; color: #fff; border: 1px solid var(--border-color); font-size: 0.75rem; outline: none; }
+        .chat-container-card { background: rgba(15, 23, 42, 0.98); border: 2px solid var(--primary-color); border-radius: 14px; padding: 15px; margin-top: 15px; }
+        .chat-header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+        .chat-call-btn { background: linear-gradient(135deg, #22c55e, #15803d); color: white; border: none; padding: 6px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: bold; cursor: pointer; }
+        .chat-msgs { height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 8px; background: rgba(15, 23, 42, 0.6); border-radius: 8px; border: 1px solid var(--border-color); word-break: break-word; }
+        .chat-msg-item { padding: 8px 12px; border-radius: 10px; max-width: 85%; line-height: 1.4; display: flex; flex-direction: column; }
+        .chat-msg-tech { background: rgba(34, 197, 94, 0.18); align-self: flex-end; border: 1px solid rgba(34, 197, 94, 0.4); color: #86efac; text-align: right; }
+        .chat-msg-client { background: rgba(56, 189, 248, 0.18); align-self: flex-start; border: 1px solid rgba(56, 189, 248, 0.4); color: #bae6fd; text-align: right; }
+        .chat-input-row { display: flex; gap: 8px; margin-top: 10px; }
+        .chat-input-row input { flex: 1; padding: 10px; border-radius: 8px; background: rgba(30, 41, 59, 0.9); border: 1px solid var(--border-color); color: #fff; outline: none; }
+        .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 9999; opacity: 0; visibility: hidden; transition: all 0.2s ease; }
         .custom-modal-overlay.active { opacity: 1; visibility: visible; }
-
-        .custom-modal { 
-            background: #1e293b; 
-            border: 1px solid var(--border-color); 
-            padding: 20px; 
-            border-radius: 14px; 
-            width: 85%; 
-            max-width: 350px; 
-            text-align: center; 
-            box-shadow: 0 15px 30px rgba(0,0,0,0.5); 
-        }
-
-        .custom-modal h3 { color: var(--primary-color); margin-bottom: 10px; font-size: 1.1rem; }
-        .custom-modal p { color: var(--text-color); font-size: 0.9rem; margin-bottom: 15px; line-height: 1.5; }
+        .custom-modal { background: #1e293b; border: 1px solid var(--border-color); padding: 20px; border-radius: 14px; width: 85%; max-width: 350px; text-align: center; }
+        .custom-modal h3 { color: var(--primary-color); margin-bottom: 10px; }
+        .custom-modal p { color: var(--text-color); font-size: 0.9rem; margin-bottom: 15px; }
         .custom-modal-actions { display: flex; gap: 8px; }
-
-        .modal-btn { 
-            padding: 8px 15px; 
-            border-radius: 8px; 
-            font-weight: 600; 
-            cursor: pointer; 
-            border: none; 
-            font-size: 0.85rem; 
-            flex: 1; 
-        }
-
+        .modal-btn { padding: 8px 15px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; flex: 1; }
         .modal-btn-confirm { background: var(--accent-gradient); color: #0f172a; }
         .modal-btn-cancel { background: rgba(255,255,255,0.08); color: var(--text-color); border: 1px solid var(--border-color); }
-
-        .toast { 
-            position: fixed; 
-            bottom: 20px; 
-            left: 50%; 
-            transform: translateX(-50%) translateY(80px); 
-            background: var(--success-color); 
-            color: white; 
-            padding: 8px 16px; 
-            border-radius: 8px; 
-            font-weight: 600; 
-            font-size: 0.85rem; 
-            transition: transform 0.3s ease; 
-            z-index: 1000; 
-        }
-
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--success-color); color: white; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; transition: transform 0.3s ease; z-index: 1000; }
         .toast.show { transform: translateX(-50%) translateY(0); }
-
-        /* ========================================================
-           شاشة الاتصال الصوتي الحقيقية (المايك وعداد الثواني للفني)
-           ======================================================== */
-        .call-screen-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.98); z-index: 10000;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            opacity: 0; visibility: hidden; transition: 0.3s;
-            backdrop-filter: blur(10px);
-        }
-        
-        .call-screen-overlay.active { 
-            opacity: 1; 
-            visibility: visible; 
-        }
-        
-        .call-avatar {
-            width: 120px; height: 120px; background: linear-gradient(135deg, #22c55e, #15803d);
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            font-size: 3.5rem; margin-bottom: 30px; 
-            animation: pulse-avatar 1.5s infinite;
-            box-shadow: 0 0 20px rgba(34, 197, 94, 0.5);
-        }
-
-        @keyframes pulse-avatar {
-            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
-            70% { box-shadow: 0 0 0 25px rgba(34, 197, 94, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
-        }
-
-        .call-name { 
-            font-size: 1.8rem; 
-            font-weight: bold; 
-            margin-bottom: 10px; 
-            color: white; 
-        }
-
-        .call-status { 
-            font-size: 1.2rem; 
-            color: #a0aec0; 
-            margin-bottom: 50px; 
-            letter-spacing: 2px;
-        }
-        
+        .call-screen-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.98); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: 0.3s; backdrop-filter: blur(10px); }
+        .call-screen-overlay.active { opacity: 1; visibility: visible; }
+        .call-avatar { width: 120px; height: 120px; background: linear-gradient(135deg, #22c55e, #15803d); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 3.5rem; margin-bottom: 30px; animation: pulse-avatar 1.5s infinite; box-shadow: 0 0 20px rgba(34, 197, 94, 0.5); }
+        @keyframes pulse-avatar { 0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); } 70% { box-shadow: 0 0 0 25px rgba(34, 197, 94, 0); } 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); } }
+        .call-name { font-size: 1.8rem; font-weight: bold; margin-bottom: 10px; color: white; }
+        .call-status { font-size: 1.2rem; color: #a0aec0; margin-bottom: 50px; }
         .call-actions { display: flex; gap: 30px; }
-
-        .btn-end-call { 
-            background: #ef4444; color: white; border: none; 
-            width: 70px; height: 70px; border-radius: 50%; 
-            font-size: 1.8rem; cursor: pointer;
-            box-shadow: 0 10px 20px rgba(239, 68, 68, 0.4);
-            transition: transform 0.2s;
-        }
-        
-        .btn-end-call:active { transform: scale(0.9); }
-
-        .btn-answer-call { 
-            background: #22c55e; color: white; border: none; 
-            width: 70px; height: 70px; border-radius: 50%; 
-            font-size: 1.8rem; cursor: pointer; display: none; 
-            box-shadow: 0 10px 20px rgba(34, 197, 94, 0.4);
-            animation: bounce 1s infinite;
-        }
-
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
+        .btn-end-call { background: #ef4444; color: white; border: none; width: 70px; height: 70px; border-radius: 50%; font-size: 1.8rem; cursor: pointer; box-shadow: 0 10px 20px rgba(239, 68, 68, 0.4); }
+        .btn-answer-call { background: #22c55e; color: white; border: none; width: 70px; height: 70px; border-radius: 50%; font-size: 1.8rem; cursor: pointer; display: none; box-shadow: 0 10px 20px rgba(34, 197, 94, 0.4); }
     </style>
 </head>
 <body>
 
-    <!-- نافذة التنبيهات المنبثقة -->
+    <!-- نوافذ التنبيهات -->
     <div id="customModalOverlay" class="custom-modal-overlay">
         <div class="custom-modal">
             <h3 id="modalTitle">تنبيه النظام</h3>
@@ -502,17 +89,15 @@
         </div>
     </div>
 
-    <!-- شاشة الاتصال الصوتي الحقيقية للفني -->
+    <!-- شاشة الاتصال الصوتي -->
     <div id="callScreen" class="call-screen-overlay">
         <div class="call-avatar">👤</div>
         <div class="call-name" id="callTargetName">العميل</div>
         <div class="call-status" id="callStatusText">جاري الاتصال...</div>
-        
         <div class="call-actions">
             <button class="btn-answer-call" id="btnAnswerCall" onclick="answerIncomingCall()">📞</button>
             <button class="btn-end-call" onclick="endCurrentCall()">❌</button>
         </div>
-
         <audio id="remoteAudio" autoplay></audio>
         <audio id="ringtoneAudio" loop src="https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3"></audio>
     </div>
@@ -522,12 +107,11 @@
         <div class="marquee-text" id="announcementText">جاري تحميل التنبيهات...</div>
     </div>
 
-    <!-- شريط التنقل العلوي -->
+    <!-- شريط التنقل -->
     <div class="top-nav">
         <div style="font-size: 0.9rem; font-weight: bold; color: var(--primary-color);">
             🛠 الفني المسؤول: <span id="currentShopName" style="color: #22c55e;">جاري التحميل...</span>
         </div>
-        
         <div class="nav-buttons">
             <select id="countrySelect" class="settings-select" onchange="changeCountry(this.value)">
                 <option value="SA">🇸🇦 السعودية (ر.س)</option>
@@ -535,126 +119,89 @@
                 <option value="AE">🇦🇪 الإمارات (د.إ)</option>
                 <option value="KW">🇰🇼 الكويت (د.ك)</option>
             </select>
-
-            <select id="langSelect" class="settings-select" onchange="changeLanguage(this.value)">
-                <option value="ar">العربية</option>
-                <option value="en">English</option>
-            </select>
-
-            <button class="nav-btn active" onclick="switchTab('add', this)" data-i18n="tabAdd">إضافة</button>
-            <button class="nav-btn" onclick="switchTab('current', this)" data-i18n="tabCurrent">الحالية</button>
-            <button class="nav-btn" onclick="switchTab('delivered', this)" data-i18n="tabDelivered">المسلمة</button>
-            <button class="nav-btn" onclick="switchTab('returned', this)" data-i18n="tabReturned">المسترجعة</button>
-            <button class="nav-btn" onclick="switchTab('reports', this)" data-i18n="tabReports">التقارير</button>
+            <button class="nav-btn active" onclick="switchTab('add', this)">إضافة</button>
+            <button class="nav-btn" onclick="switchTab('current', this)">الحالية</button>
+            <button class="nav-btn" onclick="switchTab('delivered', this)">المسلمة</button>
+            <button class="nav-btn" onclick="switchTab('returned', this)">المسترجعة</button>
+            <button class="nav-btn" onclick="switchTab('reports', this)">التقارير</button>
         </div>
-
-        <button class="logout-btn" onclick="logout()" data-i18n="logoutBtn">خروج</button>
+        <button class="logout-btn" onclick="logout()">خروج</button>
     </div>
 
-    <!-- قسم إضافة جهاز -->
+    <!-- قسم الإضافة -->
     <div id="tab-add" class="section-content active">
         <div class="card">
-            <h2 data-i18n="newDeviceTitle">تسجيل جهاز صيانة جديد</h2>
+            <h2>تسجيل جهاز صيانة جديد</h2>
             <div class="form-grid">
-                <div class="form-group"><label data-i18n="lblClientName">اسم العميل</label><input type="text" id="clientName" placeholder="اسم العميل"></div>
-                <div class="form-group"><label data-i18n="lblPhone">رقم الهاتف</label><input type="text" id="clientPhone" placeholder="05xxxxxxxx"></div>
-                <div class="form-group"><label data-i18n="lblDeviceType">نوع الجهاز</label><input type="text" id="deviceType" placeholder="مثال: آيفون 13"></div>
-                <div class="form-group"><label data-i18n="lblProblem">نوع العطل الأولي</label><input type="text" id="deviceProblem" placeholder="مثال: شاشة مكسورة"></div>
-                <div class="form-group"><label>التكلفة المبدئية (<span class="currencySymbol">ر.س</span>)</label><input type="number" id="deviceCost" placeholder="0"></div>
-                <div class="form-group"><label data-i18n="lblExpectedTime">وقت الاستلام التقريبي</label><input type="datetime-local" id="expectedTime"></div>
-                <div class="form-group"><label data-i18n="lblPassword">كلمة مرور الجهاز (اختياري)</label><input type="text" id="devicePassword" placeholder="الرمز أو النمط"></div>
+                <div class="form-group"><label>اسم العميل</label><input type="text" id="clientName"></div>
+                <div class="form-group"><label>رقم الهاتف</label><input type="text" id="clientPhone"></div>
+                <div class="form-group"><label>نوع الجهاز</label><input type="text" id="deviceType"></div>
+                <div class="form-group"><label>نوع العطل الأولي</label><input type="text" id="deviceProblem"></div>
+                <div class="form-group"><label>التكلفة المبدئية (<span class="currencySymbol">ر.س</span>)</label><input type="number" id="deviceCost"></div>
+                <div class="form-group"><label>وقت الاستلام التقريبي</label><input type="datetime-local" id="expectedTime"></div>
+                <div class="form-group"><label>كلمة مرور الجهاز</label><input type="text" id="devicePassword"></div>
             </div>
-            <div class="form-group" style="margin-bottom: 12px;">
-                <label data-i18n="lblNotes">ملاحظات أولية</label>
-                <textarea id="deviceNotes" placeholder="خدوش، ملحقات..."></textarea>
-            </div>
-            <button class="primary-btn" onclick="addNewDevice()" data-i18n="saveDeviceBtn">حفظ الجهاز وإنشاء التتبع</button>
+            <div class="form-group" style="margin-bottom: 12px;"><label>ملاحظات أولية</label><textarea id="deviceNotes"></textarea></div>
+            <button class="primary-btn" onclick="addNewDevice()">حفظ الجهاز وإنشاء التتبع</button>
         </div>
     </div>
 
     <!-- الأجهزة الحالية -->
     <div id="tab-current" class="section-content">
         <div class="card">
-            <h2 data-i18n="currentDevicesTitle">الأجهزة تحت الفحص والصيانة</h2>
-            <div class="search-filter-bar">
-                <input type="text" id="searchCurrent" placeholder="بحث برقم التتبع، اسم العميل، الهاتف، أو الجهاز..." oninput="renderTables()">
-            </div>
+            <h2>الأجهزة تحت الفحص والصيانة</h2>
+            <div class="search-filter-bar"><input type="text" id="searchCurrent" placeholder="بحث..." oninput="renderTables()"></div>
             <div class="table-responsive">
                 <table id="currentDevicesTable">
                     <thead>
                         <tr>
-                            <th data-i18n="thTrack">التتبع</th>
-                            <th data-i18n="thDate">التاريخ</th>
-                            <th data-i18n="thClient">العميل</th>
-                            <th data-i18n="thPhone">الهاتف</th>
-                            <th data-i18n="thDevice">الجهاز</th>
-                            <th data-i18n="thStatus">الحالة</th>
-                            <th data-i18n="thExpected">الوقت التقريبي</th>
-                            <th data-i18n="thFault">عطل جديد / تنبيهات</th>
-                            <th data-i18n="thCost">التكلفة</th>
-                            <th data-i18n="thActions">الإجراءات</th>
+                            <th>التتبع</th><th>التاريخ</th><th>العميل</th><th>الهاتف</th><th>الجهاز</th><th>الحالة</th><th>الوقت التقريبي</th><th>عطل جديد / تنبيهات</th><th>التكلفة</th><th>الإجراءات</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
                 </table>
             </div>
 
-            <!-- حاوية الشات والاتصال المباشر -->
+            <!-- الشات -->
             <div id="chatSectionContainer" style="display:none;" class="chat-container-card">
                 <div class="chat-header-actions">
                     <span id="activeChatTitle" style="font-size: 0.9rem; color: var(--primary-color); font-weight: 600;">💬 محادثة العميل: -</span>
-                    
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <button class="chat-call-btn" onclick="startAudioCall()">
-                            📞 <span data-i18n="callBtn">اتصال صوتي حقيقي</span>
-                        </button>
-                        <button onclick="closeChatBox()" style="background:none; border:none; color:var(--danger-color); font-size:1rem; cursor:pointer; font-weight:bold;">✕ إغلاق الشات</button>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="chat-call-btn" onclick="startAudioCall()">📞 اتصال صوتي حقيقي</button>
+                        <button onclick="closeChatBox()" style="background:none; border:none; color:var(--danger-color); font-size:1rem; cursor:pointer; font-weight:bold;">✕ إغلاق</button>
                     </div>
                 </div>
-
                 <div class="chat-msgs" id="activeChatMsgsContainer"></div>
                 <div class="chat-input-row">
-                    <input type="text" id="activeChatInput" placeholder="اكتب ردك للعميل هنا (كتابة فقط)..." onkeydown="if(event.key==='Enter') sendTechMsgActive()">
-                    <button class="primary-btn" onclick="sendTechMsgActive()" data-i18n="sendBtn">إرسال</button>
+                    <input type="text" id="activeChatInput" placeholder="اكتب ردك (كتابة فقط)..." onkeydown="if(event.key==='Enter') sendTechMsgActive()">
+                    <button class="primary-btn" onclick="sendTechMsgActive()">إرسال</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- الأجهزة المسلمة -->
+    <!-- المسلمة -->
     <div id="tab-delivered" class="section-content">
         <div class="card">
-            <h2 data-i18n="deliveredDevicesTitle">الأجهزة المسلمة للعملاء</h2>
-            <div class="search-filter-bar">
-                <input type="text" id="searchDelivered" placeholder="بحث في الأجهزة المسلمة..." oninput="renderTables()">
-            </div>
+            <h2>الأجهزة المسلمة للعملاء</h2>
+            <div class="search-filter-bar"><input type="text" id="searchDelivered" placeholder="بحث..." oninput="renderTables()"></div>
             <div class="table-responsive">
                 <table id="deliveredDevicesTable">
-                    <thead>
-                        <tr>
-                            <th data-i18n="thTrack">التتبع</th><th data-i18n="thDate">التاريخ</th><th data-i18n="thClient">العميل</th><th data-i18n="thPhone">الهاتف</th><th data-i18n="thDevice">الجهاز</th><th data-i18n="thStatus">الحالة</th><th data-i18n="thCost">التكلفة</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>التتبع</th><th>التاريخ</th><th>العميل</th><th>الهاتف</th><th>الجهاز</th><th>الحالة</th><th>التكلفة</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- الأجهزة المسترجعة -->
+    <!-- المسترجعة -->
     <div id="tab-returned" class="section-content">
         <div class="card">
-            <h2 data-i18n="returnedDevicesTitle">الأجهزة المسترجعة</h2>
-            <div class="search-filter-bar">
-                <input type="text" id="searchReturned" placeholder="بحث في الأجهزة المسترجعة..." oninput="renderTables()">
-            </div>
+            <h2>الأجهزة المسترجعة</h2>
+            <div class="search-filter-bar"><input type="text" id="searchReturned" placeholder="بحث..." oninput="renderTables()"></div>
             <div class="table-responsive">
                 <table id="returnedDevicesTable">
-                    <thead>
-                        <tr>
-                            <th data-i18n="thTrack">التتبع</th><th data-i18n="thDate">التاريخ</th><th data-i18n="thClient">العميل</th><th data-i18n="thPhone">الهاتف</th><th data-i18n="thDevice">الجهاز</th><th data-i18n="thStatus">الحالة</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>التتبع</th><th>التاريخ</th><th>العميل</th><th>الهاتف</th><th>الجهاز</th><th>الحالة</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
@@ -664,35 +211,27 @@
     <!-- التقارير -->
     <div id="tab-reports" class="section-content">
         <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-                <h2 data-i18n="reportsTitle">تقرير الأجهزة الشامل</h2>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                <h2>تقرير الأجهزة الشامل</h2>
                 <div style="display: flex; gap: 6px;">
-                    <button class="primary-btn" onclick="exportToCSV()" style="background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);">📥 Excel</button>
-                    <button class="primary-btn" onclick="window.print()" data-i18n="printBtn">🖨️ طباعة</button>
+                    <button class="primary-btn" onclick="exportToCSV()" style="background: #15803d;">📥 Excel</button>
+                    <button class="primary-btn" onclick="window.print()">🖨️ طباعة</button>
                 </div>
             </div>
-            <div class="search-filter-bar">
-                <input type="text" id="searchReport" placeholder="بحث في كافة التقارير..." oninput="renderTables()">
-            </div>
+            <div class="search-filter-bar"><input type="text" id="searchReport" placeholder="بحث..." oninput="renderTables()"></div>
             <div class="table-responsive">
                 <table id="reportTable">
-                    <thead>
-                        <tr>
-                            <th data-i18n="thTrack">التتبع</th><th data-i18n="thDate">التاريخ</th><th data-i18n="thClient">العميل</th><th data-i18n="thPhone">الهاتف</th><th data-i18n="thDevice">الجهاز</th><th data-i18n="thStatus">الحالة</th><th data-i18n="thCost">التكلفة</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>التتبع</th><th>التاريخ</th><th>العميل</th><th>الهاتف</th><th>الجهاز</th><th>الحالة</th><th>التكلفة</th></tr></thead>
                     <tbody id="reportTableBody"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- رسالة تنبيه سريعة -->
     <div id="toast" class="toast">تم الحفظ بنجاح!</div>
 
-    <!-- الأكواد البرمجية بالكامل -->
+    <!-- الأكواد البرمجية -->
     <script>
-        // إعدادات Supabase
         const SUPABASE_URL = 'https://vvxkxmktkxawptbrqtut.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2eGt4bWt0a3hhd3B0YnJxdHV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0NDY2MTcsImV4cCI6MjEwNjAyMjYxN30.NkqXPEpMf6VFE3nFQ1V7T5HyjfoxIrT_apKh7S6a_14';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -700,55 +239,9 @@
         let devicesList = [];
         let activeChatDeviceIndex = null;
         let currentTechUsername = '';
-
-        // إعدادات اللغة والعملة
-        let currentLang = localStorage.getItem('app_lang') || 'ar';
         let currentCurrency = localStorage.getItem('app_currency') || 'ر.س';
-        let currentCountry = localStorage.getItem('app_country') || 'SA';
-
-        const translations = {
-            ar: {
-                techDashboardTitle: "لوحة تحكم الفني الاحترافية - إدارة الصيانة",
-                tabAdd: "إضافة", tabCurrent: "الحالية", tabDelivered: "المسلمة", tabReturned: "المسترجعة", tabReports: "التقارير",
-                callBtn: "اتصال مباشر", logoutBtn: "خروج", newDeviceTitle: "تسجيل جهاز صيانة جديد",
-                lblClientName: "اسم العميل", lblPhone: "رقم الهاتف", lblDeviceType: "نوع الجهاز",
-                lblProblem: "نوع العطل الأولي", lblExpectedTime: "وقت الاستلام التقريبي",
-                lblPassword: "كلمة مرور الجهاز (اختياري)", lblNotes: "ملاحظات أولية", saveDeviceBtn: "حفظ الجهاز وإنشاء التتبع",
-                currentDevicesTitle: "الأجهزة تحت الفحص والصيانة", deliveredDevicesTitle: "الأجهزة المسلمة للعملاء",
-                returnedDevicesTitle: "الأجهزة المسترجعة", reportsTitle: "تقرير الأجهزة الشامل",
-                printBtn: "طباعة", sendBtn: "إرسال", thTrack: "التتبع", thDate: "التاريخ",
-                thClient: "العميل", thPhone: "الهاتف", thDevice: "الجهاز", thStatus: "الحالة",
-                thExpected: "الوقت التقريبي", thFault: "عطل جديد / تنبيهات", thCost: "التكلفة", thActions: "الإجراءات"
-            },
-            en: {
-                techDashboardTitle: "Professional Technician Dashboard - Maintenance Management",
-                tabAdd: "Add", tabCurrent: "Current", tabDelivered: "Delivered", tabReturned: "Returned", tabReports: "Reports",
-                callBtn: "Voice Call", logoutBtn: "Logout", newDeviceTitle: "Register New Maintenance Device",
-                lblClientName: "Client Name", lblPhone: "Phone Number", lblDeviceType: "Device Type",
-                lblProblem: "Initial Problem", lblExpectedTime: "Estimated Delivery Time",
-                lblPassword: "Device Password (Optional)", lblNotes: "Initial Notes", saveDeviceBtn: "Save Device & Create Tracking",
-                currentDevicesTitle: "Devices Under Inspection & Maintenance", deliveredDevicesTitle: "Devices Delivered to Clients",
-                returnedDevicesTitle: "Returned Devices", reportsTitle: "Comprehensive Devices Report",
-                printBtn: "Print", sendBtn: "Send", thTrack: "Tracking", thDate: "Date",
-                thClient: "Client", thPhone: "Phone", thDevice: "Device", thStatus: "Status",
-                thExpected: "Est. Time", thFault: "New Fault / Alerts", thCost: "Cost", thActions: "Actions"
-            }
-        };
-
-        function changeLanguage(lang) {
-            currentLang = lang;
-            localStorage.setItem('app_lang', lang);
-            document.getElementById('htmlRoot').setAttribute('lang', lang);
-            document.getElementById('htmlRoot').setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
-            document.querySelectorAll('[data-i18n]').forEach(el => {
-                let key = el.getAttribute('data-i18n');
-                if (translations[lang][key]) el.innerText = translations[lang][key];
-            });
-        }
 
         function changeCountry(countryCode) {
-            currentCountry = countryCode;
-            localStorage.setItem('app_country', countryCode);
             if (countryCode === 'SA') currentCurrency = 'ر.س';
             else if (countryCode === 'EG') currentCurrency = 'ج.م';
             else if (countryCode === 'AE') currentCurrency = 'د.إ';
@@ -761,9 +254,8 @@
         function switchTab(tabId, btnElement) {
             document.querySelectorAll('.section-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-            let targetContent = document.getElementById('tab-' + tabId);
-            if (targetContent) targetContent.classList.add('active');
-            if (btnElement) btnElement.classList.add('active');
+            document.getElementById('tab-' + tabId).classList.add('active');
+            btnElement.classList.add('active');
         }
 
         function showCustomAlert(title, message, callback) {
@@ -799,193 +291,104 @@
 
         function showToast(message) {
             let toast = document.getElementById('toast');
-            toast.innerText = message;
-            toast.classList.add('show');
+            toast.innerText = message; toast.classList.add('show');
             setTimeout(() => { toast.classList.remove('show'); }, 3000);
         }
 
-        function logout() { 
-            localStorage.clear();
-            window.location.href = 'login.html'; 
-        }
+        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+        function formatDate(ds) { try { let d = new Date(ds); return isNaN(d.getTime()) ? ds.slice(0,10) : d.toISOString().slice(0,10); } catch(e) { return '-'; } }
 
-        function formatDate(dateString) {
-            if (!dateString) return '-';
-            try {
-                let d = new Date(dateString);
-                if (isNaN(d.getTime())) return dateString.slice(0, 10);
-                return d.toISOString().slice(0, 10);
-            } catch (e) { return '-'; }
-        }
-
-        // ========================================================
-        // نظام الاتصال الصوتي الحقيقي للفني (WebRTC / PeerJS)
-        // ========================================================
+        // =====================================
+        // نظام الاتصال الصوتي (PeerJS)
+        // =====================================
         let myPeer = null;
         let currentCall = null;
         let localStream = null;
         let callTimerInterval = null;
         let callSeconds = 0;
 
-        // تهيئة هوية الفني على السيرفر
         function initVoiceCallSystem(techName) {
             if(myPeer) myPeer.destroy();
-
             let techId = 'alhawary_tech_' + techName;
             myPeer = new Peer(techId);
-
-            myPeer.on('open', (id) => {
-                console.log('Tech Voice System Ready. ID:', id);
-            });
-
-            // لما العميل يتصل بالفني (استقبال مكالمة)
             myPeer.on('call', (call) => {
                 currentCall = call;
-                
-                // إظهار شاشة الاتصال وتغيير النصوص للرد
                 document.getElementById('callScreen').classList.add('active');
                 document.getElementById('callTargetName').innerText = 'مكالمة من العميل';
                 document.getElementById('callStatusText').innerText = 'مكالمة واردة...';
                 document.getElementById('btnAnswerCall').style.display = 'block';
-                
                 document.getElementById('ringtoneAudio').play();
             });
         }
 
-        // بدء اتصال من الفني للعميل
         async function startAudioCall() {
             if (activeChatDeviceIndex === null) return;
             let dev = devicesList[activeChatDeviceIndex];
-            
             try {
-                // طلب فتح المايك
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-                
-                // إظهار شاشة الاتصال
                 document.getElementById('callScreen').classList.add('active');
                 document.getElementById('callTargetName').innerText = dev.customer_name;
                 document.getElementById('callStatusText').innerText = 'جاري الاتصال...';
                 document.getElementById('btnAnswerCall').style.display = 'none';
-
-                // الاتصال بهوية العميل (رقم التتبع)
                 let clientId = 'alhawary_client_' + dev.tracking_number;
                 currentCall = myPeer.call(clientId, localStream);
-
                 handleCallEvents(currentCall);
-
-                // إرسال إشارة للعميل عبر الداتابيز لفتح الشاشة
+                
+                // إشارة للعميل لفتح شاشته (مخفية من الشات)
                 let chatArr = dev.chat ? [...dev.chat] : [];
-                chatArr.push({
-                    sender: 'tech',
-                    text: 'call_signal',
-                    time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                    isCall: true,
-                    callStatus: 'ringing',
-                    read: false
-                });
+                chatArr.push({ sender: 'tech', text: 'call_signal', time: new Date().toLocaleTimeString(), isCall: true, callStatus: 'ringing', read: false });
                 await _supabase.from('devices').update({ chat: chatArr }).eq('id', dev.id);
-
             } catch (err) {
-                console.error("Mic error:", err);
-                showCustomAlert('خطأ', 'يرجى السماح بصلاحية استخدام المايكروفون من إعدادات المتصفح.');
+                showCustomAlert('خطأ', 'يرجى السماح بصلاحية المايكروفون.');
             }
         }
 
-        // رد الفني على مكالمة العميل
         async function answerIncomingCall() {
             document.getElementById('ringtoneAudio').pause();
             document.getElementById('btnAnswerCall').style.display = 'none';
-            
             try {
-                // فتح المايك للرد
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-                
-                // الرد الفعلي
                 currentCall.answer(localStream);
-                
                 handleCallEvents(currentCall);
-
-                // إرسال إشارة للعميل للرد
                 if (activeChatDeviceIndex !== null) {
                     let dev = devicesList[activeChatDeviceIndex];
                     let chatArr = dev.chat ? [...dev.chat] : [];
-                    chatArr.push({
-                        sender: 'tech',
-                        text: 'call_signal',
-                        time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                        isCall: true,
-                        callStatus: 'answered',
-                        read: false
-                    });
+                    chatArr.push({ sender: 'tech', text: 'call_signal', time: new Date().toLocaleTimeString(), isCall: true, callStatus: 'answered', read: false });
                     await _supabase.from('devices').update({ chat: chatArr }).eq('id', dev.id);
                 }
-
             } catch (err) {
-                showCustomAlert('خطأ', 'لا يمكن الرد على المكالمة بدون السماح للميكروفون.');
-                endCurrentCall();
+                showCustomAlert('خطأ', 'لا يمكن الرد بدون المايكروفون.'); endCurrentCall();
             }
         }
 
-        // معالجة تدفق الصوت والاتصال
         function handleCallEvents(call) {
             call.on('stream', (remoteStream) => {
-                // إيقاف الرنة لو شغالة
                 document.getElementById('ringtoneAudio').pause();
-                
-                // تشغيل صوت الطرف التاني وبدء العداد
                 let remoteAudio = document.getElementById('remoteAudio');
-                remoteAudio.srcObject = remoteStream;
-                remoteAudio.play();
-                
+                remoteAudio.srcObject = remoteStream; remoteAudio.play();
                 startCallTimer();
             });
-
-            call.on('close', () => {
-                endCurrentCall(false);
-            });
-            
-            call.on('error', (err) => {
-                endCurrentCall(false);
-            });
+            call.on('close', () => endCurrentCall(false));
+            call.on('error', () => endCurrentCall(false));
         }
 
-        // إنهاء المكالمة
         async function endCurrentCall(isLocalAction = true) {
             document.getElementById('ringtoneAudio').pause();
-            
-            if(currentCall && isLocalAction) {
-                currentCall.close();
-            }
-            
-            if(localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-            }
-
-            // إرسال إشارة إلغاء للعميل لغلق الشاشة
+            if(currentCall && isLocalAction) currentCall.close();
+            if(localStream) localStream.getTracks().forEach(track => track.stop());
             if (isLocalAction && activeChatDeviceIndex !== null) {
                 let dev = devicesList[activeChatDeviceIndex];
                 let chatArr = dev.chat ? [...dev.chat] : [];
-                chatArr.push({
-                    sender: 'tech',
-                    text: 'call_signal',
-                    time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                    isCall: true,
-                    callStatus: 'canceled',
-                    read: false
-                });
+                chatArr.push({ sender: 'tech', text: 'call_signal', time: new Date().toLocaleTimeString(), isCall: true, callStatus: 'canceled', read: false });
                 await _supabase.from('devices').update({ chat: chatArr }).eq('id', dev.id);
             }
-
             stopCallTimer();
             document.getElementById('callScreen').classList.remove('active');
-            document.getElementById('remoteAudio').srcObject = null;
-            currentCall = null;
+            document.getElementById('remoteAudio').srcObject = null; currentCall = null;
         }
 
-        // عداد ثواني المكالمة
         function startCallTimer() {
-            callSeconds = 0;
-            document.getElementById('callStatusText').innerText = '00:00';
+            callSeconds = 0; document.getElementById('callStatusText').innerText = '00:00';
             clearInterval(callTimerInterval);
             callTimerInterval = setInterval(() => {
                 callSeconds++;
@@ -994,27 +397,14 @@
                 document.getElementById('callStatusText').innerText = `${m}:${s}`;
             }, 1000);
         }
+        function stopCallTimer() { clearInterval(callTimerInterval); }
 
-        function stopCallTimer() {
-            clearInterval(callTimerInterval);
-        }
-        // ========================================================
-        // نهاية أكواد الاتصال الصوتي الحقيقي
-        // ========================================================
-
-        async function loadAnnouncements() {
-            try {
-                let { data, error } = await _supabase.from('ads').select('title').limit(1).single();
-                if (!error && data && data.title) {
-                    document.getElementById('announcementText').innerText = data.title;
-                } else {
-                    document.getElementById('announcementText').innerText = '🌟 أهلاً بكم في نظام إدارة الصيانة - لوحة تحكم الفني الاحترافية';
-                }
-            } catch (error) {}
-        }
-
+        // =====================================
+        // نظام التهيئة وجلب البيانات
+        // =====================================
         async function initPageDirectly() {
             try {
+                // محاولة جلب اليوزر نيم من كل الأماكن الممكنة عشان المشكلة اللي في الصورة
                 const urlParams = new URLSearchParams(window.location.search);
                 let userQuery = urlParams.get('user') || urlParams.get('username') || localStorage.getItem('currentUser') || localStorage.getItem('username');
                 
@@ -1027,135 +417,52 @@
                 let shopNameEl = document.getElementById('currentShopName');
                 if (shopNameEl) shopNameEl.innerText = currentTechUsername;
 
-                document.getElementById('langSelect').value = currentLang;
-                document.getElementById('countrySelect').value = currentCountry;
-                changeLanguage(currentLang);
-                changeCountry(currentCountry);
-
-                await loadAnnouncements();
-                await checkAccountStatusAutomatically();
-                
-                // تهيئة هوية الفني للاتصالات الصوتية
                 initVoiceCallSystem(currentTechUsername);
 
+                let { data } = await _supabase.from('ads').select('title').limit(1).single();
+                if(data) document.getElementById('announcementText').innerText = data.title;
+
                 await loadData(true); 
-                
-                // الفحص المباشر (الـ Polling) كل 3 ثواني
                 setInterval(() => { loadData(false); }, 3000); 
-            } catch (error) {}
+            } catch (error) { console.error(error); }
         }
 
-        window.addEventListener('DOMContentLoaded', () => {
-            initPageDirectly();
-            setInterval(checkAccountStatusAutomatically, 60000);
-        });
-
-        async function checkAccountStatusAutomatically() {
-            if (!currentTechUsername) return;
-            try {
-                let { data, error } = await _supabase.from('technicians').select('is_active, expiry_date').eq('username', currentTechUsername).single();
-                if (error || !data) return;
-                if (data.is_active === false) {
-                    showCustomAlert('تنبيه هام', 'تم إيقاف حسابك من قبل الإدارة.', () => logout());
-                }
-                if (data.expiry_date && new Date(data.expiry_date) < new Date()) {
-                    showCustomAlert('تنبيه هام', 'انتهت صلاحية اشتراكك. الرجاء تجديد الاشتراك.', () => logout());
-                }
-            } catch (err) {}
-        }
+        window.addEventListener('DOMContentLoaded', initPageDirectly);
 
         async function addNewDevice() {
-            let name = document.getElementById('clientName').value.trim();
-            let phone = document.getElementById('clientPhone').value.trim();
-            let device = document.getElementById('deviceType').value.trim();
-            let problem = document.getElementById('deviceProblem').value.trim();
-            let cost = document.getElementById('deviceCost').value.trim();
-            let expectedTime = document.getElementById('expectedTime').value;
-            let password = document.getElementById('devicePassword').value.trim();
-            let notes = document.getElementById('deviceNotes').value.trim();
-
-            if(!name || !phone || !device) {
-                showCustomAlert('بيانات ناقصة', 'الرجاء إدخال البيانات الأساسية (الاسم، الهاتف، الجهاز)');
-                return;
-            }
-
+            let name = document.getElementById('clientName').value.trim(), phone = document.getElementById('clientPhone').value.trim(), device = document.getElementById('deviceType').value.trim(), problem = document.getElementById('deviceProblem').value.trim(), cost = document.getElementById('deviceCost').value.trim(), expectedTime = document.getElementById('expectedTime').value, password = document.getElementById('devicePassword').value.trim(), notes = document.getElementById('deviceNotes').value.trim();
+            if(!name || !phone || !device) { showCustomAlert('ناقص', 'أدخل الاسم، الهاتف، الجهاز'); return; }
             let trackCode = 'TRK-' + Math.floor(100000000 + Math.random() * 900000000);
-            let newDev = {
-                tracking_number: trackCode,
-                customer_name: name,
-                phone: phone,
-                device_name: device,
-                problem: problem,
-                new_fault: '',
-                cost: cost || '0',
-                expected_time: expectedTime || null,
-                device_password: password,
-                details: notes,
-                status: 'جاري الفحص الفني',
-                chat: [],
-                technician: currentTechUsername
-            };
-
+            let newDev = { tracking_number: trackCode, customer_name: name, phone: phone, device_name: device, problem: problem, new_fault: '', cost: cost || '0', expected_time: expectedTime || null, device_password: password, details: notes, status: 'جاري الفحص الفني', chat: [], technician: currentTechUsername };
             try {
-                let { error } = await _supabase.from('devices').insert([newDev]);
-                if (error) {
-                    showCustomAlert('خطأ', 'فشل حفظ الجهاز: ' + error.message);
-                    return;
-                }
-
-                showToast('تم تسجيل الجهاز برقم التتبع: ' + trackCode);
-                
-                document.getElementById('clientName').value = '';
-                document.getElementById('clientPhone').value = '';
-                document.getElementById('deviceType').value = '';
-                document.getElementById('deviceProblem').value = '';
-                document.getElementById('deviceCost').value = '';
-                document.getElementById('expectedTime').value = '';
-                document.getElementById('devicePassword').value = '';
-                document.getElementById('deviceNotes').value = '';
-                
-                await loadData(true);
-                switchTab('current', document.querySelectorAll('.nav-btn')[1]);
+                await _supabase.from('devices').insert([newDev]); showToast('تم الحفظ: ' + trackCode);
+                document.getElementById('clientName').value = ''; document.getElementById('clientPhone').value = ''; document.getElementById('deviceType').value = ''; document.getElementById('deviceProblem').value = ''; document.getElementById('deviceCost').value = ''; document.getElementById('deviceNotes').value = '';
+                await loadData(true); switchTab('current', document.querySelectorAll('.nav-btn')[1]);
             } catch (err) {}
         }
 
-        // ==========================================
-        // تعديل جبار: حل مشكلة الكيبورد اللي بيقفل
-        // ==========================================
+        // =====================================
+        // حل مشكلة الكيبورد نهائياً
+        // =====================================
         async function loadData(isInitial = false) {
             if (!currentTechUsername) return;
-
             try {
-                let { data, error } = await _supabase
-                    .from('devices')
-                    .select('*')
-                    .eq('technician', currentTechUsername)
-                    .order('id', { ascending: false });
-
-                if (error) return;
-
-                // تحديث البيانات في الخلفية دايماً
+                let { data } = await _supabase.from('devices').select('*').eq('technician', currentTechUsername).order('id', { ascending: false });
                 devicesList = data || [];
                 
-                // فحص هل الفني دايس على خانة بيكتب فيها حالاً؟
+                // فحص هل إنت دايس على خانة إدخال جوه الجدول؟
                 let activeEl = document.activeElement;
-                let isUserTypingInTable = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'SELECT');
+                let isUserTypingInTable = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'SELECT') && activeEl.id !== 'activeChatInput';
 
-                // لو مش بيكتب حاجة، نحدث شكل الجدول عشان الكيبورد مايقفلش
+                // لا تقم بتحديث الجدول لو أنت بتكتب فيه عشان الكيبورد ميفصلش
                 if (isInitial || !isUserTypingInTable) {
                     renderTables();
                 }
 
-                // تحديث الشات لو مفتوح (مابيقفلش الكيبورد لأن خانة الشات برا الجدول)
                 if (activeChatDeviceIndex !== null) {
                     let currentDevId = devicesList[activeChatDeviceIndex]?.id;
                     let idx = devicesList.findIndex(d => d.id === currentDevId);
-                    if (idx !== -1) {
-                        activeChatDeviceIndex = idx;
-                        renderActiveChatMessages();
-                    } else { 
-                        closeChatBox(); 
-                    }
+                    if (idx !== -1) { activeChatDeviceIndex = idx; renderActiveChatMessages(); } else { closeChatBox(); }
                 }
             } catch (error) {}
         }
@@ -1165,31 +472,816 @@
             let deliveredTbody = document.querySelector('#deliveredDevicesTable tbody');
             let returnedTbody = document.querySelector('#returnedDevicesTable tbody');
             let reportTbody = document.getElementById('reportTableBody');
-            
             if (!currentTbody) return;
-
-            currentTbody.innerHTML = ''; deliveredTbody.innerHTML = '';
-            returnedTbody.innerHTML = ''; reportTbody.innerHTML = '';
+            currentTbody.innerHTML = ''; deliveredTbody.innerHTML = ''; returnedTbody.innerHTML = ''; reportTbody.innerHTML = '';
 
             let sCurrent = (document.getElementById('searchCurrent')?.value || '').toLowerCase();
             let sDelivered = (document.getElementById('searchDelivered')?.value || '').toLowerCase();
             let sReturned = (document.getElementById('searchReturned')?.value || '').toLowerCase();
-            let sReport = (document.getElementById('searchReport')?.value || '').toLowerCase();
 
             devicesList.forEach((d, index) => {
                 let statusVal = d.status || 'جاري الفحص الفني';
-                let isDelivered = statusVal.includes('تم تسليم الجهاز للعميل');
-                let isReturnedOnly = statusVal.includes('مسترجع');
-                
-                // تحديد عدد الرسايل الغير مقروءة (مع تجاهل إشارات المكالمات المخفية)
+                let isDelivered = statusVal.includes('تسليم'); let isReturnedOnly = statusVal.includes('مسترجع');
                 let unread = (d.chat || []).some(m => m.sender === 'client' && !m.readByTech && !m.isCall);
-                
                 let devDate = formatDate(d.created_at);
                 let searchableText = `${d.tracking_number} ${d.customer_name} ${d.phone} ${d.device_name} ${statusVal} ${devDate}`.toLowerCase();
 
-                // التقرير الشامل
-                if (!sReport || searchableText.includes(sReport)) {
-                    reportTbody.innerHTML += `
-                        <tr>
-                            <td><b>${d.tracking_number}</b></td><td>${devDate}</td><td>${d.customer_name}</td>
+                reportTbody.innerHTML += `<tr><td><b>${d.tracking_number}</b></td><td>${devDate}</td><td>${d.customer_name}</td><td>${d.phone}</td><td>${d.device_name}</td><td>${statusVal}</td><td>${d.cost} ${currentCurrency}</td></tr>`;
+
+                if(isReturnedOnly) {
+                    if (!sReturned || searchableText.includes(sReturned)) returnedTbody.innerHTML += `<tr><td><b>${d.tracking_number}</b></td><td>${devDate}</td><td>${d.customer_name}</td><td>${d.phone}</td><td>${d.device_name}</td><td>${statusVal}</td></tr>`;
+                } else if(isDelivered) {
+                    if (!sDelivered || searchableText.includes(sDelivered)) deliveredTbody.innerHTML += `<tr><td><b>${d.tracking_number}</b></td><td>${devDate}</td><td>${d.customer_name}</td><td>${d.phone}</td><td>${d.device_name}</td><td>${statusVal}</td><td>${d.cost} ${currentCurrency}</td></tr>`;
+                } else {
+                    if (!sCurrent || searchableText.includes(sCurrent)) {
+                        currentTbody.innerHTML += `
+                            <tr>
+                                <td><b>${d.tracking_number}</b></td><td>${devDate}</td><td>${d.customer_name}</td><td>${d.phone}</td><td>${d.device_name}</td>
+                                <td>
+                                    <select class="status-select" onchange="confirmAndUpdateStatus(${index}, this)">
+                                        <option value="جاري الفحص الفني" ${statusVal==='جاري الفحص الفني'?'selected':''}>🔍 فحص</option>
+                                        <option value="جاري الإصلاح" ${statusVal==='جاري الإصلاح'?'selected':''}>⚙️ إصلاح</option>
+                                        <option value="بانتظار موافقة العميل على التكلفة" ${statusVal.includes('بانتظار')?'selected':''}>⏳ انتظار</option>
+                                        <option value="جاهز للاستلام" ${statusVal==='جاهز للاستلام'?'selected':''}>✅ جاهز</option>
+                                        <option value="تم تسليم الجهاز للعميل" ${statusVal==='تم تسليم الجهاز للعميل'?'selected':''}>📦 تسليم</option>
+                                        <option value="مسترجع" ${statusVal==='مسترجع'?'selected':''}>🔄 مسترجع</option>
+                                    </select>
+                                </td>
+                                <td><input type="datetime-local" value="${d.expected_time || ''}" style="padding:4px; border-radius:6px; background:rgba(15,23,42,0.8); color:#fff; border:1px solid var(--border-color); font-size:0.7rem;" onchange="updateExpectedTime(${index}, this.value)"></td>
+                                <td><div style="display:flex;gap:4px;align-items:center;justify-content:center;"><input type="text" id="faultInput-${index}" value="${d.new_fault || ''}" placeholder="عطل..." style="padding:4px; width:75px; border-radius:6px; background:rgba(15,23,42,0.8); color:#fff; border:1px solid var(--border-color); font-size:0.75rem;"><button class="action-btn" onclick="sendFaultAndCost(${index})" style="background:var(--success-color); color:#fff; border:none; padding:4px 6px;">إرسال</button></div></td>
+                                <td><input type="text" value="${d.cost}" style="width:55px; text-align:center; padding:4px; border-radius:6px; background:rgba(15,23,42,0.8); color:#fff; border:1px solid var(--border-color); font-size:0.75rem;" onchange="updateCost(${index}, this.value)"></td>
+                                <td><button class="action-btn" onclick="openChatBox(${index})" style="background:${activeChatDeviceIndex === index ? 'var(--primary-color)' : ''}; color:${activeChatDeviceIndex === index ? '#0f172a' : ''};">💬 ${unread ? '🔴' : ''} شات</button> <button class="action-btn" onclick="editDetails(${index})">📝 ملاحظات</button></td>
+                            </tr>
+                        `;
+                    }
+                }
+            });
+        }
+
+        async function confirmAndUpdateStatus(index, selectElement) {
+            let newStatus = selectElement.value; let dev = devicesList[index]; let oldStatus = dev.status;
+            showCustomConfirm('تأكيد', `تغيير حالة الجهاز؟`, async (confirmed) => {
+                if (confirmed) {
+                    await _supabase.from('devices').update({ status: newStatus }).eq('id', dev.id);
+                    showToast('تم التحديث'); await loadData(true);
+                } else { selectElement.value = oldStatus; }
+            });
+        }
+
+        async function sendFaultAndCost(index) {
+            let dev = devicesList[index]; let faultVal = document.getElementById('faultInput-' + index).value.trim();
+            if(!faultVal) return;
+            await _supabase.from('devices').update({ new_fault: faultVal, status: 'بانتظار موافقة العميل على التكلفة' }).eq('id', dev.id);
+            showToast('تم الإرسال'); await loadData(true);
+        }
+        async function updateCost(index, newCost) { await _supabase.from('devices').update({ cost: newCost }).eq('id', devicesList[index].id); }
+        async function updateExpectedTime(index, newTime) { await _supabase.from('devices').update({ expected_time: newTime }).eq('id', devicesList[index].id); }
+        async function editDetails(index) { let newDet = prompt('ملاحظات:', devicesList[index].details || ''); if(newDet !== null) { await _supabase.from('devices').update({ details: newDet }).eq('id', devicesList[index].id); await loadData(true); } }
+
+        function openChatBox(index) { activeChatDeviceIndex = index; document.getElementById('chatSectionContainer').style.display = 'block'; renderActiveChatMessages(); renderTables(); }
+        function closeChatBox() { activeChatDeviceIndex = null; document.getElementById('chatSectionContainer').style.display = 'none'; renderTables(); }
+
+        // =====================================
+        // إخفاء رسايل المكالمات من الشات نهائياً
+        // =====================================
+        async function renderActiveChatMessages() {
+            if(activeChatDeviceIndex === null) return;
+            let dev = devicesList[activeChatDeviceIndex];
+            document.getElementById('activeChatTitle').innerHTML = `💬 محادثة العميل: <span style="color:#fff;">${dev.customer_name}</span>`;
+            let container = document.getElementById('activeChatMsgsContainer');
+            let isScrolled = container.scrollHeight - container.clientHeight <= container.scrollTop + 50;
+            container.innerHTML = '';
+            let chatArr = dev.chat || []; let unreadIds = [];
             
+            // فلترة الرسائل (عرض النصية فقط)
+            let validMessages = chatArr.filter(m => !m.isCall);
+            
+            if(validMessages.length === 0) {
+                container.innerHTML = '<div style="color:var(--text-muted); text-align:center; margin-top:20px;">الشات للكتابة فقط.</div>';
+            } else {
+                validMessages.forEach((m, idx) => {
+                    let msgClass = m.sender === 'tech' ? 'chat-msg-tech' : 'chat-msg-client';
+                    let senderLabel = m.sender === 'tech' ? '🛠️ أنت:' : '👤 العميل:';
+                    if(m.sender === 'client' && !m.readByTech) { m.readByTech = true; unreadIds.push(idx); }
+                    let readStatus = m.sender === 'tech' ? (m.read ? `<span style="color:#00f2fe;font-size:0.7rem;">✓✓</span>` : `<span style="color:#a0aec0;font-size:0.65rem;">✓</span>`) : '';
+                    container.innerHTML += `<div class="chat-msg-item ${msgClass}"><div style="font-weight:bold;margin-bottom:4px;">${senderLabel}</div><div>${m.text}</div><div style="font-size:0.65rem;margin-top:5px;display:flex;justify-content:space-between;"><span>${m.time}</span> ${readStatus}</div></div>`;
+                });
+            }
+            if(isScrolled) container.scrollTop = container.scrollHeight;
+            if(unreadIds.length > 0) {
+                let updatedChatArr = chatArr.map(m => { if (m.sender === 'client' && !m.readByTech) { return { ...m, readByTech: true }; } return m; });
+                await _supabase.from('devices').update({ chat: updatedChatArr }).eq('id', dev.id);
+            }
+        }
+
+        async function sendTechMsgActive() {
+            if(activeChatDeviceIndex === null) return;
+            let dev = devicesList[activeChatDeviceIndex];
+            let input = document.getElementById('activeChatInput');
+            let text = input.value.trim();
+            if(!text) return;
+            let chatArr = dev.chat ? [...dev.chat] : [];
+            chatArr.push({ sender: 'tech', text: text, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), read: false, readByTech: true, isCall: false });
+            input.value = '';
+            await _supabase.from('devices').update({ chat: chatArr }).eq('id', dev.id);
+            await loadData(true);
+        }
+        function exportToCSV() {}
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" id="htmlRoot">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="techDashboardTitle">لوحة تحكم الفني الاحترافية - إدارة الصيانة</title>
+    
+    <!-- مكتبة Supabase لقاعدة البيانات -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- مكتبة PeerJS للمكالمات الصوتية الحقيقية -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.95);
+            --primary-color: #38bdf8;
+            --primary-hover: #0ea5e9;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.12);
+            --success-color: #22c55e;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --accent-gradient: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        body { 
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); 
+            color: var(--text-color); min-height: 100vh; padding: 10px; 
+        }
+
+        .marquee-container { 
+            width: 100%; background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(2, 132, 199, 0.15) 100%); 
+            border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; overflow: hidden; 
+            padding: 10px 0; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); 
+        }
+
+        .marquee-text { 
+            font-size: 0.95rem; font-weight: 700; color: #38bdf8; white-space: nowrap; 
+            animation: marquee 20s linear infinite; text-shadow: 0 2px 4px rgba(0,0,0,0.4); 
+        }
+
+        @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+
+        .top-nav { 
+            display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); 
+            padding: 12px 15px; border-radius: 14px; border: 1px solid var(--border-color); 
+            margin-bottom: 15px; flex-wrap: wrap; gap: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); 
+        }
+
+        .nav-buttons { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+
+        .nav-btn { 
+            background: rgba(56, 189, 248, 0.08); border: 1px solid var(--border-color); 
+            color: var(--text-color); padding: 7px 12px; border-radius: 8px; cursor: pointer; 
+            font-size: 0.8rem; font-weight: 600; transition: all 0.2s ease; 
+        }
+
+        .nav-btn.active, .nav-btn:hover { background: var(--accent-gradient); color: #0f172a; border-color: transparent; }
+
+        .settings-select { 
+            background: rgba(15, 23, 42, 0.9); color: var(--text-color); border: 1px solid var(--border-color); 
+            padding: 6px 10px; border-radius: 8px; font-size: 0.8rem; outline: none; cursor: pointer; 
+        }
+
+        .logout-btn { 
+            background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger-color); color: var(--danger-color); 
+            padding: 7px 12px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.8rem; 
+        }
+        .logout-btn:hover { background: var(--danger-color); color: white; }
+
+        .section-content { display: none; }
+        .section-content.active { display: block; }
+
+        .card { 
+            background: var(--card-bg); border: 1px solid var(--border-color); padding: 15px; 
+            border-radius: 14px; margin-bottom: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.4); 
+        }
+
+        h2 { font-size: 1.1rem; color: var(--primary-color); margin-bottom: 12px; font-weight: 700; }
+
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 12px; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }
+        .form-group input, .form-group select, .form-group textarea { 
+            width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border-color); 
+            background: rgba(15, 23, 42, 0.8); color: white; font-size: 0.85rem; outline: none; 
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--primary-color); }
+        .form-group textarea { resize: vertical; height: 70px; }
+
+        button.primary-btn { 
+            background: var(--accent-gradient); color: #0f172a; border: none; padding: 9px 18px; 
+            border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.85rem; 
+        }
+
+        .search-filter-bar { margin-bottom: 12px; }
+        .search-filter-bar input { 
+            width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); 
+            background: rgba(15, 23, 42, 0.8); color: white; font-size: 0.85rem; outline: none; 
+        }
+
+        .table-responsive { width: 100%; overflow-x: auto; border-radius: 10px; border: 1px solid var(--border-color); }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; min-width: 650px; }
+        th, td { padding: 10px 12px; text-align: center; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
+        th { background: rgba(56, 189, 248, 0.12); color: var(--primary-color); font-weight: 600; }
+        tr:hover { background: rgba(255, 255, 255, 0.02); }
+
+        .action-btn { 
+            background: rgba(56, 189, 248, 0.1); border: 1px solid var(--border-color); color: var(--text-color); 
+            padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; transition: 0.2s; 
+            display: inline-flex; align-items: center; gap: 3px; 
+        }
+        .action-btn:hover { background: var(--primary-color); color: #0f172a; }
+        .status-select { padding: 5px 8px; border-radius: 6px; background: #0f172a; color: #fff; border: 1px solid var(--border-color); font-size: 0.75rem; outline: none; cursor: pointer; }
+
+        /* الشات */
+        .chat-container-card { background: rgba(15, 23, 42, 0.98); border: 2px solid var(--primary-color); border-radius: 14px; padding: 15px; margin-top: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+        .chat-header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+        .chat-call-btn { background: linear-gradient(135deg, #22c55e, #15803d); color: white; border: none; padding: 6px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 10px rgba(34, 197, 94, 0.3); }
+        .chat-msgs { height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 8px; background: rgba(15, 23, 42, 0.6); border-radius: 8px; border: 1px solid var(--border-color); word-break: break-word; }
+        .chat-msg-item { padding: 8px 12px; border-radius: 10px; max-width: 85%; line-height: 1.4; display: flex; flex-direction: column; }
+        .chat-msg-tech { background: rgba(34, 197, 94, 0.18); border: 1px solid rgba(34, 197, 94, 0.4); align-self: flex-end; color: #86efac; text-align: right; }
+        .chat-msg-client { background: rgba(56, 189, 248, 0.18); border: 1px solid rgba(56, 189, 248, 0.4); align-self: flex-start; color: #bae6fd; text-align: right; }
+        .chat-input-row { display: flex; gap: 8px; align-items: center; width: 100%; margin-top: 10px; }
+        .chat-input-row input { flex: 1; min-width: 0; padding: 10px 12px; font-size: 0.9rem; border-radius: 8px; background: rgba(30, 41, 59, 0.9); border: 1px solid var(--border-color); color: #fff; outline: none; }
+
+        /* التنبيهات */
+        .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 9999; opacity: 0; visibility: hidden; transition: all 0.2s ease; }
+        .custom-modal-overlay.active { opacity: 1; visibility: visible; }
+        .custom-modal { background: #1e293b; border: 1px solid var(--border-color); padding: 20px; border-radius: 14px; width: 85%; max-width: 350px; text-align: center; box-shadow: 0 15px 30px rgba(0,0,0,0.5); }
+        .custom-modal h3 { color: var(--primary-color); margin-bottom: 10px; font-size: 1.1rem; }
+        .custom-modal p { color: var(--text-color); font-size: 0.9rem; margin-bottom: 15px; line-height: 1.5; }
+        .custom-modal-actions { display: flex; gap: 8px; }
+        .modal-btn { padding: 8px 15px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; font-size: 0.85rem; flex: 1; }
+        .modal-btn-confirm { background: var(--accent-gradient); color: #0f172a; }
+        .modal-btn-cancel { background: rgba(255,255,255,0.08); color: var(--text-color); border: 1px solid var(--border-color); }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--success-color); color: white; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; transition: transform 0.3s ease; z-index: 1000; }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+
+        /* شاشة المكالمة الصوتية */
+        .call-screen-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.98); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: 0.3s; backdrop-filter: blur(10px); }
+        .call-screen-overlay.active { opacity: 1; visibility: visible; }
+        .call-avatar { width: 120px; height: 120px; background: linear-gradient(135deg, #22c55e, #15803d); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 3.5rem; margin-bottom: 30px; animation: pulse-avatar 1.5s infinite; box-shadow: 0 0 20px rgba(34, 197, 94, 0.5); }
+        @keyframes pulse-avatar { 0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); } 70% { box-shadow: 0 0 0 25px rgba(34, 197, 94, 0); } 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); } }
+        .call-name { font-size: 1.8rem; font-weight: bold; margin-bottom: 10px; color: white; }
+        .call-status { font-size: 1.2rem; color: #a0aec0; margin-bottom: 50px; letter-spacing: 2px; }
+        .call-actions { display: flex; gap: 30px; }
+        .btn-end-call { background: #ef4444; color: white; border: none; width: 70px; height: 70px; border-radius: 50%; font-size: 1.8rem; cursor: pointer; box-shadow: 0 10px 20px rgba(239, 68, 68, 0.4); transition: transform 0.2s; }
+        .btn-end-call:active { transform: scale(0.9); }
+        .btn-answer-call { background: #22c55e; color: white; border: none; width: 70px; height: 70px; border-radius: 50%; font-size: 1.8rem; cursor: pointer; display: none; box-shadow: 0 10px 20px rgba(34, 197, 94, 0.4); animation: bounce 1s infinite; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    </style>
+</head>
+<body>
+
+    <!-- نافذة التنبيهات المنبثقة -->
+    <div id="customModalOverlay" class="custom-modal-overlay">
+        <div class="custom-modal">
+            <h3 id="modalTitle">تنبيه النظام</h3>
+            <p id="modalMessage">محتوى الرسالة...</p>
+            <div id="modalActions" class="custom-modal-actions">
+                <button class="modal-btn modal-btn-confirm" id="modalConfirmBtn">حسناً</button>
+                <button class="modal-btn modal-btn-cancel" id="modalCancelBtn" style="display:none;">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- شاشة الاتصال الصوتي الحقيقية للفني -->
+    <div id="callScreen" class="call-screen-overlay">
+        <div class="call-avatar">👤</div>
+        <div class="call-name" id="callTargetName">العميل</div>
+        <div class="call-status" id="callStatusText">جاري الاتصال...</div>
+        <div class="call-actions">
+            <button class="btn-answer-call" id="btnAnswerCall" onclick="answerIncomingCall()">📞</button>
+            <button class="btn-end-call" onclick="endCurrentCall()">❌</button>
+        </div>
+        <audio id="remoteAudio" autoplay></audio>
+        <audio id="ringtoneAudio" loop src="https://assets.mixkit.co/active_storage/sfx/2870/2870-preview.mp3"></audio>
+    </div>
+
+    <!-- شريط الإعلانات -->
+    <div class="marquee-container">
+        <div class="marquee-text" id="announcementText">جاري تحميل التنبيهات...</div>
+    </div>
+
+    <!-- شريط التنقل العلوي -->
+    <div class="top-nav">
+        <div style="font-size: 0.9rem; font-weight: bold; color: var(--primary-color);">
+            🛠 الفني المسؤول: <span id="currentShopName" style="color: #22c55e;">جاري التحميل...</span>
+        </div>
+        <div class="nav-buttons">
+            <select id="countrySelect" class="settings-select" onchange="changeCountry(this.value)">
+                <option value="SA">🇸🇦 السعودية (ر.س)</option>
+                <option value="EG">🇪🇬 مصر (ج.م)</option>
+                <option value="AE">🇦🇪 الإمارات (د.إ)</option>
+                <option value="KW">🇰🇼 الكويت (د.ك)</option>
+            </select>
+            <select id="langSelect" class="settings-select" onchange="changeLanguage(this.value)">
+                <option value="ar">العربية</option>
+                <option value="en">English</option>
+            </select>
+            <button class="nav-btn active" onclick="switchTab('add', this)" data-i18n="tabAdd">إضافة</button>
+            <button class="nav-btn" onclick="switchTab('current', this)" data-i18n="tabCurrent">الحالية</button>
+            <button class="nav-btn" onclick="switchTab('delivered', this)" data-i18n="tabDelivered">المسلمة</button>
+            <button class="nav-btn" onclick="switchTab('returned', this)" data-i18n="tabReturned">المسترجعة</button>
+            <button class="nav-btn" onclick="switchTab('reports', this)" data-i18n="tabReports">التقارير</button>
+        </div>
+        <button class="logout-btn" onclick="logout()" data-i18n="logoutBtn">خروج</button>
+    </div>
+
+    <!-- قسم إضافة جهاز -->
+    <div id="tab-add" class="section-content active">
+        <div class="card">
+            <h2 data-i18n="newDeviceTitle">تسجيل جهاز صيانة جديد</h2>
+            <div class="form-grid">
+                <div class="form-group"><label data-i18n="lblClientName">اسم العميل</label><input type="text" id="clientName" placeholder="اسم العميل"></div>
+                <div class="form-group"><label data-i18n="lblPhone">رقم الهاتف</label><input type="text" id="clientPhone" placeholder="05xxxxxxxx"></div>
+                <div class="form-group"><label data-i18n="lblDeviceType">نوع الجهاز</label><input type="text" id="deviceType" placeholder="مثال: آيفون 13"></div>
+                <div class="form-group"><label data-i18n="lblProblem">نوع العطل الأولي</label><input type="text" id="deviceProblem" placeholder="مثال: شاشة مكسورة"></div>
+                <div class="form-group"><label>التكلفة المبدئية (<span class="currencySymbol">ر.س</span>)</label><input type="number" id="deviceCost" placeholder="0"></div>
+                <div class="form-group"><label data-i18n="lblExpectedTime">وقت الاستلام التقريبي</label><input type="datetime-local" id="expectedTime"></div>
+                <div class="form-group"><label data-i18n="lblPassword">كلمة مرور الجهاز (اختياري)</label><input type="text" id="devicePassword" placeholder="الرمز أو النمط"></div>
+            </div>
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label data-i18n="lblNotes">ملاحظات أولية</label>
+                <textarea id="deviceNotes" placeholder="خدوش، ملحقات..."></textarea>
+            </div>
+            <button class="primary-btn" onclick="addNewDevice()" data-i18n="saveDeviceBtn">حفظ الجهاز وإنشاء التتبع</button>
+        </div>
+    </div>
+
+    <!-- الأجهزة الحالية -->
+    <div id="tab-current" class="section-content">
+        <div class="card">
+            <h2 data-i18n="currentDevicesTitle">الأجهزة تحت الفحص والصيانة</h2>
+            <div class="search-filter-bar">
+                <input type="text" id="searchCurrent" placeholder="بحث برقم التتبع، اسم العميل، الهاتف، أو الجهاز..." oninput="renderTables()">
+            </div>
+            <div class="table-responsive">
+                <table id="currentDevicesTable">
+                    <thead>
+                        <tr>
+                            <th data-i18n="thTrack">التتبع</th><th data-i18n="thDate">التاريخ</th><th data-i18n="thClient">العميل</th>
+                            <th data-i18n="thPhone">الهاتف</th><th data-i18n="thDevice">الجهاز</th><th data-i18n="thStatus">الحالة</th>
+                            <th data-i18n="thExpected">الوقت التقريبي</th><th data-i18n="thFault">عطل جديد / تنبيهات</th>
+                            <th data-i18n="thCost">التكلفة</th><th data-i18n="thActions">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <!-- حاوية الشات والاتصال المباشر -->
+            <div id="chatSectionContainer" style="display:none;" class="chat-container-card">
+                <div class="chat-header-actions">
+                    <span id="activeChatTitle" style="font-size: 0.9rem; color: var(--primary-color); font-weight: 600;">💬 محادثة العميل: -</span>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button class="chat-call-btn" onclick="startAudioCall()">📞 <span data-i18n="callBtn">اتصال صوتي حقيقي</span></button>
+                        <button onclick="closeChatBox()" style="background:none; border:none; color:var(--danger-color); font-size:1rem; cursor:pointer; font-weight:bold;">✕ إغلاق الشات</button>
+                    </div>
+                </div>
+                <div class="chat-msgs" id="activeChatMsgsContainer"></div>
+                <div class="chat-input-row">
+                    <input type="text" id="activeChatInput" placeholder="اكتب ردك للعميل هنا (كتابة فقط)..." onkeydown="if(event.key==='Enter') sendTechMsgActive()">
+                    <button class="primary-btn" onclick="sendTechMsgActive()" data-i18n="sendBtn">إرسال</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- الأجهزة المسلمة -->
+    <div id="tab-delivered" class="section-content">
+        <div class="card">
+            <h2 data-i18n="deliveredDevicesTitle">الأجهزة المسلمة للعملاء</h2>
+            <div class="search-filter-bar"><input type="text" id="searchDelivered" placeholder="بحث..." oninput="renderTables()"></div>
+            <div class="table-responsive">
+                <table id="deliveredDevicesTable">
+                    <thead><tr><th data-i18n="thTrack">التتبع</th><th data-i18n="thDate">التاريخ</th><th data-i18n="thClient">العميل</th><th data-i18n="thPhone">الهاتف</th><th data-i18n="thDevice">الجهاز</th><th data-i18n="thStatus">الحالة</th><th data-i18n="thCost">التكلفة</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- الأجهزة المسترجعة -->
+    <div id="tab-returned" class="section-content">
+        <div class="card">
+            <h2 data-i18n="returnedDevicesTitle">الأجهزة المسترجعة</h2>
+            <div class="search-filter-bar"><input type="text" id="searchReturned" placeholder="بحث..." oninput="renderTables()"></div>
+            <div class="table-responsive">
+                <table id="returnedDevicesTable">
+                    <thead><tr><th data-i18n="thTrack">التتبع</th><th data-i18n="thDate">التاريخ</th><th data-i18n="thClient">العميل</th><th data-i18n="thPhone">الهاتف</th><th data-i18n="thDevice">الجهاز</th><th data-i18n="thStatus">الحالة</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- التقارير -->
+    <div id="tab-reports" class="section-content">
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                <h2 data-i18n="reportsTitle">تقرير الأجهزة الشامل</h2>
+                <div style="display: flex; gap: 6px;">
+                    <button class="primary-btn" onclick="exportToCSV()" style="background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);">📥 Excel</button>
+                    <button class="primary-btn" onclick="window.print()" data-i18n="printBtn">🖨️ طباعة</button>
+                </div>
+            </div>
+            <div class="search-filter-bar"><input type="text" id="searchReport" placeholder="بحث..." oninput="renderTables()"></div>
+            <div class="table-responsive">
+                <table id="reportTable">
+                    <thead><tr><th data-i18n="thTrack">التتبع</th><th data-i18n="thDate">التاريخ</th><th data-i18n="thClient">العميل</th><th data-i18n="thPhone">الهاتف</th><th data-i18n="thDevice">الجهاز</th><th data-i18n="thStatus">الحالة</th><th data-i18n="thCost">التكلفة</th></tr></thead>
+                    <tbody id="reportTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- رسالة تنبيه سريعة -->
+    <div id="toast" class="toast">تم الحفظ بنجاح!</div>
+    <!-- الأكواد البرمجية -->
+    <script>
+        const SUPABASE_URL = 'https://vvxkxmktkxawptbrqtut.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2eGt4bWt0a3hhd3B0YnJxdHV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0NDY2MTcsImV4cCI6MjEwNjAyMjYxN30.NkqXPEpMf6VFE3nFQ1V7T5HyjfoxIrT_apKh7S6a_14';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let devicesList = [];
+        let activeChatDeviceIndex = null;
+        let currentTechUsername = '';
+
+        let currentLang = localStorage.getItem('app_lang') || 'ar';
+        let currentCurrency = localStorage.getItem('app_currency') || 'ر.س';
+        let currentCountry = localStorage.getItem('app_country') || 'SA';
+
+        const translations = {
+            ar: {
+                techDashboardTitle: "لوحة تحكم الفني الاحترافية - إدارة الصيانة", tabAdd: "إضافة", tabCurrent: "الحالية", tabDelivered: "المسلمة", tabReturned: "المسترجعة", tabReports: "التقارير", callBtn: "اتصال مباشر", logoutBtn: "خروج", newDeviceTitle: "تسجيل جهاز صيانة جديد", lblClientName: "اسم العميل", lblPhone: "رقم الهاتف", lblDeviceType: "نوع الجهاز", lblProblem: "نوع العطل الأولي", lblExpectedTime: "وقت الاستلام التقريبي", lblPassword: "كلمة مرور الجهاز (اختياري)", lblNotes: "ملاحظات أولية", saveDeviceBtn: "حفظ الجهاز وإنشاء التتبع", currentDevicesTitle: "الأجهزة تحت الفحص والصيانة", deliveredDevicesTitle: "الأجهزة المسلمة للعملاء", returnedDevicesTitle: "الأجهزة المسترجعة", reportsTitle: "تقرير الأجهزة الشامل", printBtn: "طباعة", sendBtn: "إرسال", thTrack: "التتبع", thDate: "التاريخ", thClient: "العميل", thPhone: "الهاتف", thDevice: "الجهاز", thStatus: "الحالة", thExpected: "الوقت التقريبي", thFault: "عطل جديد / تنبيهات", thCost: "التكلفة", thActions: "الإجراءات"
+            },
+            en: {
+                techDashboardTitle: "Professional Technician Dashboard - Maintenance Management", tabAdd: "Add", tabCurrent: "Current", tabDelivered: "Delivered", tabReturned: "Returned", tabReports: "Reports", callBtn: "Voice Call", logoutBtn: "Logout", newDeviceTitle: "Register New Maintenance Device", lblClientName: "Client Name", lblPhone: "Phone Number", lblDeviceType: "Device Type", lblProblem: "Initial Problem", lblExpectedTime: "Estimated Delivery Time", lblPassword: "Device Password (Optional)", lblNotes: "Initial Notes", saveDeviceBtn: "Save Device & Create Tracking", currentDevicesTitle: "Devices Under Inspection & Maintenance", deliveredDevicesTitle: "Devices Delivered to Clients", returnedDevicesTitle: "Returned Devices", reportsTitle: "Comprehensive Devices Report", printBtn: "Print", sendBtn: "Send", thTrack: "Tracking", thDate: "Date", thClient: "Client", thPhone: "Phone", thDevice: "Device", thStatus: "Status", thExpected: "Est. Time", thFault: "New Fault / Alerts", thCost: "Cost", thActions: "Actions"
+            }
+        };
+
+        function changeLanguage(lang) {
+            currentLang = lang; localStorage.setItem('app_lang', lang);
+            document.getElementById('htmlRoot').setAttribute('lang', lang); document.getElementById('htmlRoot').setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                let key = el.getAttribute('data-i18n'); if (translations[lang][key]) el.innerText = translations[lang][key];
+            });
+        }
+
+        function changeCountry(countryCode) {
+            currentCountry = countryCode; localStorage.setItem('app_country', countryCode);
+            if (countryCode === 'SA') currentCurrency = 'ر.س'; else if (countryCode === 'EG') currentCurrency = 'ج.م'; else if (countryCode === 'AE') currentCurrency = 'د.إ'; else if (countryCode === 'KW') currentCurrency = 'د.ك';
+            localStorage.setItem('app_currency', currentCurrency);
+            document.querySelectorAll('.currencySymbol').forEach(el => el.innerText = currentCurrency);
+            renderTables();
+        }
+
+        function switchTab(tabId, btnElement) {
+            document.querySelectorAll('.section-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+            let targetContent = document.getElementById('tab-' + tabId);
+            if (targetContent) targetContent.classList.add('active');
+            if (btnElement) btnElement.classList.add('active');
+        }
+
+        function showCustomAlert(title, message, callback) {
+            const overlay = document.getElementById('customModalOverlay');
+            document.getElementById('modalTitle').innerText = title; document.getElementById('modalMessage').innerHTML = message;
+            document.getElementById('modalCancelBtn').style.display = 'none'; document.getElementById('modalConfirmBtn').innerText = 'حسناً';
+            overlay.classList.add('active');
+            document.getElementById('modalConfirmBtn').onclick = () => { overlay.classList.remove('active'); if(callback) callback(true); };
+        }
+
+        function showCustomConfirm(title, message, callback) {
+            const overlay = document.getElementById('customModalOverlay');
+            document.getElementById('modalTitle').innerText = title; document.getElementById('modalMessage').innerHTML = message;
+            document.getElementById('modalCancelBtn').style.display = 'block'; document.getElementById('modalConfirmBtn').innerText = 'تأكيد'; document.getElementById('modalCancelBtn').innerText = 'إلغاء';
+            overlay.classList.add('active');
+            document.getElementById('modalConfirmBtn').onclick = () => { overlay.classList.remove('active'); if(callback) callback(true); };
+            document.getElementById('modalCancelBtn').onclick = () => { overlay.classList.remove('active'); if(callback) callback(false); };
+        }
+
+        function showToast(message) {
+            let toast = document.getElementById('toast'); toast.innerText = message; toast.classList.add('show');
+            setTimeout(() => { toast.classList.remove('show'); }, 3000);
+        }
+
+        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            try { let d = new Date(dateString); if (isNaN(d.getTime())) return dateString.slice(0, 10); return d.toISOString().slice(0, 10); } catch (e) { return '-'; }
+        }
+
+        // =====================================
+        // نظام الاتصال الصوتي الحقيقي (PeerJS)
+        // =====================================
+        let myPeer = null; let currentCall = null; let localStream = null; let callTimerInterval = null; let callSeconds = 0;
+
+        function initVoiceCallSystem(techName) {
+            if(myPeer) myPeer.destroy();
+            let techId = 'alhawary_tech_' + techName;
+            myPeer = new Peer(techId);
+            myPeer.on('call', (call) => {
+                currentCall = call;
+                document.getElementById('callScreen').classList.add('active');
+                document.getElementById('callTargetName').innerText = 'مكالمة من العميل';
+                document.getElementById('callStatusText').innerText = 'مكالمة واردة...';
+                document.getElementById('btnAnswerCall').style.display = 'block';
+                document.getElementById('ringtoneAudio').play();
+            });
+        }
+
+        async function startAudioCall() {
+            if (activeChatDeviceIndex === null) return;
+            let dev = devicesList[activeChatDeviceIndex];
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                document.getElementById('callScreen').classList.add('active');
+                document.getElementById('callTargetName').innerText = dev.customer_name;
+                document.getElementById('callStatusText').innerText = 'جاري الاتصال...';
+                document.getElementById('btnAnswerCall').style.display = 'none';
+                let clientId = 'alhawary_client_' + dev.tracking_number;
+                currentCall = myPeer.call(clientId, localStream);
+                handleCallEvents(currentCall);
+
+                let chatArr = dev.chat ? [...dev.chat] : [];
+                chatArr.push({ sender: 'tech', text: 'call_signal', time: new Date().toLocaleTimeString(), isCall: true, callStatus: 'ringing', read: false });
+                await _supabase.from('devices').update({ chat: chatArr }).eq('id', dev.id);
+            } catch (err) { showCustomAlert('خطأ', 'يرجى السماح بصلاحية استخدام المايكروفون.'); }
+        }
+
+        async function answerIncomingCall() {
+            document.getElementById('ringtoneAudio').pause(); document.getElementById('btnAnswerCall').style.display = 'none';
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                currentCall.answer(localStream); handleCallEvents(currentCall);
+                if (activeChatDeviceIndex !== null) {
+                    let dev = devicesList[activeChatDeviceIndex]; let chatArr = dev.chat ? [...dev.chat] : [];
+                    chatArr.push({ sender: 'tech', text: 'call_signal', time: new Date().toLocaleTimeString(), isCall: true, callStatus: 'answered', read: false });
+                    await _supabase.from('devices').update({ chat: chatArr }).eq('id', dev.id);
+                }
+            } catch (err) { showCustomAlert('خطأ', 'لا يمكن الرد على المكالمة بدون السماح للميكروفون.'); endCurrentCall(); }
+        }
+
+        function handleCallEvents(call) {
+            call.on('stream', (remoteStream) => {
+                document.getElementById('ringtoneAudio').pause();
+                let remoteAudio = document.getElementById('remoteAudio'); remoteAudio.srcObject = remoteStream; remoteAudio.play();
+                startCallTimer();
+            });
+            call.on('close', () => { endCurrentCall(false); }); call.on('error', (err) => { endCurrentCall(false); });
+        }
+
+        async function endCurrentCall(isLocalAction = true) {
+            document.getElementById('ringtoneAudio').pause();
+            if(currentCall && isLocalAction) { currentCall.close(); }
+            if(localStream) { localStream.getTracks().forEach(track => track.stop()); }
+            if (isLocalAction && activeChatDeviceIndex !== null) {
+                let dev = devicesList[activeChatDeviceIndex]; let chatArr = dev.chat ? [...dev.chat] : [];
+                chatArr.push({ sender: 'tech', text: 'call_signal', time: new Date().toLocaleTimeString(), isCall: true, callStatus: 'canceled', read: false });
+                await _supabase.from('devices').update({ chat: chatArr }).eq('id', dev.id);
+            }
+            stopCallTimer(); document.getElementById('callScreen').classList.remove('active'); document.getElementById('remoteAudio').srcObject = null; currentCall = null;
+        }
+
+        function startCallTimer() {
+            callSeconds = 0; document.getElementById('callStatusText').innerText = '00:00'; clearInterval(callTimerInterval);
+            callTimerInterval = setInterval(() => {
+                callSeconds++; let m = String(Math.floor(callSeconds / 60)).padStart(2, '0'); let s = String(callSeconds % 60).padStart(2, '0');
+                document.getElementById('callStatusText').innerText = `${m}:${s}`;
+            }, 1000);
+        }
+
+        function stopCallTimer() { clearInterval(callTimerInterval); }
+
+        // =====================================
+        // التهيئة والتشغيل الأساسي
+        // =====================================
+        async function initPageDirectly() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                let userQuery = urlParams.get('user') || urlParams.get('username') || localStorage.getItem('currentUser') || localStorage.getItem('username');
+                
+                if (!userQuery) { window.location.href = 'login.html'; return; }
+
+                currentTechUsername = userQuery.trim();
+                let shopNameEl = document.getElementById('currentShopName');
+                if (shopNameEl) shopNameEl.innerText = currentTechUsername;
+
+                document.getElementById('langSelect').value = currentLang; document.getElementById('countrySelect').value = currentCountry;
+                changeLanguage(currentLang); changeCountry(currentCountry);
+
+                try {
+                    let { data } = await _supabase.from('ads').select('title').limit(1).single();
+                    if(data) document.getElementById('announcementText').innerText = data.title;
+                } catch(e) {}
+                
+                await checkAccountStatusAutomatically();
+                initVoiceCallSystem(currentTechUsername);
+                await loadData(true); 
+                setInterval(() => { loadData(false); }, 3000); 
+            } catch (error) {}
+        }
+
+        window.addEventListener('DOMContentLoaded', () => { initPageDirectly(); setInterval(checkAccountStatusAutomatically, 60000); });
+
+        async function checkAccountStatusAutomatically() {
+            if (!currentTechUsername) return;
+            try {
+                let { data, error } = await _supabase.from('technicians').select('is_active, expiry_date').eq('username', currentTechUsername).single();
+                if (error || !data) return;
+                if (data.is_active === false) { showCustomAlert('تنبيه هام', 'تم إيقاف حسابك من قبل الإدارة.', () => logout()); }
+                if (data.expiry_date && new Date(data.expiry_date) < new Date()) { showCustomAlert('تنبيه هام', 'انتهت صلاحية اشتراكك. الرجاء تجديد الاشتراك.', () => logout()); }
+            } catch (err) {}
+        }
+
+        async function addNewDevice() {
+            let name = document.getElementById('clientName').value.trim(), phone = document.getElementById('clientPhone').value.trim(), device = document.getElementById('deviceType').value.trim(), problem = document.getElementById('deviceProblem').value.trim(), cost = document.getElementById('deviceCost').value.trim(), expectedTime = document.getElementById('expectedTime').value, password = document.getElementById('devicePassword').value.trim(), notes = document.getElementById('deviceNotes').value.trim();
+            if(!name || !phone || !device) { showCustomAlert('بيانات ناقصة', 'الرجاء إدخال البيانات الأساسية (الاسم، الهاتف، الجهاز)'); return; }
+            let trackCode = 'TRK-' + Math.floor(100000000 + Math.random() * 900000000);
+            let newDev = { tracking_number: trackCode, customer_name: name, phone: phone, device_name: device, problem: problem, new_fault: '', cost: cost || '0', expected_time: expectedTime || null, device_password: password, details: notes, status: 'جاري الفحص الفني', chat: [], technician: currentTechUsername };
+            try {
+                let { error } = await _supabase.from('devices').insert([newDev]);
+                if (error) { showCustomAlert('خطأ', 'فشل حفظ الجهاز: ' + error.message); return; }
+                showToast('تم تسجيل الجهاز برقم التتبع: ' + trackCode);
+                document.getElementById('clientName').value = ''; document.getElementById('clientPhone').value = ''; document.getElementById('deviceType').value = ''; document.getElementById('deviceProblem').value = ''; document.getElementById('deviceCost').value = ''; document.getElementById('expectedTime').value = ''; document.getElementById('devicePassword').value = ''; document.getElementById('deviceNotes').value = '';
+                await loadData(true); switchTab('current', document.querySelectorAll('.nav-btn')[1]);
+            } catch (err) {}
+        }
+
+        // =====================================
+        // حل مشكلة الكيبورد في التكلفة والعطل
+        // =====================================
+        async function loadData(isInitial = false) {
+            if (!currentTechUsername) return;
+            try {
+                let { data, error } = await _supabase.from('devices').select('*').eq('technician', currentTechUsername).order('id', { ascending: false });
+                if (error) return;
+                
+                devicesList = data || [];
+                
+                let activeEl = document.activeElement;
+                let isUserTypingInTable = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'SELECT') && activeEl.id !== 'activeChatInput';
+
+                // تحديث الجدول بس لو أنت مش واقف على خانة بتكتب فيها
+                if (isInitial || !isUserTypingInTable) {
+                    renderTables();
+                }
+
+                if (activeChatDeviceIndex !== null) {
+                    let currentDevId = devicesList[activeChatDeviceIndex]?.id;
+                    let idx = devicesList.findIndex(d => d.id === currentDevId);
+                    if (idx !== -1) { activeChatDeviceIndex = idx; renderActiveChatMessages(); } else { closeChatBox(); }
+                }
+            } catch (error) {}
+        }
+
+        function renderTables() {
+            let currentTbody = document.querySelector('#currentDevicesTable tbody');
+            let deliveredTbody = document.querySelector('#deliveredDevicesTable tbody');
+            let returnedTbody = document.querySelector('#returnedDevicesTable tbody');
+            let reportTbody = document.getElementById('reportTableBody');
+            if (!currentTbody) return;
+            currentTbody.innerHTML = ''; deliveredTbody.innerHTML = ''; returnedTbody.innerHTML = ''; reportTbody.innerHTML = '';
+
+            let sCurrent = (document.getElementById('searchCurrent')?.value || '').toLowerCase(), sDelivered = (document.getElementById('searchDelivered')?.value || '').toLowerCase(), sReturned = (document.getElementById('searchReturned')?.value || '').toLowerCase(), sReport = (document.getElementById('searchReport')?.value || '').toLowerCase();
+
+            devicesList.forEach((d, index) => {
+                let statusVal = d.status || 'جاري الفحص الفني';
+                let isDelivered = statusVal.includes('تسليم'); let isReturnedOnly = statusVal.includes('مسترجع');
+                let unread = (d.chat || []).some(m => m.sender === 'client' && !m.readByTech && !m.isCall);
+                let devDate = formatDate(d.created_at);
+                let searchableText = `${d.tracking_number} ${d.customer_name} ${d.phone} ${d.device_name} ${statusVal} ${devDate}`.toLowerCase();
+
+                if (!sReport || searchableText.includes(sReport)) reportTbody.innerHTML += `<tr><td><b>${d.tracking_number}</b></td><td>${devDate}</td><td>${d.customer_name}</td><td>${d.phone}</td><td>${d.device_name}</td><td>${statusVal}</td><td>${d.cost} ${currentCurrency}</td></tr>`;
+
+                if(isReturnedOnly) {
+                    if (!sReturned || searchableText.includes(sReturned)) returnedTbody.innerHTML += `<tr><td><b>${d.tracking_number}</b></td><td>${devDate}</td><td>${d.customer_name}</td><td>${d.phone}</td><td>${d.device_name}</td><td>${statusVal}</td></tr>`;
+                } else if(isDelivered) {
+                    if (!sDelivered || searchableText.includes(sDelivered)) deliveredTbody.innerHTML += `<tr><td><b>${d.tracking_number}</b></td><td>${devDate}</td><td>${d.customer_name}</td><td>${d.phone}</td><td>${d.device_name}</td><td>${statusVal}</td><td>${d.cost} ${currentCurrency}</td></tr>`;
+                } else {
+                    if (!sCurrent || searchableText.includes(sCurrent)) {
+                        currentTbody.innerHTML += `
+                            <tr>
+                                <td><b>${d.tracking_number}</b></td><td>${devDate}</td><td>${d.customer_name}</td><td>${d.phone}</td><td>${d.device_name}</td>
+                                <td>
+                                    <select class="status-select" onchange="confirmAndUpdateStatus(${index}, this)">
+                                        <option value="جاري الفحص الفني" ${statusVal==='جاري الفحص الفني'?'selected':''}>🔍 فحص</option><option value="جاري الإصلاح" ${statusVal==='جاري الإصلاح'?'selected':''}>⚙️ إصلاح</option><option value="بانتظار موافقة العميل على التكلفة" ${statusVal.includes('بانتظار')?'selected':''}>⏳ انتظار</option><option value="صيانة غير متوفرة" ${statusVal.includes('صيانة غير متوفرة')?'selected':''}>❌ غير متوفرة</option><option value="جاهز للاستلام" ${statusVal==='جاهز للاستلام'?'selected':''}>✅ جاهز</option><option value="تم تسليم الجهاز للعميل" ${statusVal==='تم تسليم الجهاز للعميل'?'selected':''}>📦 تسليم</option><option value="مسترجع" ${statusVal==='مسترجع'?'selected':''}>🔄 مسترجع</option>
+                                    </select>
+                                </td>
+                                <td><input type="datetime-local" value="${d.expected_time || ''}" style="padding:4px; border-radius:6px; background:rgba(15,23,42,0.8); color:#fff; border:1px solid var(--border-color); font-size:0.7rem;" onchange="updateExpectedTime(${index}, this.value)"></td>
+                                <td><div style="display: flex; gap: 4px; align-items: center; justify-content: center;"><input type="text" id="faultInput-${index}" value="${d.new_fault || ''}" placeholder="عطل..." style="padding:4px; width:75px; border-radius:6px; background:rgba(15,23,42,0.8); color:#fff; border:1px solid var(--border-color); font-size:0.75rem;"><button class="action-btn" onclick="sendFaultAndCost(${index})" style="background:var(--success-color); color:#fff; border:none; padding:4px 6px;">إرسال</button></div></td>
+                                <td><input type="text" value="${d.cost}" style="width:55px; text-align:center; padding:4px; border-radius:6px; background:rgba(15,23,42,0.8); color:#fff; border:1px solid var(--border-color); font-size:0.75rem;" onchange="updateCost(${index}, this.value)"></td>
+                                <td><button class="action-btn" onclick="openChatBox(${index})" style="background:${activeChatDeviceIndex === index ? 'var(--primary-color)' : ''}; color:${activeChatDeviceIndex === index ? '#0f172a' : ''};">💬 ${unread ? '🔴' : ''} شات</button> <button class="action-btn" onclick="editDetails(${index})">📝 ملاحظات</button></td>
+                            </tr>
+                        `;
+                    }
+                }
+            });
+        }
+
+        function exportToCSV() {
+            let csvContent = "\uFEFFرقم التتبع,التاريخ,اسم العميل,رقم الهاتف,الجهاز,الحالة,التكلفة\n";
+            devicesList.forEach(d => { let devDate = formatDate(d.created_at); csvContent += `"${d.tracking_number}","${devDate}","${d.customer_name}","${d.phone}","${d.device_name}","${d.status || ''}","${d.cost || '0'}"\n`; });
+            let blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }); let url = URL.createObjectURL(blob); let link = document.createElement("a");
+            link.setAttribute("href", url); link.setAttribute("download", `workshop_report_${currentTechUsername}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link); showToast('تم تصدير التقرير بنجاح');
+        }
+
+        async function confirmAndUpdateStatus(index, selectElement) {
+            let newStatus = selectElement.value; let dev = devicesList[index]; let oldStatus = dev.status;
+            showCustomConfirm('تأكيد تغيير الحالة', `هل أنت متأكد من تغيير حالة الجهاز (${dev.tracking_number})؟`, async (confirmed) => {
+                if (confirmed) {
+                    try {
+                        let { error } = await _supabase.from('devices').update({ status: newStatus }).eq('id', dev.id);
+                        if (!error) { showToast('تم التحديث بنجاح'); await loadData(true); } else { selectElement.value = oldStatus; showCustomAlert('خطأ', 'فشل تحديث الحالة.'); }
+                    } catch (e) { selectElement.value = oldStatus; }
+                } else { selectElement.value = oldStatus; }
+            });
+        }
+
+        async function sendFaultAndCost(index) {
+            let dev = devicesList[index]; let faultVal = document.getElementById('faultInput-' + index).value.trim();
+            if(!faultVal) { showCustomAlert('تنبيه', 'الرجاء كتابة العطل الجديد أولاً.'); return; }
+            try { let { error } = await _supabase.from('devices').update({ new_fault: faultVal, status: 'بانتظار موافقة العميل على التكلفة' }).eq('id', dev.id); if (!error) { showToast('تم إرسال العطل للعميل'); await loadData(true); } } catch (e) {}
+        }
+        async function updateCost(index, newCost) { let dev = devicesList[index]; try { await _supabase.from('devices').update({ cost: newCost }).eq('id', dev.id); } catch (e) {} }
+        async function updateExpectedTime(index, newTime) { let dev = devicesList[index]; try { await _supabase.from('devices').update({ expected_time: newTime }).eq('id', dev.id); } catch (e) {} }
+        async function editDetails(index) { let dev = devicesList[index]; let newDet = prompt('تعديل الملاحظات:', dev.details || ''); if(newDet !== null) { try { await _supabase.from('devices').update({ details: newDet }).eq('id', dev.id); await loadData(true); } catch (e) {} } }
+
+        function openChatBox(index) { activeChatDeviceIndex = index; document.getElementById('chatSectionContainer').style.display = 'block'; renderActiveChatMessages(); renderTables(); }
+        function closeChatBox() { activeChatDeviceIndex = null; document.getElementById('chatSectionContainer').style.display = 'none'; renderTables(); }
+
+        // =====================================
+        // إخفاء رسائل المكالمات من الشات
+        // =====================================
+        async function renderActiveChatMessages() {
+            if(activeChatDeviceIndex === null) return;
+            let dev = devicesList[activeChatDeviceIndex];
+            document.getElementById('activeChatTitle').innerHTML = `💬 محادثة العميل: <span style="color:#fff;">${dev.customer_name} (${dev.tracking_number})</span>`;
+            let container = document.getElementById('activeChatMsgsContainer');
+            let isScrolledToBottom = container.scrollHeight - container.clientHeight <= container.scrollTop + 50; container.innerHTML = '';
+            
+            let chatArr = dev.chat || []; let unreadIds = [];
+            
+            // فلترة الرسائل المخفية بتاعت الاتصال
+            let validMessages = chatArr.filter(m => !m.isCall);
+            
+            if(validMessages.length === 0) {
+                container.innerHTML = '<div style="color:var(--text-muted); text-align:center; margin-top:20px;">الشات للكتابة فقط. لا توجد رسائل سابقة.</div>';
+            } else {
+                validMessages.forEach((m, idx) => {
+                    let msgClass = m.sender === 'tech' ? 'chat-msg-tech' : 'chat-msg-client';
+                    let senderLabel = m.sender === 'tech' ? '🛠️ أنت:' : '👤 العميل:';
+                    
+                    if(m.sender === 'client' && !m.readByTech) { m.readByTech = true; m.readTime = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); unreadIds.push(idx); }
+                    let readStatus = '';
+                    if(m.sender === 'tech') { if(m.read) readStatus = `<span style="color:#00f2fe; font-size:0.7rem;">✓✓ مقروءة</span>`; else readStatus = `<span style="color:#a0aec0; font-size:0.65rem;">✓ أُرسلت</span>`; }
+                    
+                    container.innerHTML += `<div class="chat-msg-item ${msgClass}"><div style="font-size:0.75rem; font-weight:bold; margin-bottom:4px;">${senderLabel}</div><div>${m.text}</div><div style="font-size:0.65rem; margin-top:5px; opacity:0.8; display:flex; justify-content:space-between;"><span>${m.time}</span> ${readStatus}</div></div>`;
+                });
+            }
+            if(isScrolledToBottom || validMessages.length <= 3) { container.scrollTop = container.scrollHeight; }
+            
+            if(unreadIds.length > 0) {
+                try {
+                    let updatedChatArr = chatArr.map(m => { if (m.sender === 'client' && !m.readByTech) { return { ...m, readByTech: true, readTime: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }; } return m; });
+                    await _supabase.from('devices').update({ chat: updatedChatArr }).eq('id', dev.id);
+                } catch (e) {}
+            }
+        }
+
+        async function sendTechMsgActive() {
+            if(activeChatDeviceIndex === null) return;
+            let dev = devicesList[activeChatDeviceIndex]; let input = document.getElementById('activeChatInput'); let text = input.value.trim();
+            if(!text) return;
+            
+            let chatArr = dev.chat ? [...dev.chat] : [];
+            chatArr.push({ sender: 'tech', text: text, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), read: false, readByTech: true, isCall: false });
+            input.value = '';
+            
+            try {
+                let { data, error } = await _supabase.from('devices').update({ chat: chatArr }).eq('id', dev.id).select().single();
+                if(!error && data) { devicesList[activeChatDeviceIndex] = data; renderActiveChatMessages(); }
+            } catch (e) {}
+        }
+    </script>
+</body>
+</html>
