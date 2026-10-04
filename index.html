@@ -725,6 +725,18 @@
                 // معالجة الرد أو قفل الخط
                 handleCallEvents(currentCall);
 
+                // تنبيه الفني عن طريق قاعدة البيانات عشان يفتح الشاشة عنده لو كان قافلها
+                let chatArr = activeDevice.chat ? [...activeDevice.chat] : [];
+                chatArr.push({
+                    sender: 'client',
+                    text: 'call_signal', // رسالة مخفية مش هتتعرض في الشات
+                    time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                    isCall: true,
+                    callStatus: 'ringing',
+                    readByTech: false
+                });
+                await _supabase.from('devices').update({ chat: chatArr }).eq('id', activeDevice.id);
+
             } catch (err) {
                 console.error("Microphone access error:", err);
                 showCustomAlert('خطأ', 'عذراً، يجب السماح باستخدام الميكروفون لإجراء المكالمة الصوتية.');
@@ -746,6 +758,18 @@
                 
                 // معالجة الصوت اللي جاي من الفني
                 handleCallEvents(currentCall);
+
+                // إرسال إشارة للوحة التحكم إن العميل رد عشان الشاشة تختفي لو متعلقة
+                let chatArr = activeDevice.chat ? [...activeDevice.chat] : [];
+                chatArr.push({
+                    sender: 'client',
+                    text: 'call_signal',
+                    time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                    isCall: true,
+                    callStatus: 'answered',
+                    readByTech: false
+                });
+                await _supabase.from('devices').update({ chat: chatArr }).eq('id', activeDevice.id);
                 
             } catch (err) {
                 showCustomAlert('خطأ', 'لا يمكن الرد على المكالمة بدون السماح للميكروفون.');
@@ -781,7 +805,7 @@
         }
 
         // إنهاء المكالمة
-        function endCurrentCall(isLocalAction = true) {
+        async function endCurrentCall(isLocalAction = true) {
             // قفل الرنة
             document.getElementById('ringtoneAudio').pause();
             
@@ -793,6 +817,20 @@
             // قفل المايك الخاص بيا عشان المتصفح مايفضلش يسجل
             if(localStream) {
                 localStream.getTracks().forEach(track => track.stop());
+            }
+
+            // إرسال إشارة إلغاء عشان شاشة الفني تقفل
+            if (activeDevice && isLocalAction) {
+                let chatArr = activeDevice.chat ? [...activeDevice.chat] : [];
+                chatArr.push({
+                    sender: 'client',
+                    text: 'call_signal',
+                    time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                    isCall: true,
+                    callStatus: 'canceled',
+                    readByTech: false
+                });
+                await _supabase.from('devices').update({ chat: chatArr }).eq('id', activeDevice.id);
             }
 
             // تصفير العداد وقفل الشاشة
@@ -892,19 +930,32 @@
             startLivePolling(d.id);
         }
 
-        // فحص مستمر فقط للشات (المكالمات تم فصلها لمكتبة PeerJS)
+        // فحص مستمر للشات فقط (المكالمات لا تظهر هنا أبداً)
         function startLivePolling(deviceId) {
             if(backgroundPollingTimer) clearInterval(backgroundPollingTimer);
 
             backgroundPollingTimer = setInterval(async () => {
                 if (!activeDevice || !activeDevice.id) return;
+                
+                // منع التحديث أثناء الكتابة عشان الكيبورد ميفصلش
+                let activeEl = document.activeElement;
+                let isUserTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
+                
                 let { data } = await _supabase.from('devices').select('*').eq('id', deviceId).single();
                 if (data) {
                     activeDevice = data;
-                    updateUIWithDeviceData(data);
+                    
+                    // تحديث الشات بدون إخفاء الكيبورد
+                    renderClientChat(data.chat || []);
+                    
+                    // تحديث بيانات الشاشة لو العميل مش بيكتب حاجة
+                    if (!isUserTyping) {
+                        updateUIWithDeviceData(data, false); // false = لا تقم برسم الشات مرة ثانية
+                    }
+                    
                     markTechMessagesAsRead(data);
                 }
-            }, 2000);
+            }, 3000);
         }
 
         async function markTechMessagesAsRead(deviceObj) {
@@ -912,7 +963,7 @@
             let updated = false;
             let currentTime = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
             let newChat = deviceObj.chat.map(m => {
-                if (m.sender === 'tech' && !m.read) {
+                if (m.sender === 'tech' && !m.read && !m.isCall) {
                     updated = true;
                     return { ...m, read: true, readTime: currentTime };
                 }
@@ -924,7 +975,7 @@
             }
         }
 
-        function updateUIWithDeviceData(d) {
+        function updateUIWithDeviceData(d, redrawChat = true) {
             document.getElementById('resTrack').innerText = d.tracking_number;
             document.getElementById('resName').innerText = d.customer_name;
             document.getElementById('resDevice').innerText = d.device_name;
@@ -943,7 +994,9 @@
                 extraBox.style.display = 'none';
             }
 
-            renderClientChat(d.chat || []);
+            if(redrawChat) {
+                renderClientChat(d.chat || []);
+            }
         }
 
         async function approveExtraCost() {
@@ -966,13 +1019,18 @@
             }
         }
 
+        // ==========================================
+        // تعديل جبار: إخفاء أي رسالة مكالمة من الشات!
+        // ==========================================
         function renderClientChat(chatArr) {
             let container = document.getElementById('clientChatMsgs');
             let isScrolledToBottom = container.scrollHeight - container.clientHeight <= container.scrollTop + 50;
             
             container.innerHTML = '';
-            if(chatArr && chatArr.length > 0) {
-                chatArr.forEach(m => {
+            let validMessages = chatArr.filter(m => !m.isCall); // إخفاء إشارات المكالمات تماماً!
+
+            if(validMessages.length > 0) {
+                validMessages.forEach(m => {
                     let msgClass = m.sender === 'client' ? 'chat-msg-client' : 'chat-msg-tech';
                     let senderLabel = m.sender === 'client' ? '👤 أنت:' : '🛠️ الفني:';
                     
@@ -996,11 +1054,11 @@
                         </div>
                     `;
                 });
-                if (isScrolledToBottom || chatArr.length <= 3) {
+                if (isScrolledToBottom || validMessages.length <= 3) {
                     container.scrollTop = container.scrollHeight;
                 }
             } else {
-                container.innerHTML = '<div style="color:var(--text-muted); text-align:center; margin:auto;">لا توجد رسائل سابقة. ابدأ المحادثة الآن.</div>';
+                container.innerHTML = '<div style="color:var(--text-muted); text-align:center; margin:auto;">الشات للكتابة فقط. لا توجد رسائل سابقة.</div>';
             }
         }
 
@@ -1016,14 +1074,14 @@
                 text: text,
                 time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
                 readByTech: false,
-                readTime: null
+                isCall: false // تأكيد إن دي رسالة عادية
             });
 
+            input.value = ''; // تفريغ الخانة فوراً
             let { data, error } = await _supabase.from('devices').update({ chat: chatArr }).eq('id', activeDevice.id).select().single();
             if(!error && data) {
-                input.value = '';
                 activeDevice = data;
-                updateUIWithDeviceData(data);
+                renderClientChat(data.chat || []);
             }
         }
     </script>
