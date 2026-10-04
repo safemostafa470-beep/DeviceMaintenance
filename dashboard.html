@@ -20,60 +20,445 @@
             --danger-color: #ef4444;
             --accent-gradient: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); color: var(--text-color); min-height: 100vh; padding: 10px; }
-        .marquee-container { width: 100%; background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(2, 132, 199, 0.15) 100%); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; overflow: hidden; padding: 10px 0; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); backdrop-filter: blur(5px); }
-        .marquee-text { font-size: 0.95rem; font-weight: 700; color: #38bdf8; white-space: nowrap; animation: marquee 20s linear infinite; text-shadow: 0 2px 4px rgba(0,0,0,0.4); }
-        .marquee-container:hover .marquee-text { animation-play-state: paused; }
-        @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
-        .top-nav { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); padding: 12px 15px; border-radius: 14px; border: 1px solid var(--border-color); margin-bottom: 15px; flex-wrap: wrap; gap: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
-        .nav-buttons { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-        .nav-btn { background: rgba(56, 189, 248, 0.08); border: 1px solid var(--border-color); color: var(--text-color); padding: 7px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: all 0.2s ease; }
-        .nav-btn.active, .nav-btn:hover { background: var(--accent-gradient); color: #0f172a; border-color: transparent; }
-        .settings-select { background: rgba(15, 23, 42, 0.9); color: var(--text-color); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 8px; font-size: 0.8rem; outline: none; cursor: pointer; }
-        .logout-btn { background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger-color); color: var(--danger-color); padding: 7px 12px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.8rem; }
-        .logout-btn:hover { background: var(--danger-color); color: white; }
-        .section-content { display: none; }
-        .section-content.active { display: block; }
-        .card { background: var(--card-bg); border: 1px solid var(--border-color); padding: 15px; border-radius: 14px; margin-bottom: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.4); }
-        h2 { font-size: 1.1rem; color: var(--primary-color); margin-bottom: 12px; font-weight: 700; }
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 12px; }
-        .form-group label { display: block; margin-bottom: 5px; font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(15, 23, 42, 0.8); color: white; font-size: 0.85rem; outline: none; }
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--primary-color); }
-        .form-group textarea { resize: vertical; height: 70px; }
-        button.primary-btn { background: var(--accent-gradient); color: #0f172a; border: none; padding: 9px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.85rem; }
-        .search-filter-bar { margin-bottom: 12px; }
-        .search-filter-bar input { width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(15, 23, 42, 0.8); color: white; font-size: 0.85rem; outline: none; }
-        .table-responsive { width: 100%; overflow-x: auto; border-radius: 10px; border: 1px solid var(--border-color); }
-        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; min-width: 650px; }
-        th, td { padding: 10px 12px; text-align: center; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
-        th { background: rgba(56, 189, 248, 0.12); color: var(--primary-color); font-weight: 600; }
-        tr:hover { background: rgba(255, 255, 255, 0.02); }
-        .action-btn { background: rgba(56, 189, 248, 0.1); border: 1px solid var(--border-color); color: var(--text-color); padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; transition: 0.2s; display: inline-flex; align-items: center; gap: 3px; }
-        .action-btn:hover { background: var(--primary-color); color: #0f172a; }
-        .status-select { padding: 5px 8px; border-radius: 6px; background: #0f172a; color: #fff; border: 1px solid var(--border-color); font-size: 0.75rem; cursor: pointer; }
-        .chat-container-card { background: rgba(15, 23, 42, 0.98); border: 2px solid var(--primary-color); border-radius: 14px; padding: 15px; margin-top: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
-        .chat-header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
-        .chat-call-btn { background: linear-gradient(135deg, #22c55e, #15803d); color: white; border: none; padding: 5px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px; }
-        .chat-call-btn:hover { opacity: 0.9; }
-        .chat-msgs { height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; margin-bottom: 12px; padding: 8px; background: rgba(15, 23, 42, 0.6); border-radius: 8px; border: 1px solid var(--border-color); word-break: break-word; }
-        .chat-msg-item { padding: 8px 12px; border-radius: 10px; max-width: 85%; line-height: 1.4; display: flex; flex-direction: column; }
-        .chat-msg-tech { background: rgba(34, 197, 94, 0.18); border: 1px solid rgba(34, 197, 94, 0.4); align-self: flex-end; color: #86efac; text-align: right; }
-        .chat-msg-client { background: rgba(56, 189, 248, 0.18); border: 1px solid rgba(56, 189, 248, 0.4); align-self: flex-start; color: #bae6fd; text-align: right; }
-        .chat-input-row { display: flex; gap: 8px; align-items: center; width: 100%; }
-        .chat-input-row input { flex: 1; min-width: 0; padding: 10px 12px; font-size: 0.9rem; border-radius: 8px; background: rgba(30, 41, 59, 0.9); border: 1px solid var(--border-color); color: #fff; outline: none; }
-        .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 9999; opacity: 0; visibility: hidden; transition: all 0.2s ease; }
-        .custom-modal-overlay.active { opacity: 1; visibility: visible; }
-        .custom-modal { background: #1e293b; border: 1px solid var(--border-color); padding: 20px; border-radius: 14px; width: 85%; max-width: 350px; text-align: center; box-shadow: 0 15px 30px rgba(0,0,0,0.5); }
-        .custom-modal h3 { color: var(--primary-color); margin-bottom: 10px; font-size: 1.1rem; }
-        .custom-modal p { color: var(--text-color); font-size: 0.9rem; margin-bottom: 15px; line-height: 1.5; }
-        .custom-modal-actions { display: flex; gap: 8px; }
-        .modal-btn { padding: 8px 15px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; font-size: 0.85rem; flex: 1; }
-        .modal-btn-confirm { background: var(--accent-gradient); color: #0f172a; }
-        .modal-btn-cancel { background: rgba(255,255,255,0.08); color: var(--text-color); border: 1px solid var(--border-color); }
-        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--success-color); color: white; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; transition: transform 0.3s ease; z-index: 1000; }
-        .toast.show { transform: translateX(-50%) translateY(0); }
+
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        }
+
+        body { 
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); 
+            color: var(--text-color); 
+            min-height: 100vh; 
+            padding: 10px; 
+        }
+
+        .marquee-container { 
+            width: 100%; 
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(2, 132, 199, 0.15) 100%); 
+            border: 1px solid rgba(56, 189, 248, 0.3); 
+            border-radius: 12px; 
+            overflow: hidden; 
+            padding: 10px 0; 
+            margin-bottom: 15px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); 
+            backdrop-filter: blur(5px); 
+        }
+
+        .marquee-text { 
+            font-size: 0.95rem; 
+            font-weight: 700; 
+            color: #38bdf8; 
+            white-space: nowrap; 
+            animation: marquee 20s linear infinite; 
+            text-shadow: 0 2px 4px rgba(0,0,0,0.4); 
+        }
+
+        .marquee-container:hover .marquee-text { 
+            animation-play-state: paused; 
+        }
+
+        @keyframes marquee { 
+            0% { transform: translateX(100%); } 
+            100% { transform: translateX(-100%); } 
+        }
+
+        .top-nav { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            background: var(--card-bg); 
+            padding: 12px 15px; 
+            border-radius: 14px; 
+            border: 1px solid var(--border-color); 
+            margin-bottom: 15px; 
+            flex-wrap: wrap; 
+            gap: 10px; 
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3); 
+        }
+
+        .nav-buttons { 
+            display: flex; 
+            gap: 6px; 
+            flex-wrap: wrap; 
+            align-items: center; 
+        }
+
+        .nav-btn { 
+            background: rgba(56, 189, 248, 0.08); 
+            border: 1px solid var(--border-color); 
+            color: var(--text-color); 
+            padding: 7px 12px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 0.8rem; 
+            font-weight: 600; 
+            transition: all 0.2s ease; 
+        }
+
+        .nav-btn.active, .nav-btn:hover { 
+            background: var(--accent-gradient); 
+            color: #0f172a; 
+            border-color: transparent; 
+        }
+
+        .settings-select { 
+            background: rgba(15, 23, 42, 0.9); 
+            color: var(--text-color); 
+            border: 1px solid var(--border-color); 
+            padding: 6px 10px; 
+            border-radius: 8px; 
+            font-size: 0.8rem; 
+            outline: none; 
+            cursor: pointer; 
+        }
+
+        .logout-btn { 
+            background: rgba(239, 68, 68, 0.15); 
+            border: 1px solid var(--danger-color); 
+            color: var(--danger-color); 
+            padding: 7px 12px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            font-size: 0.8rem; 
+        }
+
+        .logout-btn:hover { 
+            background: var(--danger-color); 
+            color: white; 
+        }
+
+        .section-content { 
+            display: none; 
+        }
+
+        .section-content.active { 
+            display: block; 
+        }
+
+        .card { 
+            background: var(--card-bg); 
+            border: 1px solid var(--border-color); 
+            padding: 15px; 
+            border-radius: 14px; 
+            margin-bottom: 15px; 
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4); 
+        }
+
+        h2 { 
+            font-size: 1.1rem; 
+            color: var(--primary-color); 
+            margin-bottom: 12px; 
+            font-weight: 700; 
+        }
+
+        .form-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            gap: 12px; 
+            margin-bottom: 12px; 
+        }
+
+        .form-group label { 
+            display: block; 
+            margin-bottom: 5px; 
+            font-size: 0.8rem; 
+            color: var(--text-muted); 
+            font-weight: 500; 
+        }
+
+        .form-group input, .form-group select, .form-group textarea { 
+            width: 100%; 
+            padding: 9px 10px; 
+            border-radius: 8px; 
+            border: 1px solid var(--border-color); 
+            background: rgba(15, 23, 42, 0.8); 
+            color: white; 
+            font-size: 0.85rem; 
+            outline: none; 
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { 
+            border-color: var(--primary-color); 
+        }
+
+        .form-group textarea { 
+            resize: vertical; 
+            height: 70px; 
+        }
+
+        button.primary-btn { 
+            background: var(--accent-gradient); 
+            color: #0f172a; 
+            border: none; 
+            padding: 9px 18px; 
+            border-radius: 8px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            font-size: 0.85rem; 
+        }
+
+        .search-filter-bar { 
+            margin-bottom: 12px; 
+        }
+
+        .search-filter-bar input { 
+            width: 100%; 
+            padding: 8px 12px; 
+            border-radius: 8px; 
+            border: 1px solid var(--border-color); 
+            background: rgba(15, 23, 42, 0.8); 
+            color: white; 
+            font-size: 0.85rem; 
+            outline: none; 
+        }
+
+        .table-responsive { 
+            width: 100%; 
+            overflow-x: auto; 
+            border-radius: 10px; 
+            border: 1px solid var(--border-color); 
+        }
+
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            font-size: 0.8rem; 
+            min-width: 650px; 
+        }
+
+        th, td { 
+            padding: 10px 12px; 
+            text-align: center; 
+            border-bottom: 1px solid var(--border-color); 
+            white-space: nowrap; 
+        }
+
+        th { 
+            background: rgba(56, 189, 248, 0.12); 
+            color: var(--primary-color); 
+            font-weight: 600; 
+        }
+
+        tr:hover { 
+            background: rgba(255, 255, 255, 0.02); 
+        }
+
+        .action-btn { 
+            background: rgba(56, 189, 248, 0.1); 
+            border: 1px solid var(--border-color); 
+            color: var(--text-color); 
+            padding: 5px 8px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 0.75rem; 
+            transition: 0.2s; 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 3px; 
+        }
+
+        .action-btn:hover { 
+            background: var(--primary-color); 
+            color: #0f172a; 
+        }
+
+        .status-select { 
+            padding: 5px 8px; 
+            border-radius: 6px; 
+            background: #0f172a; 
+            color: #fff; 
+            border: 1px solid var(--border-color); 
+            font-size: 0.75rem; 
+            cursor: pointer; 
+        }
+
+        .chat-container-card { 
+            background: rgba(15, 23, 42, 0.98); 
+            border: 2px solid var(--primary-color); 
+            border-radius: 14px; 
+            padding: 15px; 
+            margin-top: 15px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6); 
+        }
+
+        .chat-header-actions { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 10px; 
+            border-bottom: 1px solid var(--border-color); 
+            padding-bottom: 8px; 
+        }
+
+        .chat-call-btn { 
+            background: linear-gradient(135deg, #22c55e, #15803d); 
+            color: white; 
+            border: none; 
+            padding: 5px 12px; 
+            border-radius: 6px; 
+            font-size: 0.8rem; 
+            font-weight: bold; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            gap: 4px; 
+        }
+
+        .chat-call-btn:hover { 
+            opacity: 0.9; 
+        }
+
+        .chat-msgs { 
+            height: 280px; 
+            overflow-y: auto; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 8px; 
+            font-size: 0.85rem; 
+            margin-bottom: 12px; 
+            padding: 8px; 
+            background: rgba(15, 23, 42, 0.6); 
+            border-radius: 8px; 
+            border: 1px solid var(--border-color); 
+            word-break: break-word; 
+        }
+
+        .chat-msg-item { 
+            padding: 8px 12px; 
+            border-radius: 10px; 
+            max-width: 85%; 
+            line-height: 1.4; 
+            display: flex; 
+            flex-direction: column; 
+        }
+
+        .chat-msg-tech { 
+            background: rgba(34, 197, 94, 0.18); 
+            border: 1px solid rgba(34, 197, 94, 0.4); 
+            align-self: flex-end; 
+            color: #86efac; 
+            text-align: right; 
+        }
+
+        .chat-msg-client { 
+            background: rgba(56, 189, 248, 0.18); 
+            border: 1px solid rgba(56, 189, 248, 0.4); 
+            align-self: flex-start; 
+            color: #bae6fd; 
+            text-align: right; 
+        }
+
+        .chat-input-row { 
+            display: flex; 
+            gap: 8px; 
+            align-items: center; 
+            width: 100%; 
+        }
+
+        .chat-input-row input { 
+            flex: 1; 
+            min-width: 0; 
+            padding: 10px 12px; 
+            font-size: 0.9rem; 
+            border-radius: 8px; 
+            background: rgba(30, 41, 59, 0.9); 
+            border: 1px solid var(--border-color); 
+            color: #fff; 
+            outline: none; 
+        }
+
+        .custom-modal-overlay { 
+            position: fixed; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            background: rgba(15, 23, 42, 0.85); 
+            backdrop-filter: blur(4px); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 9999; 
+            opacity: 0; 
+            visibility: hidden; 
+            transition: all 0.2s ease; 
+        }
+
+        .custom-modal-overlay.active { 
+            opacity: 1; 
+            visibility: visible; 
+        }
+
+        .custom-modal { 
+            background: #1e293b; 
+            border: 1px solid var(--border-color); 
+            padding: 20px; 
+            border-radius: 14px; 
+            width: 85%; 
+            max-width: 350px; 
+            text-align: center; 
+            box-shadow: 0 15px 30px rgba(0,0,0,0.5); 
+        }
+
+        .custom-modal h3 { 
+            color: var(--primary-color); 
+            margin-bottom: 10px; 
+            font-size: 1.1rem; 
+        }
+
+        .custom-modal p { 
+            color: var(--text-color); 
+            font-size: 0.9rem; 
+            margin-bottom: 15px; 
+            line-height: 1.5; 
+        }
+
+        .custom-modal-actions { 
+            display: flex; 
+            gap: 8px; 
+        }
+
+        .modal-btn { 
+            padding: 8px 15px; 
+            border-radius: 8px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            border: none; 
+            font-size: 0.85rem; 
+            flex: 1; 
+        }
+
+        .modal-btn-confirm { 
+            background: var(--accent-gradient); 
+            color: #0f172a; 
+        }
+
+        .modal-btn-cancel { 
+            background: rgba(255,255,255,0.08); 
+            color: var(--text-color); 
+            border: 1px solid var(--border-color); 
+        }
+
+        .toast { 
+            position: fixed; 
+            bottom: 20px; 
+            left: 50%; 
+            transform: translateX(-50%) translateY(80px); 
+            background: var(--success-color); 
+            color: white; 
+            padding: 8px 16px; 
+            border-radius: 8px; 
+            font-weight: 600; 
+            font-size: 0.85rem; 
+            transition: transform 0.3s ease; 
+            z-index: 1000; 
+        }
+
+        .toast.show { 
+            transform: translateX(-50%) translateY(0); 
+        }
     </style>
 </head>
 <body>
@@ -114,11 +499,12 @@
                 <option value="en">English</option>
             </select>
 
-            <button class="nav-btn active" onclick="switchTab('add')" data-i18n="tabAdd">إضافة</button>
-            <button class="nav-btn" onclick="switchTab('current')" data-i18n="tabCurrent">الحالية</button>
-            <button class="nav-btn" onclick="switchTab('delivered')" data-i18n="tabDelivered">المسلمة</button>
-            <button class="nav-btn" onclick="switchTab('returned')" data-i18n="tabReturned">المسترجعة</button>
-            <button class="nav-btn" onclick="switchTab('reports')" data-i18n="tabReports">التقارير</button>
+            <!-- تم تعديل كود التابات هنا لضمان عملها بشكل سليم مع إضافة (this) -->
+            <button class="nav-btn active" onclick="switchTab('add', this)" data-i18n="tabAdd">إضافة</button>
+            <button class="nav-btn" onclick="switchTab('current', this)" data-i18n="tabCurrent">الحالية</button>
+            <button class="nav-btn" onclick="switchTab('delivered', this)" data-i18n="tabDelivered">المسلمة</button>
+            <button class="nav-btn" onclick="switchTab('returned', this)" data-i18n="tabReturned">المسترجعة</button>
+            <button class="nav-btn" onclick="switchTab('reports', this)" data-i18n="tabReports">التقارير</button>
         </div>
 
         <button class="logout-btn" onclick="logout()" data-i18n="logoutBtn">خروج</button>
@@ -298,8 +684,10 @@
         </div>
     </div>
 
+    <!-- التنبيه السريع (Toast) -->
     <div id="toast" class="toast">تم الحفظ بنجاح!</div>
 
+    <!-- سكريبت لوحة التحكم -->
     <script>
         const SUPABASE_URL = 'https://vvxkxmktkxawptbrqtut.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2eGt4bWt0a3hhd3B0YnJxdHV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0NDY2MTcsImV4cCI6MjEwNjAyMjYxN30.NkqXPEpMf6VFE3nFQ1V7T5HyjfoxIrT_apKh7S6a_14';
@@ -409,6 +797,28 @@
             renderTables();
         }
 
+        // دالة التنقل بين التابات المعدلة لتعمل 100%
+        function switchTab(tabId, btnElement) {
+            // إخفاء كل المحتويات
+            document.querySelectorAll('.section-content').forEach(el => {
+                el.classList.remove('active');
+            });
+            // إزالة اللون من كل الأزرار
+            document.querySelectorAll('.nav-btn').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            // إظهار القسم المطلوب
+            let targetContent = document.getElementById('tab-' + tabId);
+            if (targetContent) {
+                targetContent.classList.add('active');
+            }
+            // إضافة اللون للزر المضغوط
+            if (btnElement) {
+                btnElement.classList.add('active');
+            }
+        }
+
         async function startLiveCall() {
             if (activeChatDeviceIndex === null || !devicesList[activeChatDeviceIndex]) {
                 showCustomAlert('تنبيه', 'الرجاء فتح محادثة الجهاز أولاً لطلب الاتصال بالعميل.');
@@ -448,14 +858,20 @@
                 gainNode.connect(audioCtx.destination);
                 oscillator.start();
                 oscillator.stop(audioCtx.currentTime + 0.4);
-            } catch (e) {}
+            } catch (e) {
+                console.log("الصوت معطل من المتصفح");
+            }
         }
 
         async function loadAnnouncements() {
-            let { data, error } = await _supabase.from('ads').select('title').limit(1).single();
-            if (!error && data && data.title) {
-                document.getElementById('announcementText').innerText = data.title;
-            } else {
+            try {
+                let { data, error } = await _supabase.from('ads').select('title').limit(1).single();
+                if (!error && data && data.title) {
+                    document.getElementById('announcementText').innerText = data.title;
+                } else {
+                    document.getElementById('announcementText').innerText = '🌟 أهلاً بكم في نظام إدارة الصيانة - لوحة تحكم الفني الاحترافية';
+                }
+            } catch (error) {
                 document.getElementById('announcementText').innerText = '🌟 أهلاً بكم في نظام إدارة الصيانة - لوحة تحكم الفني الاحترافية';
             }
         }
@@ -469,28 +885,38 @@
             } catch (e) { return '-'; }
         }
 
+        // دالة تحميل الصفحة الأساسية
         async function initPageDirectly() {
-            const urlParams = new URLSearchParams(window.location.search);
-            let userQuery = urlParams.get('user') || urlParams.get('username') || localStorage.getItem('currentUser') || localStorage.getItem('username') || localStorage.getItem('currentTech');
-            
-            if (!userQuery) {
-                window.location.href = 'login.html';
-                return;
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                let userQuery = urlParams.get('user') || urlParams.get('username') || localStorage.getItem('currentUser') || localStorage.getItem('username') || localStorage.getItem('currentTech');
+                
+                if (!userQuery) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                currentTechUsername = userQuery.trim();
+                
+                // جلب وإظهار اسم الفني فوراً
+                let shopNameEl = document.getElementById('currentShopName');
+                if (shopNameEl) {
+                    shopNameEl.innerText = currentTechUsername;
+                }
+
+                document.getElementById('langSelect').value = currentLang;
+                document.getElementById('countrySelect').value = currentCountry;
+                changeLanguage(currentLang);
+                changeCountry(currentCountry);
+
+                await loadAnnouncements();
+                await checkAccountStatusAutomatically();
+                await loadData(true); 
+                
+                setInterval(() => { loadData(false); }, 3000); 
+            } catch (error) {
+                console.error("خطأ أثناء التهيئة المبدئية:", error);
             }
-
-            currentTechUsername = userQuery.trim();
-            document.getElementById('currentShopName').innerText = currentTechUsername;
-
-            document.getElementById('langSelect').value = currentLang;
-            document.getElementById('countrySelect').value = currentCountry;
-            changeLanguage(currentLang);
-            changeCountry(currentCountry);
-
-            loadAnnouncements();
-            await checkAccountStatusAutomatically();
-            await loadData(true); 
-            
-            setInterval(() => { loadData(false); }, 3000); 
         }
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -549,13 +975,6 @@
             };
         }
 
-        function switchTab(tabId) {
-            document.querySelectorAll('.section-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById('tab-' + tabId).classList.add('active');
-            event.currentTarget.classList.add('active');
-        }
-
         function logout() { 
             localStorage.clear();
             window.location.href = 'login.html'; 
@@ -579,7 +998,7 @@
             let notes = document.getElementById('deviceNotes').value.trim();
 
             if(!name || !phone || !device) {
-                showCustomAlert('بيانات ناقصة', 'الرجاء إدخال البيانات الأساسية');
+                showCustomAlert('بيانات ناقصة', 'الرجاء إدخال البيانات الأساسية (الاسم، الهاتف، والجهاز)');
                 return;
             }
 
@@ -600,64 +1019,77 @@
                 technician: currentTechUsername
             };
 
-            let { error } = await _supabase.from('devices').insert([newDev]);
-            if (error) {
-                showCustomAlert('خطأ', 'فشل حفظ الجهاز: ' + error.message);
-                return;
-            }
+            try {
+                let { error } = await _supabase.from('devices').insert([newDev]);
+                if (error) {
+                    showCustomAlert('خطأ', 'فشل حفظ الجهاز: ' + error.message);
+                    return;
+                }
 
-            showToast('تم تسجيل الجهاز برقم التتبع: ' + trackCode);
-            document.getElementById('clientName').value = '';
-            document.getElementById('clientPhone').value = '';
-            document.getElementById('deviceType').value = '';
-            document.getElementById('deviceProblem').value = '';
-            document.getElementById('deviceCost').value = '';
-            document.getElementById('expectedTime').value = '';
-            document.getElementById('devicePassword').value = '';
-            document.getElementById('deviceNotes').value = '';
-            
-            await loadData(true);
-            switchTab('current');
+                showToast('تم تسجيل الجهاز برقم التتبع: ' + trackCode);
+                
+                // تفريغ الحقول
+                document.getElementById('clientName').value = '';
+                document.getElementById('clientPhone').value = '';
+                document.getElementById('deviceType').value = '';
+                document.getElementById('deviceProblem').value = '';
+                document.getElementById('deviceCost').value = '';
+                document.getElementById('expectedTime').value = '';
+                document.getElementById('devicePassword').value = '';
+                document.getElementById('deviceNotes').value = '';
+                
+                await loadData(true);
+                // التحويل التلقائي لتابة الحالية
+                switchTab('current', document.querySelectorAll('.nav-btn')[1]);
+            } catch (err) {
+                console.error("Error inserting device:", err);
+            }
         }
 
         async function loadData(isInitial = false) {
             if (!currentTechUsername) return;
 
-            let { data, error } = await _supabase
-                .from('devices')
-                .select('*')
-                .eq('technician', currentTechUsername)
-                .order('id', { ascending: false });
+            try {
+                let { data, error } = await _supabase
+                    .from('devices')
+                    .select('*')
+                    .eq('technician', currentTechUsername)
+                    .order('id', { ascending: false });
 
-            if (error) return;
+                if (error) return;
 
-            let newData = data || [];
-            if (!isInitial && devicesList.length > 0) {
-                let hasNewClientMessage = false;
-                newData.forEach(newDev => {
-                    let oldDev = devicesList.find(d => d.id === newDev.id);
-                    if (oldDev) {
-                        let oldCount = (oldDev.chat || []).filter(m => m.sender === 'client').length;
-                        let newCount = (newDev.chat || []).filter(m => m.sender === 'client').length;
-                        if (newCount > oldCount) hasNewClientMessage = true;
+                let newData = data || [];
+                if (!isInitial && devicesList.length > 0) {
+                    let hasNewClientMessage = false;
+                    newData.forEach(newDev => {
+                        let oldDev = devicesList.find(d => d.id === newDev.id);
+                        if (oldDev) {
+                            let oldCount = (oldDev.chat || []).filter(m => m.sender === 'client').length;
+                            let newCount = (newDev.chat || []).filter(m => m.sender === 'client').length;
+                            if (newCount > oldCount) hasNewClientMessage = true;
+                        }
+                    });
+                    if (hasNewClientMessage) {
+                        playNotificationSound();
+                        showToast('💬 وصلتك رسالة جديدة من أحد العملاء!');
                     }
-                });
-                if (hasNewClientMessage) {
-                    playNotificationSound();
-                    showToast('💬 وصلتك رسالة جديدة من أحد العملاء!');
                 }
-            }
 
-            devicesList = newData;
-            renderTables();
+                devicesList = newData;
+                renderTables();
 
-            if (activeChatDeviceIndex !== null) {
-                let currentDevId = devicesList[activeChatDeviceIndex]?.id;
-                let idx = devicesList.findIndex(d => d.id === currentDevId);
-                if (idx !== -1) {
-                    activeChatDeviceIndex = idx;
-                    renderActiveChatMessages();
-                } else { closeChatBox(); }
+                if (activeChatDeviceIndex !== null) {
+                    let currentDevId = devicesList[activeChatDeviceIndex]?.id;
+                    let idx = devicesList.findIndex(d => d.id === currentDevId);
+                    if (idx !== -1) {
+                        activeChatDeviceIndex = idx;
+                        renderActiveChatMessages();
+                    } else { 
+                        closeChatBox(); 
+                    }
+                }
+            } catch (error) {
+                console.error("Error loading data:", error);
             }
         }
 
@@ -666,6 +1098,7 @@
             let deliveredTbody = document.querySelector('#deliveredDevicesTable tbody');
             let returnedTbody = document.querySelector('#returnedDevicesTable tbody');
             let reportTbody = document.getElementById('reportTableBody');
+            
             if (!currentTbody) return;
 
             currentTbody.innerHTML = '';
@@ -687,6 +1120,7 @@
                 let devDate = formatDate(d.created_at);
                 let searchableText = `${d.tracking_number} ${d.customer_name} ${d.phone} ${d.device_name} ${statusVal} ${devDate}`.toLowerCase();
 
+                // التقرير الشامل
                 if (!sReport || searchableText.includes(sReport)) {
                     reportTbody.innerHTML += `
                         <tr>
@@ -701,6 +1135,7 @@
                     `;
                 }
 
+                // المسترجع
                 if(isReturnedOnly) {
                     if (!sReturned || searchableText.includes(sReturned)) {
                         returnedTbody.innerHTML += `
@@ -714,7 +1149,9 @@
                             </tr>
                         `;
                     }
-                } else if(isDelivered) {
+                } 
+                // المسلمة
+                else if(isDelivered) {
                     if (!sDelivered || searchableText.includes(sDelivered)) {
                         deliveredTbody.innerHTML += `
                             <tr>
@@ -728,7 +1165,9 @@
                             </tr>
                         `;
                     }
-                } else {
+                } 
+                // الحالية (تحت الفحص والصيانة)
+                else {
                     if (!sCurrent || searchableText.includes(sCurrent)) {
                         currentTbody.innerHTML += `
                             <tr>
@@ -792,39 +1231,65 @@
             let newStatus = selectElement.value;
             let dev = devicesList[index];
             let oldStatus = dev.status;
+            
             showCustomConfirm('تأكيد تغيير الحالة', `هل أنت متأكد من تغيير حالة الجهاز (${dev.tracking_number})؟`, async (confirmed) => {
                 if (confirmed) {
-                    let { error } = await _supabase.from('devices').update({ status: newStatus }).eq('id', dev.id);
-                    if (!error) { showToast('تم التحديث بنجاح'); await loadData(true); }
-                    else { selectElement.value = oldStatus; }
-                } else { selectElement.value = oldStatus; }
+                    try {
+                        let { error } = await _supabase.from('devices').update({ status: newStatus }).eq('id', dev.id);
+                        if (!error) { 
+                            showToast('تم التحديث بنجاح'); 
+                            await loadData(true); 
+                        } else { 
+                            selectElement.value = oldStatus; 
+                            showCustomAlert('خطأ', 'فشل تحديث الحالة.');
+                        }
+                    } catch (e) {
+                        selectElement.value = oldStatus;
+                    }
+                } else { 
+                    selectElement.value = oldStatus; 
+                }
             });
         }
 
         async function sendFaultAndCost(index) {
             let dev = devicesList[index];
             let faultVal = document.getElementById('faultInput-' + index).value.trim();
-            if(!faultVal) { showCustomAlert('تنبيه', 'الرجاء كتابة العطل الجديد'); return; }
-            let { error } = await _supabase.from('devices').update({ new_fault: faultVal, status: 'بانتظار موافقة العميل على التكلفة' }).eq('id', dev.id);
-            if (!error) { showToast('تم إرسال العطل للعميل'); await loadData(true); }
+            if(!faultVal) { 
+                showCustomAlert('تنبيه', 'الرجاء كتابة العطل الجديد أولاً.'); 
+                return; 
+            }
+            try {
+                let { error } = await _supabase.from('devices').update({ new_fault: faultVal, status: 'بانتظار موافقة العميل على التكلفة' }).eq('id', dev.id);
+                if (!error) { 
+                    showToast('تم إرسال العطل للعميل'); 
+                    await loadData(true); 
+                }
+            } catch (e) {}
         }
 
         async function updateCost(index, newCost) {
             let dev = devicesList[index];
-            await _supabase.from('devices').update({ cost: newCost }).eq('id', dev.id);
+            try {
+                await _supabase.from('devices').update({ cost: newCost }).eq('id', dev.id);
+            } catch (e) {}
         }
 
         async function updateExpectedTime(index, newTime) {
             let dev = devicesList[index];
-            await _supabase.from('devices').update({ expected_time: newTime }).eq('id', dev.id);
+            try {
+                await _supabase.from('devices').update({ expected_time: newTime }).eq('id', dev.id);
+            } catch (e) {}
         }
 
         async function editDetails(index) {
             let dev = devicesList[index];
             let newDet = prompt('تعديل الملاحظات:', dev.details || '');
             if(newDet !== null) {
-                await _supabase.from('devices').update({ details: newDet }).eq('id', dev.id);
-                await loadData(true);
+                try {
+                    await _supabase.from('devices').update({ details: newDet }).eq('id', dev.id);
+                    await loadData(true);
+                } catch (e) {}
             }
         }
 
@@ -889,7 +1354,9 @@
             }
             
             if(unreadIds.length > 0) {
-                await _supabase.from('devices').update({ chat: chatArr }).eq('id', dev.id);
+                try {
+                    await _supabase.from('devices').update({ chat: chatArr }).eq('id', dev.id);
+                } catch (e) {}
             }
         }
 
@@ -902,4 +1369,23 @@
             
             let chatArr = dev.chat ? [...dev.chat] : [];
             chatArr.push({
-                sen
+                sender: 'tech',
+                text: text,
+                time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                read: false,
+                readByTech: true
+            });
+            
+            input.value = '';
+            
+            try {
+                let { data, error } = await _supabase.from('devices').update({ chat: chatArr }).eq('id', dev.id).select().single();
+                if(!error && data) {
+                    devicesList[activeChatDeviceIndex] = data;
+                    renderActiveChatMessages();
+                }
+            } catch (e) {}
+        }
+    </script>
+</body>
+</html>
