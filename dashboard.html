@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title data-i18n="techDashboardTitle">لوحة تحكم الفني الاحترافية - إدارة الصيانة</title>
+    <!-- مكتبة Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -77,6 +78,7 @@
 </head>
 <body>
 
+    <!-- نوافذ التنبيهات -->
     <div id="customModalOverlay" class="custom-modal-overlay">
         <div class="custom-modal">
             <h3 id="modalTitle">تنبيه النظام</h3>
@@ -88,10 +90,12 @@
         </div>
     </div>
 
+    <!-- شريط التنبيهات المتحرك العلوي -->
     <div class="marquee-container">
         <div class="marquee-text" id="announcementText">جاري تحميل التنبيهات...</div>
     </div>
 
+    <!-- شريط التنقل العلوي -->
     <div class="top-nav">
         <div style="font-size: 0.9rem; font-weight: bold; color: var(--primary-color);">
             🛠 الفني المسؤول: <span id="currentShopName" style="color: #22c55e;">جاري التحميل...</span>
@@ -120,6 +124,7 @@
         <button class="logout-btn" onclick="logout()" data-i18n="logoutBtn">خروج</button>
     </div>
 
+    <!-- قسم إضافة جهاز -->
     <div id="tab-add" class="section-content active">
         <div class="card">
             <h2 data-i18n="newDeviceTitle">تسجيل جهاز صيانة جديد</h2>
@@ -161,6 +166,7 @@
         </div>
     </div>
 
+    <!-- الأجهزة الحالية -->
     <div id="tab-current" class="section-content">
         <div class="card">
             <h2 data-i18n="currentDevicesTitle">الأجهزة تحت الفحص والصيانة</h2>
@@ -187,6 +193,7 @@
                 </table>
             </div>
 
+            <!-- حاوية الشات والاتصال المباشر -->
             <div id="chatSectionContainer" style="display:none;" class="chat-container-card">
                 <div class="chat-header-actions">
                     <span id="activeChatTitle" style="font-size: 0.9rem; color: var(--primary-color); font-weight: 600;">💬 محادثة العميل: -</span>
@@ -208,6 +215,7 @@
         </div>
     </div>
 
+    <!-- الأجهزة المسلمة -->
     <div id="tab-delivered" class="section-content">
         <div class="card">
             <h2 data-i18n="deliveredDevicesTitle">الأجهزة المسلمة للعملاء</h2>
@@ -233,6 +241,7 @@
         </div>
     </div>
 
+    <!-- الأجهزة المسترجعة -->
     <div id="tab-returned" class="section-content">
         <div class="card">
             <h2 data-i18n="returnedDevicesTitle">الأجهزة المسترجعة</h2>
@@ -257,6 +266,7 @@
         </div>
     </div>
 
+    <!-- التقارير -->
     <div id="tab-reports" class="section-content">
         <div class="card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
@@ -892,20 +902,4 @@
             
             let chatArr = dev.chat ? [...dev.chat] : [];
             chatArr.push({
-                sender: 'tech',
-                text: text,
-                time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                read: false,
-                readByTech: true
-            });
-            
-            input.value = '';
-            let { data, error } = await _supabase.from('devices').update({ chat: chatArr }).eq('id', dev.id).select().single();
-            if(!error && data) {
-                devicesList[activeChatDeviceIndex] = data;
-                renderActiveChatMessages();
-            }
-        }
-    </script>
-</body>
-</html>
+                sen

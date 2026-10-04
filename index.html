@@ -532,20 +532,36 @@
             }
         }
 
-        function startVoiceCall() {
+        async function startVoiceCall() {
             if(!activeDevice) {
                 showCustomAlert('تنبيه', 'الرجاء البحث عن الجهاز أولاً.');
                 return;
             }
             playRingingSound();
             showCustomAlert('📞 اتصال صوتي مباشر', 'جاري الاتصال بالفني... يرجى الانتظار.');
+            
+            // إرسال إشعار اتصال لقاعدة البيانات لتنبيه الفني
+            try {
+                let chatArr = activeDevice.chat ? [...activeDevice.chat] : [];
+                chatArr.push({
+                    sender: 'client',
+                    text: '📞 [مكالمة واردة من العميل]',
+                    time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                    readByTech: false,
+                    isCallNotification: true
+                });
+                await _supabase.from('devices').update({ chat: chatArr }).eq('id', activeDevice.id);
+            } catch(e) { console.error(e); }
         }
 
         async function answerCall() {
             stopRingingSound();
             closeCustomModal();
             if(activeDevice) {
-                await _supabase.from('devices').update({ is_calling: false }).eq('id', activeDevice.id);
+                // محاولة إيقاف رنين المكالمة في القاعدة لتجنب التكرار
+                try {
+                    await _supabase.from('devices').update({ is_calling: false }).eq('id', activeDevice.id);
+                } catch (e) {}
             }
         }
 
@@ -700,21 +716,31 @@
 
         async function approveExtraCost() {
             if(!activeDevice) return;
-            let { data, error } = await _supabase.from('devices').update({ status: 'جاري الإصلاح', is_calling: false }).eq('id', activeDevice.id).select().single();
-            if(!error && data) {
-                activeDevice = data;
-                updateUIWithDeviceData(data);
-                showCustomAlert('تم بنجاح', 'تم إرسال الموافقة للفني');
+            try {
+                let { data, error } = await _supabase.from('devices').update({ status: 'جاري الإصلاح' }).eq('id', activeDevice.id).select().single();
+                if(error) throw error;
+                if(data) {
+                    activeDevice = data;
+                    updateUIWithDeviceData(data);
+                    showCustomAlert('تم بنجاح', 'تم إرسال الموافقة للفني');
+                }
+            } catch(e) {
+                alert('فشل التحديث. الرجاء التأكد من إيقاف "RLS" في قاعدة البيانات (Supabase).\nتفاصيل الخطأ: ' + e.message);
             }
         }
 
         async function rejectExtraCost() {
             if(!activeDevice) return;
-            let { data, error } = await _supabase.from('devices').update({ status: 'تم رفض التكلفة', is_calling: false }).eq('id', activeDevice.id).select().single();
-            if(!error && data) {
-                activeDevice = data;
-                updateUIWithDeviceData(data);
-                showCustomAlert('تم بنجاح', 'تم إرسال الرفض للفني');
+            try {
+                let { data, error } = await _supabase.from('devices').update({ status: 'تم رفض التكلفة' }).eq('id', activeDevice.id).select().single();
+                if(error) throw error;
+                if(data) {
+                    activeDevice = data;
+                    updateUIWithDeviceData(data);
+                    showCustomAlert('تم بنجاح', 'تم إرسال الرفض للفني');
+                }
+            } catch(e) {
+                alert('فشل التحديث. الرجاء التأكد من إيقاف "RLS" في قاعدة البيانات (Supabase).\nتفاصيل الخطأ: ' + e.message);
             }
         }
 
@@ -771,11 +797,16 @@
                 readTime: null
             });
 
-            let { data, error } = await _supabase.from('devices').update({ chat: chatArr }).eq('id', activeDevice.id).select().single();
-            if(!error && data) {
-                input.value = '';
-                activeDevice = data;
-                updateUIWithDeviceData(data);
+            try {
+                let { data, error } = await _supabase.from('devices').update({ chat: chatArr }).eq('id', activeDevice.id).select().single();
+                if(error) throw error;
+                if(data) {
+                    input.value = '';
+                    activeDevice = data;
+                    updateUIWithDeviceData(data);
+                }
+            } catch(e) {
+                alert('فشل إرسال الرسالة: ' + e.message);
             }
         }
     </script>
