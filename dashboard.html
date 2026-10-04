@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title data-i18n="techDashboardTitle">لوحة تحكم الفني الاحترافية - إدارة الصيانة</title>
-    <!-- مكتبة Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -20,399 +19,59 @@
             --danger-color: #ef4444;
             --accent-gradient: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
         }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body {
-            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-            color: var(--text-color);
-            min-height: 100vh;
-            padding: 10px;
-        }
-
-        .marquee-container {
-            width: 100%;
-            background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(2, 132, 199, 0.15) 100%);
-            border: 1px solid rgba(56, 189, 248, 0.3);
-            border-radius: 12px;
-            overflow: hidden;
-            padding: 10px 0;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            backdrop-filter: blur(5px);
-        }
-        .marquee-text {
-            font-size: 0.95rem;
-            font-weight: 700;
-            color: #38bdf8;
-            white-space: nowrap;
-            animation: marquee 20s linear infinite;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.4);
-        }
-        .marquee-container:hover .marquee-text {
-            animation-play-state: paused;
-        }
-        @keyframes marquee {
-            0% { transform: translateX(100%); }
-            100% { transform: translateX(-100%); }
-        }
-
-        .top-nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--card-bg);
-            padding: 12px 15px;
-            border-radius: 14px;
-            border: 1px solid var(--border-color);
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-            gap: 10px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-        }
-
-        .nav-buttons {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .nav-btn {
-            background: rgba(56, 189, 248, 0.08);
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-            padding: 7px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            font-weight: 600;
-            transition: all 0.2s ease;
-        }
-
-        .nav-btn.active, .nav-btn:hover {
-            background: var(--accent-gradient);
-            color: #0f172a;
-            border-color: transparent;
-        }
-
-        .settings-select {
-            background: rgba(15, 23, 42, 0.9);
-            color: var(--text-color);
-            border: 1px solid var(--border-color);
-            padding: 6px 10px;
-            border-radius: 8px;
-            font-size: 0.8rem;
-            outline: none;
-            cursor: pointer;
-        }
-
-        .logout-btn {
-            background: rgba(239, 68, 68, 0.15);
-            border: 1px solid var(--danger-color);
-            color: var(--danger-color);
-            padding: 7px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.8rem;
-        }
-
-        .logout-btn:hover {
-            background: var(--danger-color);
-            color: white;
-        }
-
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); color: var(--text-color); min-height: 100vh; padding: 10px; }
+        .marquee-container { width: 100%; background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(2, 132, 199, 0.15) 100%); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; overflow: hidden; padding: 10px 0; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); backdrop-filter: blur(5px); }
+        .marquee-text { font-size: 0.95rem; font-weight: 700; color: #38bdf8; white-space: nowrap; animation: marquee 20s linear infinite; text-shadow: 0 2px 4px rgba(0,0,0,0.4); }
+        .marquee-container:hover .marquee-text { animation-play-state: paused; }
+        @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+        .top-nav { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); padding: 12px 15px; border-radius: 14px; border: 1px solid var(--border-color); margin-bottom: 15px; flex-wrap: wrap; gap: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
+        .nav-buttons { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+        .nav-btn { background: rgba(56, 189, 248, 0.08); border: 1px solid var(--border-color); color: var(--text-color); padding: 7px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: all 0.2s ease; }
+        .nav-btn.active, .nav-btn:hover { background: var(--accent-gradient); color: #0f172a; border-color: transparent; }
+        .settings-select { background: rgba(15, 23, 42, 0.9); color: var(--text-color); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 8px; font-size: 0.8rem; outline: none; cursor: pointer; }
+        .logout-btn { background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger-color); color: var(--danger-color); padding: 7px 12px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.8rem; }
+        .logout-btn:hover { background: var(--danger-color); color: white; }
         .section-content { display: none; }
         .section-content.active { display: block; }
-
-        .card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            padding: 15px;
-            border-radius: 14px;
-            margin-bottom: 15px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
-        }
-
-        h2 {
-            font-size: 1.1rem;
-            color: var(--primary-color);
-            margin-bottom: 12px;
-            font-weight: 700;
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            font-weight: 500;
-        }
-
-        .form-group input, .form-group select, .form-group textarea {
-            width: 100%;
-            padding: 9px 10px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            background: rgba(15, 23, 42, 0.8);
-            color: white;
-            font-size: 0.85rem;
-            outline: none;
-        }
-
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-            border-color: var(--primary-color);
-        }
-
-        .form-group textarea {
-            resize: vertical;
-            height: 70px;
-        }
-
-        button.primary-btn {
-            background: var(--accent-gradient);
-            color: #0f172a;
-            border: none;
-            padding: 9px 18px;
-            border-radius: 8px;
-            font-weight: 700;
-            cursor: pointer;
-            font-size: 0.85rem;
-        }
-
+        .card { background: var(--card-bg); border: 1px solid var(--border-color); padding: 15px; border-radius: 14px; margin-bottom: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.4); }
+        h2 { font-size: 1.1rem; color: var(--primary-color); margin-bottom: 12px; font-weight: 700; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 12px; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(15, 23, 42, 0.8); color: white; font-size: 0.85rem; outline: none; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--primary-color); }
+        .form-group textarea { resize: vertical; height: 70px; }
+        button.primary-btn { background: var(--accent-gradient); color: #0f172a; border: none; padding: 9px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.85rem; }
         .search-filter-bar { margin-bottom: 12px; }
-        .search-filter-bar input {
-            width: 100%;
-            padding: 8px 12px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            background: rgba(15, 23, 42, 0.8);
-            color: white;
-            font-size: 0.85rem;
-            outline: none;
-        }
-
-        .table-responsive {
-            width: 100%;
-            overflow-x: auto;
-            border-radius: 10px;
-            border: 1px solid var(--border-color);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.8rem;
-            min-width: 650px;
-        }
-
-        th, td {
-            padding: 10px 12px;
-            text-align: center;
-            border-bottom: 1px solid var(--border-color);
-            white-space: nowrap;
-        }
-
-        th {
-            background: rgba(56, 189, 248, 0.12);
-            color: var(--primary-color);
-            font-weight: 600;
-        }
-
+        .search-filter-bar input { width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(15, 23, 42, 0.8); color: white; font-size: 0.85rem; outline: none; }
+        .table-responsive { width: 100%; overflow-x: auto; border-radius: 10px; border: 1px solid var(--border-color); }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; min-width: 650px; }
+        th, td { padding: 10px 12px; text-align: center; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
+        th { background: rgba(56, 189, 248, 0.12); color: var(--primary-color); font-weight: 600; }
         tr:hover { background: rgba(255, 255, 255, 0.02); }
-
-        .action-btn {
-            background: rgba(56, 189, 248, 0.1);
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-            padding: 5px 8px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.75rem;
-            transition: 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 3px;
-        }
-
-        .action-btn:hover {
-            background: var(--primary-color);
-            color: #0f172a;
-        }
-
-        .status-select {
-            padding: 5px 8px;
-            border-radius: 6px;
-            background: #0f172a;
-            color: #fff;
-            border: 1px solid var(--border-color);
-            font-size: 0.75rem;
-            cursor: pointer;
-        }
-
-        .chat-container-card {
-            background: rgba(15, 23, 42, 0.98);
-            border: 2px solid var(--primary-color);
-            border-radius: 14px;
-            padding: 15px;
-            margin-top: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-        }
-
-        .chat-header-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 8px;
-        }
-
-        .chat-call-btn {
-            background: linear-gradient(135deg, #22c55e, #15803d);
-            color: white;
-            border: none;
-            padding: 5px 12px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
+        .action-btn { background: rgba(56, 189, 248, 0.1); border: 1px solid var(--border-color); color: var(--text-color); padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; transition: 0.2s; display: inline-flex; align-items: center; gap: 3px; }
+        .action-btn:hover { background: var(--primary-color); color: #0f172a; }
+        .status-select { padding: 5px 8px; border-radius: 6px; background: #0f172a; color: #fff; border: 1px solid var(--border-color); font-size: 0.75rem; cursor: pointer; }
+        .chat-container-card { background: rgba(15, 23, 42, 0.98); border: 2px solid var(--primary-color); border-radius: 14px; padding: 15px; margin-top: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+        .chat-header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+        .chat-call-btn { background: linear-gradient(135deg, #22c55e, #15803d); color: white; border: none; padding: 5px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px; }
         .chat-call-btn:hover { opacity: 0.9; }
-
-        .chat-msgs {
-            height: 280px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            font-size: 0.85rem;
-            margin-bottom: 12px;
-            padding: 8px;
-            background: rgba(15, 23, 42, 0.6);
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            word-break: break-word;
-        }
-
-        .chat-msg-item {
-            padding: 8px 12px;
-            border-radius: 10px;
-            max-width: 85%;
-            line-height: 1.4;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .chat-msg-tech {
-            background: rgba(34, 197, 94, 0.18);
-            border: 1px solid rgba(34, 197, 94, 0.4);
-            align-self: flex-end;
-            color: #86efac;
-            text-align: right;
-        }
-
-        .chat-msg-client {
-            background: rgba(56, 189, 248, 0.18);
-            border: 1px solid rgba(56, 189, 248, 0.4);
-            align-self: flex-start;
-            color: #bae6fd;
-            text-align: right;
-        }
-
-        .chat-input-row {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            width: 100%;
-        }
-
-        .chat-input-row input {
-            flex: 1;
-            min-width: 0;
-            padding: 10px 12px;
-            font-size: 0.9rem;
-            border-radius: 8px;
-            background: rgba(30, 41, 59, 0.9);
-            border: 1px solid var(--border-color);
-            color: #fff;
-            outline: none;
-        }
-
-        .custom-modal-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(4px);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.2s ease;
-        }
-
+        .chat-msgs { height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem; margin-bottom: 12px; padding: 8px; background: rgba(15, 23, 42, 0.6); border-radius: 8px; border: 1px solid var(--border-color); word-break: break-word; }
+        .chat-msg-item { padding: 8px 12px; border-radius: 10px; max-width: 85%; line-height: 1.4; display: flex; flex-direction: column; }
+        .chat-msg-tech { background: rgba(34, 197, 94, 0.18); border: 1px solid rgba(34, 197, 94, 0.4); align-self: flex-end; color: #86efac; text-align: right; }
+        .chat-msg-client { background: rgba(56, 189, 248, 0.18); border: 1px solid rgba(56, 189, 248, 0.4); align-self: flex-start; color: #bae6fd; text-align: right; }
+        .chat-input-row { display: flex; gap: 8px; align-items: center; width: 100%; }
+        .chat-input-row input { flex: 1; min-width: 0; padding: 10px 12px; font-size: 0.9rem; border-radius: 8px; background: rgba(30, 41, 59, 0.9); border: 1px solid var(--border-color); color: #fff; outline: none; }
+        .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 9999; opacity: 0; visibility: hidden; transition: all 0.2s ease; }
         .custom-modal-overlay.active { opacity: 1; visibility: visible; }
-
-        .custom-modal {
-            background: #1e293b;
-            border: 1px solid var(--border-color);
-            padding: 20px;
-            border-radius: 14px;
-            width: 85%;
-            max-width: 350px;
-            text-align: center;
-            box-shadow: 0 15px 30px rgba(0,0,0,0.5);
-        }
-
+        .custom-modal { background: #1e293b; border: 1px solid var(--border-color); padding: 20px; border-radius: 14px; width: 85%; max-width: 350px; text-align: center; box-shadow: 0 15px 30px rgba(0,0,0,0.5); }
         .custom-modal h3 { color: var(--primary-color); margin-bottom: 10px; font-size: 1.1rem; }
         .custom-modal p { color: var(--text-color); font-size: 0.9rem; margin-bottom: 15px; line-height: 1.5; }
         .custom-modal-actions { display: flex; gap: 8px; }
-
-        .modal-btn {
-            padding: 8px 15px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            font-size: 0.85rem;
-            flex: 1;
-        }
-
+        .modal-btn { padding: 8px 15px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; font-size: 0.85rem; flex: 1; }
         .modal-btn-confirm { background: var(--accent-gradient); color: #0f172a; }
         .modal-btn-cancel { background: rgba(255,255,255,0.08); color: var(--text-color); border: 1px solid var(--border-color); }
-
-        .toast {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%) translateY(80px);
-            background: var(--success-color);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.85rem;
-            transition: transform 0.3s ease;
-            z-index: 1000;
-        }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--success-color); color: white; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; transition: transform 0.3s ease; z-index: 1000; }
         .toast.show { transform: translateX(-50%) translateY(0); }
     </style>
 </head>
@@ -429,15 +88,13 @@
         </div>
     </div>
 
-    <!-- شريط التنبيهات المتحرك العلوي -->
     <div class="marquee-container">
         <div class="marquee-text" id="announcementText">جاري تحميل التنبيهات...</div>
     </div>
 
-    <!-- شريط التنقل العلوي -->
     <div class="top-nav">
         <div style="font-size: 0.9rem; font-weight: bold; color: var(--primary-color);">
-            🛠️️ الفني المسؤول: <span id="currentShopName" style="color: #22c55e;">جاري التحميل...</span>
+            🛠 الفني المسؤول: <span id="currentShopName" style="color: #22c55e;">جاري التحميل...</span>
         </div>
         
         <div class="nav-buttons">
@@ -463,7 +120,6 @@
         <button class="logout-btn" onclick="logout()" data-i18n="logoutBtn">خروج</button>
     </div>
 
-    <!-- قسم إضافة جهاز -->
     <div id="tab-add" class="section-content active">
         <div class="card">
             <h2 data-i18n="newDeviceTitle">تسجيل جهاز صيانة جديد</h2>
@@ -505,7 +161,6 @@
         </div>
     </div>
 
-    <!-- الأجهزة الحالية -->
     <div id="tab-current" class="section-content">
         <div class="card">
             <h2 data-i18n="currentDevicesTitle">الأجهزة تحت الفحص والصيانة</h2>
@@ -532,17 +187,14 @@
                 </table>
             </div>
 
-            <!-- حاوية الشات وزر الاتصال بجانب زر الإغلاق -->
             <div id="chatSectionContainer" style="display:none;" class="chat-container-card">
                 <div class="chat-header-actions">
                     <span id="activeChatTitle" style="font-size: 0.9rem; color: var(--primary-color); font-weight: 600;">💬 محادثة العميل: -</span>
                     
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <!-- زر الاتصال الحي المباشر -->
                         <button class="chat-call-btn" onclick="startLiveCall()">
                             📞 <span data-i18n="callBtn">اتصال مباشر</span>
                         </button>
-                        <!-- زر إغلاق الشات -->
                         <button onclick="closeChatBox()" style="background:none; border:none; color:var(--danger-color); font-size:1rem; cursor:pointer; font-weight:bold;">✕ إغلاق الشات</button>
                     </div>
                 </div>
@@ -556,7 +208,6 @@
         </div>
     </div>
 
-    <!-- الأجهزة المسلمة -->
     <div id="tab-delivered" class="section-content">
         <div class="card">
             <h2 data-i18n="deliveredDevicesTitle">الأجهزة المسلمة للعملاء</h2>
@@ -582,7 +233,6 @@
         </div>
     </div>
 
-    <!-- الأجهزة المسترجعة -->
     <div id="tab-returned" class="section-content">
         <div class="card">
             <h2 data-i18n="returnedDevicesTitle">الأجهزة المسترجعة</h2>
@@ -607,7 +257,6 @@
         </div>
     </div>
 
-    <!-- التقارير -->
     <div id="tab-reports" class="section-content">
         <div class="card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
@@ -757,7 +406,6 @@
             }
             let dev = devicesList[activeChatDeviceIndex];
             
-            // تحديث حالة الاتصال في قاعدة البيانات بدون أي أخطاء (يعتمد على حقل chat أو status الحواري)
             try {
                 let chatArr = dev.chat ? [...dev.chat] : [];
                 chatArr.push({
@@ -768,7 +416,8 @@
                     readByTech: true,
                     isCallNotification: true
                 });
-                await _supabase.from('devices').update({ chat: chatArr }).eq('id', dev.id);
+                
+                await _supabase.from('devices').update({ chat: chatArr, is_calling: true }).eq('id', dev.id);
                 showCustomAlert('📞 الاتصال الصوتي الحي', `جاري رنين المكالمة الحية مع العميل: <b>${dev.customer_name}</b>...`);
             } catch(e) {
                 showCustomAlert('📞 الاتصال', `جاري الاتصال بالعميل: ${dev.customer_name}`);
@@ -1166,4 +815,97 @@
             if(newDet !== null) {
                 await _supabase.from('devices').update({ details: newDet }).eq('id', dev.id);
                 await loadData(true);
-        
+            }
+        }
+
+        function openChatBox(index) {
+            activeChatDeviceIndex = index;
+            document.getElementById('chatSectionContainer').style.display = 'block';
+            renderActiveChatMessages();
+            renderTables();
+        }
+
+        function closeChatBox() {
+            activeChatDeviceIndex = null;
+            document.getElementById('chatSectionContainer').style.display = 'none';
+            renderTables();
+        }
+
+        async function renderActiveChatMessages() {
+            if(activeChatDeviceIndex === null) return;
+            let dev = devicesList[activeChatDeviceIndex];
+            document.getElementById('activeChatTitle').innerHTML = `💬 محادثة العميل: <span style="color:#fff;">${dev.customer_name} (${dev.tracking_number})</span>`;
+            
+            let container = document.getElementById('activeChatMsgsContainer');
+            let isScrolledToBottom = container.scrollHeight - container.clientHeight <= container.scrollTop + 50;
+            container.innerHTML = '';
+            
+            let chatArr = dev.chat || [];
+            let unreadIds = [];
+            
+            if(chatArr.length === 0) {
+                container.innerHTML = '<div style="color:var(--text-muted); text-align:center; margin-top:20px;">لا توجد رسائل حتى الآن.</div>';
+            } else {
+                chatArr.forEach((m, idx) => {
+                    let msgClass = m.sender === 'tech' ? 'chat-msg-tech' : 'chat-msg-client';
+                    let senderLabel = m.sender === 'tech' ? '🛠️ أنت:' : '👤 العميل:';
+                    
+                    if(m.sender === 'client' && !m.readByTech) {
+                        m.readByTech = true;
+                        m.readTime = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                        unreadIds.push(idx);
+                    }
+                    
+                    let readStatus = '';
+                    if(m.sender === 'tech') {
+                        if(m.read) readStatus = `<span style="color:#00f2fe; font-size:0.7rem;">✓✓ مقروءة</span>`;
+                        else readStatus = `<span style="color:#a0aec0; font-size:0.65rem;">✓ أُرسلت</span>`;
+                    }
+                    
+                    container.innerHTML += `
+                        <div class="chat-msg-item ${msgClass}">
+                            <div style="font-size:0.75rem; font-weight:bold; margin-bottom:4px;">${senderLabel}</div>
+                            <div>${m.text}</div>
+                            <div style="font-size:0.65rem; margin-top:5px; opacity:0.8; display:flex; justify-content:space-between;">
+                                <span>${m.time}</span> ${readStatus}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            if(isScrolledToBottom || chatArr.length <= 3) {
+                container.scrollTop = container.scrollHeight;
+            }
+            
+            if(unreadIds.length > 0) {
+                await _supabase.from('devices').update({ chat: chatArr }).eq('id', dev.id);
+            }
+        }
+
+        async function sendTechMsgActive() {
+            if(activeChatDeviceIndex === null) return;
+            let dev = devicesList[activeChatDeviceIndex];
+            let input = document.getElementById('activeChatInput');
+            let text = input.value.trim();
+            if(!text) return;
+            
+            let chatArr = dev.chat ? [...dev.chat] : [];
+            chatArr.push({
+                sender: 'tech',
+                text: text,
+                time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                read: false,
+                readByTech: true
+            });
+            
+            input.value = '';
+            let { data, error } = await _supabase.from('devices').update({ chat: chatArr }).eq('id', dev.id).select().single();
+            if(!error && data) {
+                devicesList[activeChatDeviceIndex] = data;
+                renderActiveChatMessages();
+            }
+        }
+    </script>
+</body>
+</html>

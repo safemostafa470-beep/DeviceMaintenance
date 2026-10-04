@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title data-i18n="pageTitle">تتبع حالة الصيانة - نظام العملاء</title>
-    <!-- مكتبة Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -542,6 +541,14 @@
             showCustomAlert('📞 اتصال صوتي مباشر', 'جاري الاتصال بالفني... يرجى الانتظار.');
         }
 
+        async function answerCall() {
+            stopRingingSound();
+            closeCustomModal();
+            if(activeDevice) {
+                await _supabase.from('devices').update({ is_calling: false }).eq('id', activeDevice.id);
+            }
+        }
+
         async function loadAnnouncementFromServer() {
             try {
                 let { data } = await _supabase.from('technicians').select('announcement').limit(1);
@@ -626,7 +633,6 @@
             startLivePolling(d.id);
         }
 
-        // فحص حي ومستمر لكل ما يحدث (الرسائل، الحالة، رنين الاتصال الحقيقي)
         function startLivePolling(deviceId) {
             if(backgroundPollingTimer) clearInterval(backgroundPollingTimer);
 
@@ -634,13 +640,11 @@
                 if (!activeDevice || !activeDevice.id) return;
                 let { data } = await _supabase.from('devices').select('*').eq('id', deviceId).single();
                 if (data) {
-                    // مراقبة رنين الاتصال الحي من الفني داخل الشات (عبر رسائل التنبيه أو حقل is_calling)
                     if (data.is_calling && (!activeDevice.is_calling || activeDevice.is_calling !== data.is_calling)) {
                         playRingingSound();
-                        showCustomAlert('📞 مكالمة واردة حية', `يتصل بك الفني المسؤول الآن.<br><br><button class="approve-btn" onclick="stopRingingSound(); closeCustomModal();">رد على المكالمة</button>`);
+                        showCustomAlert('📞 مكالمة واردة حية', `يتصل بك الفني المسؤول الآن.<br><br><button class="approve-btn" onclick="answerCall()">رد على المكالمة</button>`);
                     }
 
-                    // تنبيه عند وصول رسالة جديدة من الفني
                     if (data.chat && activeDevice.chat && data.chat.length > activeDevice.chat.length) {
                         let lastMsg = data.chat[data.chat.length - 1];
                         if (lastMsg && lastMsg.sender === 'tech') {
